@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Prisma - keep migrations in source control, ignore local snapshots
+backend/prisma/migrations/dev.db
+
+# Uploads (archivos subidos por usuarios — no van en el repo)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# TypeScript build cache
+*.tsbuildinfo
+*.exe

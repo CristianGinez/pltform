@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  COMPANY
+  DEVELOPER
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String?
+  role         Role
+  company      Company?
+  developer    Developer?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([email])
+}
+
+model Company {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  industry          String?
+  size              String?
+  website           String?
+  logoUrl           String?
+  location          String?
+  verified          Boolean   @default(false)
+  // nuevos campos de perfil
+  ruc               String?
+  contactPerson     String?
+  painDescription   String?
+  paymentMethods    String[]
+  clientRating      Float     @default(0)
+  clientReviewCount Int       @default(0)
+  projects          Project[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Developer {
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  bio             String?
+  skills          String[]
+  hourlyRate      Decimal?   @db.Decimal(10, 2)
+  portfolioUrl    String?
+  githubUrl       String?
+  linkedinUrl     String?
+  location        String?
+  avatarUrl       String?
+  available       Boolean    @default(true)
+  rating          Float      @default(0)
+  reviewCount     Int        @default(0)
+  // nuevos campos de perfil
+  university      String?
+  cycle           String?
+  specialtyBadges String[]
+  trustPoints     Int        @default(0)
+  verified        Boolean    @default(false)
+  ruc             String?
+  warrantyDays    Int?
+  proposals       Proposal[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  budget      Decimal       @db.Decimal(10, 2)
+  deadline    DateTime?
+  skills      String[]
+  category    String?
+  status      ProjectStatus @default(DRAFT)
+  proposals   Proposal[]
+  contract    Contract?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+  @@index([companyId])
+}
+
+model Proposal {
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  developerId String
+  developer   Developer      @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  coverLetter String
+  budget      Decimal        @db.Decimal(10, 2)
+  timeline    Int
+  status      ProposalStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([projectId, developerId])
+  @@index([projectId])
+  @@index([developerId])
+}
+
+model Contract {
+  id          String         @id @default(cuid())
+  projectId   String         @unique
+  project     Project        @relation(fields: [projectId], references: [id])
+  milestones  Milestone[]
+  status      ContractStatus @default(ACTIVE)
+  platformFee Decimal        @default(10) @db.Decimal(5, 2)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  contractId  String
+  contract    Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  amount      Decimal         @db.Decimal(10, 2)
+  status      MilestoneStatus @default(PENDING)
+  dueDate     DateTime?
+  order       Int
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([contractId])
+}
