@@ -4,7 +4,7 @@ export default () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
   jwt: {
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
     refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret-change-in-production',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   },
