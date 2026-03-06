@@ -17,6 +17,9 @@
     "db:studio": "npm run db:studio --workspace=backend",
     "users:create": "node tools/scripts/create-user.js"
   },
+  "prisma": {
+    "schema": "backend/prisma/schema.prisma"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },

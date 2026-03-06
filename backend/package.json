@@ -5,10 +5,13 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "prisma generate && nest build",
-    "start": "npx prisma migrate deploy --schema=backend/prisma/schema.prisma && node backend/dist/main",
+    "start": "sh -c 'test -d backend && cd backend; npx prisma migrate deploy && node dist/main'",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
