@@ -6,4 +6,15 @@
   html {
     @apply antialiased;
   }
+
+  /* Prevent iOS Safari auto-zoom on input focus (requires font-size >= 16px) */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  @media (min-width: 768px) {
+    input, select, textarea {
+      font-size: 14px;
+    }
+  }
 }
