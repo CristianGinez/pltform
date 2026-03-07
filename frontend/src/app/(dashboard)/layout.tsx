@@ -119,17 +119,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Bottom tab bar (mobile only) ── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex items-center justify-around px-1 py-1 safe-area-pb">
-        {/* Home — siempre primero y bien visible en mobile */}
-        <Link
-          href="/"
-          className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg transition-colors flex-1 ${
-            pathname === '/' ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Home size={20} strokeWidth={pathname === '/' ? 2.5 : 1.8} />
-          <span className="text-[10px] font-medium leading-tight">Inicio</span>
-        </Link>
-
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -146,13 +135,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           );
         })}
 
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors flex-1"
+        <Link
+          href="/"
+          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg text-gray-400 hover:text-gray-600 transition-colors flex-1"
         >
-          <LogOut size={20} strokeWidth={1.8} />
+          <Home size={20} strokeWidth={1.8} />
           <span className="text-[10px] font-medium leading-tight">Salir</span>
-        </button>
+        </Link>
       </nav>
     </div>
   );
