@@ -34,8 +34,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ user: state.user }),
+      partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
+        // Sync token back to localStorage so axios interceptor always finds it
+        if (state?.token) localStorage.setItem('access_token', state.token);
         state?.setHasHydrated(true);
       },
     },
