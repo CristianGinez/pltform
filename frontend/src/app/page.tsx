@@ -320,7 +320,7 @@ function AuthenticatedHome() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {navCards.map((card) => (
             <Link
-              key={card.href}
+              key={card.label}
               href={card.href}
               className={`rounded-2xl border p-5 transition-all hover:shadow-sm ${card.color}`}
             >

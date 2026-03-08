@@ -11,8 +11,11 @@ import {
   User,
   LogOut,
   Home,
+  Bell,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import NotificationBell from '@/components/notification-bell';
+import { useNotifications } from '@/hooks/use-notifications';
 
 const navItems = {
   COMPANY: [
@@ -29,6 +32,7 @@ const navItems = {
   ],
   ADMIN: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/admin', label: 'Admin', icon: Bell },
   ],
 };
 
@@ -36,6 +40,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout, _hasHydrated } = useAuthStore();
+  // Must be called before any early return to follow Rules of Hooks
+  const { data: notifications = [] } = useNotifications();
 
   useEffect(() => {
     if (_hasHydrated && !user) router.push('/login');
@@ -52,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   const items = navItems[user.role] ?? navItems.ADMIN;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
     logout();
@@ -62,11 +69,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="bg-gray-50 min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       {/* ── Sidebar (desktop only) ── */}
       <aside className="hidden lg:flex w-60 bg-white border-r border-gray-100 flex-col flex-shrink-0 h-full">
-        <div className="px-6 py-5 border-b border-gray-100">
-          <Link href="/" className="text-lg font-bold text-primary-700">
-            pltform
-          </Link>
-          <p className="mt-1 text-xs text-gray-400 truncate">{user.email}</p>
+        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link href="/" className="text-lg font-bold text-primary-700">
+              pltform
+            </Link>
+            <p className="mt-1 text-xs text-gray-400 truncate">{user.email}</p>
+          </div>
+          <NotificationBell />
         </div>
 
         <div className="px-3 pt-3">
@@ -134,6 +144,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           );
         })}
+
+        <Link
+          href="/dashboard/notifications"
+          className={`relative flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg transition-colors flex-1 ${
+            pathname === '/dashboard/notifications' ? 'text-primary-700' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <span className="relative">
+            <Bell size={20} strokeWidth={pathname === '/dashboard/notifications' ? 2.5 : 1.8} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </span>
+          <span className="text-[10px] font-medium leading-tight">Avisos</span>
+        </Link>
 
         <Link
           href="/"

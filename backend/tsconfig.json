@@ -6,8 +6,7 @@
     "lib": ["ES2021"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "incremental": true,
-    "experimentalDecorators": true,
+"experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "paths": {

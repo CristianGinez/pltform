@@ -9,6 +9,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -26,6 +27,7 @@ import configuration from './config/configuration';
     ProposalsModule,
     ContractsModule,
     UploadsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

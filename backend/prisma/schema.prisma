@@ -47,15 +47,26 @@ enum MilestoneStatus {
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
+enum NotificationType {
+  PROPOSAL_RECEIVED
+  PROPOSAL_ACCEPTED
+  PROPOSAL_REJECTED
+  PROPOSAL_WITHDRAWN
+  CONTRACT_CREATED
+  MILESTONE_SUBMITTED
+  MILESTONE_APPROVED
+}
+
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String?
-  role         Role
-  company      Company?
-  developer    Developer?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String?
+  role          Role
+  company       Company?
+  developer     Developer?
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([email])
 }
@@ -176,4 +187,20 @@ model Milestone {
   updatedAt   DateTime        @updatedAt
 
   @@index([contractId])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  body       String
+  read       Boolean          @default(false)
+  entityId   String?
+  entityType String?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@/lib/zod-resolver';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
   Building2, Globe, Calendar, Tag, Send,

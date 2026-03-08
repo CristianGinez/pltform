@@ -104,3 +104,25 @@ export interface Contract {
   platformFee: number;
   createdAt: string;
 }
+
+export type NotificationType =
+  | 'PROPOSAL_RECEIVED'
+  | 'PROPOSAL_ACCEPTED'
+  | 'PROPOSAL_REJECTED'
+  | 'PROPOSAL_WITHDRAWN'
+  | 'CONTRACT_CREATED'
+  | 'MILESTONE_SUBMITTED'
+  | 'MILESTONE_APPROVED';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  entityId?: string;
+  entityType?: string;
+  createdAt: string;
+  user?: { email: string; role: Role };
+}

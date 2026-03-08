@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ContractsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findById(id: string, userId: string) {
     const contract = await this.prisma.contract.findUnique({
@@ -36,10 +40,28 @@ export class ContractsService {
     });
     if (!milestone) throw new NotFoundException('Milestone no encontrado');
 
-    return this.prisma.milestone.update({
+    const updated = await this.prisma.milestone.update({
       where: { id: milestoneId },
       data: { status: 'APPROVED' },
     });
+
+    // Notify the developer
+    const acceptedProposal = await this.prisma.proposal.findFirst({
+      where: { projectId: contract.projectId, status: 'ACCEPTED' },
+      include: { developer: true },
+    });
+    if (acceptedProposal) {
+      await this.notifications.create({
+        userId: acceptedProposal.developer.userId,
+        type: 'MILESTONE_APPROVED',
+        title: 'Milestone aprobado',
+        body: `${milestone.title} fue aprobado`,
+        entityId: contractId,
+        entityType: 'contract',
+      });
+    }
+
+    return updated;
   }
 
   async submitMilestone(contractId: string, milestoneId: string, userId: string) {
@@ -61,9 +83,27 @@ export class ContractsService {
     });
     if (!milestone) throw new ForbiddenException();
 
-    return this.prisma.milestone.update({
+    const updated = await this.prisma.milestone.update({
       where: { id: milestoneId },
       data: { status: 'SUBMITTED' },
     });
+
+    // Notify the company
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { project: { include: { company: true } } },
+    });
+    if (contract) {
+      await this.notifications.create({
+        userId: contract.project.company.userId,
+        type: 'MILESTONE_SUBMITTED',
+        title: 'Milestone entregado',
+        body: `El developer entregó ${milestone.title}`,
+        entityId: contractId,
+        entityType: 'contract',
+      });
+    }
+
+    return updated;
   }
 }

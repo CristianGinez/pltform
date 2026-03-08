@@ -7,6 +7,7 @@ import { LogOut, User, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useMe } from '@/hooks/use-profile';
 import { defaultAvatar } from '@/lib/avatar';
+import NotificationBell from '@/components/notification-bell';
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
@@ -77,6 +78,8 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <>
+                <NotificationBell />
+
                 <Link
                   href="/dashboard"
                   className="hidden sm:block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
