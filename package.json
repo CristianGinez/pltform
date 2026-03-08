@@ -16,7 +16,7 @@
     "db:generate": "npm run db:generate --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend",
     "users:create": "node tools/scripts/create-user.js",
-    "start": "npx prisma migrate deploy && node backend/dist/main"
+    "start": "node_modules/.bin/prisma migrate deploy && node backend/dist/main"
   },
   "prisma": {
     "schema": "backend/prisma/schema.prisma"
