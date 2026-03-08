@@ -21,6 +21,9 @@
   "prisma": {
     "schema": "backend/prisma/schema.prisma"
   },
+  "dependencies": {
+    "prisma": "^6.19.2"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
