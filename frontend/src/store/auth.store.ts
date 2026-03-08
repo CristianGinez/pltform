@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { queryClient } from '@/lib/query-client';
 
 export interface AuthUser {
   id: string;
@@ -29,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         localStorage.removeItem('access_token');
+        queryClient.clear();
         set({ token: null, user: null });
       },
     }),

@@ -16,6 +16,99 @@ import type { User } from '@/types';
 
 const PAYMENT_OPTIONS = ['Yape / Plin', 'PagoEfectivo', 'Culqi / Tarjeta', 'Niubiz', 'Transferencia'];
 
+const TECH_SUGGESTIONS = [
+  // Frontend
+  'React','Next.js','Vue.js','Angular','Svelte','HTML','CSS','JavaScript','TypeScript',
+  'Tailwind CSS','Bootstrap','SASS','jQuery','Astro','Remix','Nuxt.js','Vite',
+  // Backend
+  'Node.js','NestJS','Express.js','Django','FastAPI','Laravel','Spring Boot','Flask',
+  'Ruby on Rails','.NET','PHP','Go','Rust','Bun','Hono',
+  // Mobile
+  'React Native','Flutter','Swift','Kotlin','Expo','Ionic',
+  // Bases de datos
+  'PostgreSQL','MySQL','MongoDB','SQLite','Redis','Firebase','Supabase','Prisma',
+  'DynamoDB','Elasticsearch',
+  // Cloud / DevOps
+  'AWS','GCP','Azure','Docker','Kubernetes','Linux','Nginx','GitHub Actions','CI/CD','Vercel','Railway',
+  // Otros
+  'GraphQL','REST API','WebSockets','Stripe','OAuth','JWT','Figma','OpenAI API',
+];
+
+const PERU_UNIVERSITIES = [
+  // Lima
+  'Universidad Nacional Mayor de San Marcos (UNMSM)',
+  'Pontificia Universidad Católica del Perú (PUCP)',
+  'Universidad de Lima',
+  'Universidad Peruana de Ciencias Aplicadas (UPC)',
+  'Universidad San Martín de Porres (USMP)',
+  'Universidad Nacional de Ingeniería (UNI)',
+  'Universidad del Pacífico',
+  'Universidad Ricardo Palma (URP)',
+  'Universidad ESAN',
+  'Universidad Privada del Norte (UPN)',
+  'Universidad César Vallejo (UCV)',
+  'Universidad Inca Garcilaso de la Vega',
+  'Universidad Científica del Sur',
+  'Universidad Antonio Ruiz de Montoya',
+  'Universidad Peruana Cayetano Heredia (UPCH)',
+  'Universidad Nacional Agraria La Molina (UNALM)',
+  'Universidad Nacional Federico Villarreal (UNFV)',
+  'Universidad Tecnológica del Perú (UTP)',
+  'Universidad Le Cordon Bleu',
+  'Universidad Norbert Wiener',
+  'Universidad Alas Peruanas',
+  'Universidad Autónoma del Perú',
+  // Regiones
+  'Universidad Nacional de Trujillo (UNT)',
+  'Universidad Privada Antenor Orrego (UPAO)',
+  'Universidad Nacional de Piura (UNP)',
+  'Universidad Nacional de San Agustín (UNSA)',
+  'Universidad Católica de Santa María',
+  'Universidad Nacional del Altiplano (UNAP)',
+  'Universidad Nacional de San Antonio Abad del Cusco (UNSAAC)',
+  'Universidad Nacional Hermilio Valdizán (UNHEVAL)',
+  'Universidad Nacional de Huancavelica (UNH)',
+  'Universidad Nacional del Centro del Perú (UNCP)',
+  'Universidad Nacional de Cajamarca (UNC)',
+  'Universidad Nacional Toribio Rodríguez de Mendoza (UNTRM)',
+  'Universidad Nacional de la Amazonía Peruana (UNAP)',
+  'Universidad Nacional Intercultural de la Amazonía (UNIA)',
+  'Universidad Nacional José Faustino Sánchez Carrión (UNJFSC)',
+  'Universidad Nacional Santiago Antúnez de Mayolo (UNASAM)',
+  'Universidad Nacional de Moquegua (UNAM)',
+  'Universidad Nacional de Tumbes (UNTUMBES)',
+  'Universidad Nacional de Ucayali (UNU)',
+  // Institutos tecnológicos reconocidos
+  'Tecsup',
+  'SENATI',
+  'CIBERTEC',
+  'IDAT',
+  'SISE',
+  'Toulouse Lautrec',
+  'Certus',
+  'Instituto de Educación Superior Continental',
+];
+
+const CYCLES = [
+  '1er ciclo','2do ciclo','3er ciclo','4to ciclo','5to ciclo',
+  '6to ciclo','7mo ciclo','8vo ciclo','9no ciclo','10mo ciclo',
+  'Egresado / Egresada','Titulado / Titulada',
+];
+
+const PERU_LOCATIONS = [
+  'Lima','Miraflores, Lima','San Isidro, Lima','Surco, Lima','San Borja, Lima',
+  'Callao','Arequipa','Trujillo','Chiclayo','Piura','Cusco','Iquitos',
+  'Huancayo','Tacna','Juliaca','Ica','Puno','Ayacucho','Cajamarca',
+  'Chimbote','Huánuco','Tarapoto','Pucallpa','Tumbes','Moquegua',
+];
+
+const COMPANY_INDUSTRIES = [
+  'Tecnología','Software / IT','E-commerce','Gastronomía','Retail','Salud',
+  'Educación','Fintech','Logística','Turismo','Inmobiliaria','Manufactura',
+  'Agro / Agroindustria','Marketing / Publicidad','Consultoría','Legal',
+  'Construcción','Energía','Moda / Textil','Entretenimiento','ONG / Sector público',
+];
+
 // ─── Company preview card ─────────────────────────────────────────────────────
 
 function CompanyCard({ c, email }: { c: ReturnType<typeof buildCompanyData>; email: string }) {
@@ -179,40 +272,155 @@ function ToggleField({ label, value, onChange, icon: Icon }: {
   );
 }
 
-// ─── Skills editor ────────────────────────────────────────────────────────────
+// ─── Autocomplete tag input (skills) ─────────────────────────────────────────
 
-function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (s: string[]) => void }) {
+function AutocompleteTagInput({
+  tags, onChange, suggestions, label, icon: Icon, placeholder,
+}: {
+  tags: string[]; onChange: (t: string[]) => void;
+  suggestions: string[]; label: string;
+  icon?: React.ElementType; placeholder?: string;
+}) {
   const [input, setInput] = useState('');
-  const add = () => {
-    const s = input.trim();
-    if (s && !skills.includes(s)) onChange([...skills, s]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = suggestions
+    .filter((s) => !tags.includes(s) && (input.length === 0 || s.toLowerCase().includes(input.toLowerCase())))
+    .slice(0, input.length > 0 ? 30 : 12);
+
+  const add = (s: string) => {
+    const t = s.trim();
+    if (t && !tags.includes(t)) onChange([...tags, t]);
     setInput('');
+    setOpen(false);
   };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const showAddCustom = input.trim().length > 0 &&
+    !suggestions.some((s) => s.toLowerCase() === input.trim().toLowerCase()) &&
+    !tags.includes(input.trim());
+
   return (
-    <div className="py-3 border-b border-gray-50">
+    <div className="py-3 border-b border-gray-50" ref={containerRef}>
       <div className="flex items-center gap-1.5 mb-2">
-        <Code size={13} className="text-gray-400" />
-        <span className="text-xs font-medium text-gray-500">Stack tecnológico</span>
+        {Icon && <Icon size={13} className="text-gray-400" />}
+        <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
       <div className="flex flex-wrap gap-1.5 mb-2">
-        {skills.map((s) => (
-          <span key={s} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+        {tags.map((s) => (
+          <span key={s} className="flex items-center gap-1 text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
             {s}
-            <button onClick={() => onChange(skills.filter((x) => x !== s))} className="hover:text-red-500 leading-none ml-0.5">×</button>
+            <button onClick={() => onChange(tags.filter((x) => x !== s))} className="hover:text-red-500 leading-none ml-0.5">×</button>
           </span>
         ))}
-        {skills.length === 0 && <span className="text-gray-300 italic text-sm">Sin skills</span>}
+        {tags.length === 0 && <span className="text-gray-300 italic text-xs">Sin agregar</span>}
       </div>
-      <div className="flex gap-2">
+      <div className="relative">
         <input
-          type="text" value={input} onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          placeholder="Agregar skill…"
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          type="text" value={input}
+          onChange={(e) => { setInput(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); if (input.trim()) add(input); }
+            if (e.key === 'Escape') setOpen(false);
+          }}
+          placeholder={placeholder ?? 'Buscar o escribir…'}
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
         />
-        <button onClick={add} className="text-xs px-2.5 py-1.5 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 font-medium flex items-center gap-1">
-          <Plus size={11} /> Agregar
-        </button>
+        {open && (filtered.length > 0 || showAddCustom) && (
+          <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+            {filtered.map((s) => (
+              <button key={s} type="button" onMouseDown={(e) => { e.preventDefault(); add(s); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                {s}
+              </button>
+            ))}
+            {showAddCustom && (
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); add(input); }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 border-t border-gray-100">
+                + Agregar «{input.trim()}»
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Autocomplete single-value field ──────────────────────────────────────────
+
+function AutocompleteField({
+  label, fieldKey, value, suggestions, icon: Icon, placeholder, isEditing,
+  onStartEdit, onChange, onConfirm, onCancel,
+}: {
+  label: string; fieldKey: string; value: string; suggestions: string[];
+  icon?: React.ElementType; placeholder?: string;
+  isEditing: boolean; onStartEdit: () => void;
+  onChange: (v: string) => void; onConfirm: () => void; onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { if (isEditing) { inputRef.current?.focus(); setOpen(true); } }, [isEditing]);
+
+  const filtered = suggestions
+    .filter((s) => value.length === 0 || s.toLowerCase().includes(value.toLowerCase()))
+    .slice(0, value.length > 0 ? 30 : 8);
+
+  return (
+    <div className="group flex items-start gap-3 py-3 border-b border-gray-50 last:border-0" ref={containerRef}>
+      <div className="w-24 sm:w-36 flex-shrink-0 flex items-center gap-1.5 pt-0.5">
+        {Icon && <Icon size={13} className="text-gray-400 flex-shrink-0" />}
+        <span className="text-xs font-medium text-gray-500">{label}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <div className="relative flex items-start gap-2">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef} value={value}
+                onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { setOpen(false); onConfirm(); }
+                  if (e.key === 'Escape') { setOpen(false); onCancel(); }
+                }}
+                placeholder={placeholder}
+                className="w-full text-sm border border-primary-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
+              />
+              {open && filtered.length > 0 && (
+                <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                  {filtered.map((s) => (
+                    <button key={s} type="button"
+                      onMouseDown={(e) => { e.preventDefault(); onChange(s); setOpen(false); onConfirm(); }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => { setOpen(false); onConfirm(); }} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0"><Check size={14} /></button>
+            <button onClick={() => { setOpen(false); onCancel(); }} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0"><X size={14} /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 min-h-[28px]">
+            <span className="text-sm text-gray-800">{value || <span className="text-gray-300 italic">Sin completar</span>}</span>
+            <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0">
+              <Pencil size={12} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -499,9 +707,27 @@ export default function ProfilePage() {
               </Section>
 
               <Section title="Negocio">
-                {F('industry',      'Rubro',          { placeholder: 'Gastronomía, Retail…' })}
+                <AutocompleteField
+                  label="Rubro" fieldKey="industry"
+                  value={editing['industry'] ? (drafts['industry'] ?? companyData.industry) : companyData.industry}
+                  suggestions={COMPANY_INDUSTRIES} placeholder="Seleccionar o escribir rubro…"
+                  isEditing={!!editing['industry']}
+                  onStartEdit={() => startEdit('industry', companyData.industry)}
+                  onChange={(v) => setDrafts((d) => ({ ...d, industry: v }))}
+                  onConfirm={() => confirmEdit('industry')}
+                  onCancel={() => cancelEdit('industry', companyData.industry)}
+                />
                 {F('size',          'Tamaño',         { placeholder: 'Ej: 10-50 empleados' })}
-                {F('location',      'Ubicación',      { icon: MapPin, placeholder: 'Gamarra, Lima' })}
+                <AutocompleteField
+                  label="Ubicación" fieldKey="location" icon={MapPin}
+                  value={editing['location'] ? (drafts['location'] ?? companyData.location) : companyData.location}
+                  suggestions={PERU_LOCATIONS} placeholder="Ciudad o distrito…"
+                  isEditing={!!editing['location']}
+                  onStartEdit={() => startEdit('location', companyData.location)}
+                  onChange={(v) => setDrafts((d) => ({ ...d, location: v }))}
+                  onConfirm={() => confirmEdit('location')}
+                  onCancel={() => cancelEdit('location', companyData.location)}
+                />
                 {F('contactPerson', 'Persona de contacto', { icon: Phone })}
                 {F('ruc',          'RUC del negocio',  { placeholder: '20XXXXXXXXX' })}
               </Section>
@@ -556,7 +782,16 @@ export default function ProfilePage() {
                 </div>
                 {F('name',      'Nombre',     {})}
                 {F('bio',       'Bio',         { type: 'textarea' })}
-                {F('location',  'Ubicación',   { icon: MapPin })}
+                <AutocompleteField
+                  label="Ubicación" fieldKey="location" icon={MapPin}
+                  value={editing['location'] ? (drafts['location'] ?? devData.location) : devData.location}
+                  suggestions={PERU_LOCATIONS} placeholder="Ciudad o distrito…"
+                  isEditing={!!editing['location']}
+                  onStartEdit={() => startEdit('location', devData.location)}
+                  onChange={(v) => setDrafts((d) => ({ ...d, location: v }))}
+                  onConfirm={() => confirmEdit('location')}
+                  onCancel={() => cancelEdit('location', devData.location)}
+                />
                 <ToggleField
                   label="Disponible para proyectos"
                   value={(pending.available as boolean | undefined) ?? user?.developer?.available ?? true}
@@ -565,14 +800,36 @@ export default function ProfilePage() {
               </Section>
 
               <Section title="Información académica">
-                {F('university', 'Universidad / Instituto', { icon: GraduationCap })}
-                {F('cycle',      'Ciclo actual',            { icon: Clock, placeholder: 'Ej: 7mo ciclo' })}
+                <AutocompleteField
+                  label="Universidad / Instituto" fieldKey="university" icon={GraduationCap}
+                  value={editing['university'] ? (drafts['university'] ?? devData.university) : devData.university}
+                  suggestions={PERU_UNIVERSITIES} placeholder="Buscar universidad o instituto…"
+                  isEditing={!!editing['university']}
+                  onStartEdit={() => startEdit('university', devData.university)}
+                  onChange={(v) => setDrafts((d) => ({ ...d, university: v }))}
+                  onConfirm={() => confirmEdit('university')}
+                  onCancel={() => cancelEdit('university', devData.university)}
+                />
+                <AutocompleteField
+                  label="Ciclo actual" fieldKey="cycle" icon={Clock}
+                  value={editing['cycle'] ? (drafts['cycle'] ?? devData.cycle) : devData.cycle}
+                  suggestions={CYCLES} placeholder="Seleccionar o escribir ciclo…"
+                  isEditing={!!editing['cycle']}
+                  onStartEdit={() => startEdit('cycle', devData.cycle)}
+                  onChange={(v) => setDrafts((d) => ({ ...d, cycle: v }))}
+                  onConfirm={() => confirmEdit('cycle')}
+                  onCancel={() => cancelEdit('cycle', devData.cycle)}
+                />
               </Section>
 
               <Section title="Profesional">
-                <SkillsEditor
-                  skills={(pending.skills as string[] | undefined) ?? user?.developer?.skills ?? []}
+                <AutocompleteTagInput
+                  label="Stack tecnológico"
+                  icon={Code}
+                  tags={(pending.skills as string[] | undefined) ?? user?.developer?.skills ?? []}
                   onChange={(s) => setPendingArray('skills', s)}
+                  suggestions={TECH_SUGGESTIONS}
+                  placeholder="Buscar tecnología o escribir…"
                 />
                 {F('hourlyRate',   'Tarifa/hora (USD)', { type: 'number', icon: DollarSign, placeholder: 'Ej: 50' })}
                 {F('warrantyDays', 'Días de garantía',  { type: 'number', icon: Shield,     placeholder: 'Ej: 15' })}
