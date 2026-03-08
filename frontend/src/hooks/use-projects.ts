@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import type { Project, Proposal } from '@/types';
 import type { ProjectFormData } from '@/schemas/project.schema';
@@ -34,7 +35,11 @@ export function useCreateProject() {
         deadline: data.deadline || undefined,
         category: data.category || undefined,
       }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-projects'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-projects'] });
+      toast.success('Proyecto creado exitosamente');
+    },
+    onError: () => toast.error('Error al crear el proyecto'),
   });
 }
 
@@ -47,7 +52,11 @@ export function useUpdateProject(id: string) {
         deadline: data.deadline || undefined,
         category: data.category || undefined,
       }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['project', id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project', id] });
+      toast.success('Proyecto actualizado');
+    },
+    onError: () => toast.error('Error al actualizar el proyecto'),
   });
 }
 
@@ -55,7 +64,11 @@ export function usePublishProject(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.patch(`/projects/${id}/publish`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['project', id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project', id] });
+      toast.success('Proyecto publicado — ya visible para developers');
+    },
+    onError: () => toast.error('Error al publicar el proyecto'),
   });
 }
 
@@ -67,6 +80,8 @@ export function useAcceptProposal(projectId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['project', projectId] });
       qc.invalidateQueries({ queryKey: ['my-projects'] });
+      toast.success('Propuesta aceptada — se creó el contrato');
     },
+    onError: () => toast.error('Error al aceptar la propuesta'),
   });
 }

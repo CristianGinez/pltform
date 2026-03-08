@@ -570,15 +570,10 @@ export default function ProfilePage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
-  const showToast = (type: 'success' | 'error', msg: string) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 3500);
-  };
 
   const mutation = useUpdateProfile(isCompany);
-  const onMutationSuccess = () => { setPending({}); showToast('success', 'Perfil guardado correctamente.'); };
-  const onMutationError = () => showToast('error', 'Error al guardar. Revisá los campos e intentá de nuevo.');
+  const onMutationSuccess = () => { setPending({}); };
+  const onMutationError = () => { /* toast handled in hook */ };
 
   const save = () => {
     const payload: Record<string, unknown> = {};
@@ -679,12 +674,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {toast && (
-        <div className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${toast.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          {toast.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
-          {toast.msg}
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
 

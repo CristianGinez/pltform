@@ -13,6 +13,7 @@ import {
   Home,
   Bell,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import NotificationBell from '@/components/notification-bell';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -62,6 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = () => {
     logout();
+    toast.success('Sesión cerrada');
     router.push('/');
   };
 

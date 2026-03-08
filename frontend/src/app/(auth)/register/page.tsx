@@ -6,6 +6,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -41,11 +42,13 @@ function RegisterForm() {
     try {
       const res = await api.post('/auth/register', data);
       setAuth(res.data.access_token, res.data.user);
+      toast.success('Cuenta creada exitosamente');
       router.push('/dashboard');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al registrarse';
+      toast.error(msg);
       setError('root', { message: msg });
     }
   };

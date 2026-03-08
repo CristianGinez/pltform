@@ -5,6 +5,7 @@ import { zodResolver } from '@/lib/zod-resolver';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -30,8 +31,10 @@ export default function LoginPage() {
     try {
       const res = await api.post('/auth/login', data);
       setAuth(res.data.access_token, res.data.user);
+      toast.success('Sesión iniciada');
       router.push('/dashboard');
     } catch {
+      toast.error('Email o contraseña incorrectos');
       setError('root', { message: 'Email o contraseña incorrectos' });
     }
   };

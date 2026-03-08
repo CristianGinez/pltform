@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, User, ChevronDown, Menu, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import { useMe } from '@/hooks/use-profile';
 import { defaultAvatar } from '@/lib/avatar';
@@ -41,6 +42,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     logout();
+    toast.success('Sesión cerrada');
     setDropdownOpen(false);
     setMobileOpen(false);
     router.push('/');

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 import type { User } from '@/types';
@@ -17,6 +18,10 @@ export function useUpdateProfile(isCompany: boolean) {
   return useMutation({
     mutationFn: (data: Record<string, unknown>) =>
       api.patch(isCompany ? '/companies/me' : '/developers/me', data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      toast.success('Perfil actualizado correctamente');
+    },
+    onError: () => toast.error('Error al guardar el perfil'),
   });
 }
