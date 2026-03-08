@@ -360,12 +360,13 @@ function AutocompleteTagInput({
 
 function AutocompleteField({
   label, fieldKey, value, suggestions, icon: Icon, placeholder, isEditing,
-  onStartEdit, onChange, onConfirm, onCancel,
+  onStartEdit, onChange, onConfirm, onCancel, onSelect,
 }: {
   label: string; fieldKey: string; value: string; suggestions: string[];
   icon?: React.ElementType; placeholder?: string;
   isEditing: boolean; onStartEdit: () => void;
   onChange: (v: string) => void; onConfirm: () => void; onCancel: () => void;
+  onSelect: (v: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -402,7 +403,7 @@ function AutocompleteField({
                 <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
                   {filtered.map((s) => (
                     <button key={s} type="button"
-                      onMouseDown={(e) => { e.preventDefault(); onChange(s); setOpen(false); onConfirm(); }}
+                      onMouseDown={(e) => { e.preventDefault(); setOpen(false); onSelect(s); }}
                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors">
                       {s}
                     </button>
@@ -610,6 +611,13 @@ export default function ProfilePage() {
   const setPendingArray = (key: string, val: string[]) => setPending((p) => ({ ...p, [key]: val }));
   const setPendingBool  = (key: string, val: boolean) => setPending((p) => ({ ...p, [key]: val }));
 
+  // Select a suggestion value directly — avoids drafts race condition
+  const selectField = (key: string, val: string) => {
+    setPending((p) => ({ ...p, [key]: val }));
+    setDrafts((d) => ({ ...d, [key]: val }));
+    setEditing((e) => ({ ...e, [key]: false }));
+  };
+
   // Live preview data
   const devData     = buildDevData(user, pending);
   const companyData = buildCompanyData(user, pending);
@@ -716,6 +724,7 @@ export default function ProfilePage() {
                   onChange={(v) => setDrafts((d) => ({ ...d, industry: v }))}
                   onConfirm={() => confirmEdit('industry')}
                   onCancel={() => cancelEdit('industry', companyData.industry)}
+                  onSelect={(v) => selectField('industry', v)}
                 />
                 {F('size',          'Tamaño',         { placeholder: 'Ej: 10-50 empleados' })}
                 <AutocompleteField
@@ -727,6 +736,7 @@ export default function ProfilePage() {
                   onChange={(v) => setDrafts((d) => ({ ...d, location: v }))}
                   onConfirm={() => confirmEdit('location')}
                   onCancel={() => cancelEdit('location', companyData.location)}
+                  onSelect={(v) => selectField('location', v)}
                 />
                 {F('contactPerson', 'Persona de contacto', { icon: Phone })}
                 {F('ruc',          'RUC del negocio',  { placeholder: '20XXXXXXXXX' })}
@@ -791,6 +801,7 @@ export default function ProfilePage() {
                   onChange={(v) => setDrafts((d) => ({ ...d, location: v }))}
                   onConfirm={() => confirmEdit('location')}
                   onCancel={() => cancelEdit('location', devData.location)}
+                  onSelect={(v) => selectField('location', v)}
                 />
                 <ToggleField
                   label="Disponible para proyectos"
@@ -809,6 +820,7 @@ export default function ProfilePage() {
                   onChange={(v) => setDrafts((d) => ({ ...d, university: v }))}
                   onConfirm={() => confirmEdit('university')}
                   onCancel={() => cancelEdit('university', devData.university)}
+                  onSelect={(v) => selectField('university', v)}
                 />
                 <AutocompleteField
                   label="Ciclo actual" fieldKey="cycle" icon={Clock}
@@ -819,6 +831,7 @@ export default function ProfilePage() {
                   onChange={(v) => setDrafts((d) => ({ ...d, cycle: v }))}
                   onConfirm={() => confirmEdit('cycle')}
                   onCancel={() => cancelEdit('cycle', devData.cycle)}
+                  onSelect={(v) => selectField('cycle', v)}
                 />
               </Section>
 
