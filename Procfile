@@ -1,1 +1,1 @@
-web: npx prisma migrate deploy && node backend/dist/main
+web: node_modules/.bin/prisma migrate deploy && node backend/dist/main
