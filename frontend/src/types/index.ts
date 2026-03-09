@@ -1,4 +1,5 @@
 export type Role = 'COMPANY' | 'DEVELOPER' | 'ADMIN';
+export type VerificationStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type ProjectStatus = 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
 export type ContractStatus = 'ACTIVE' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
@@ -24,6 +25,9 @@ export interface Company {
   logoUrl?: string;
   location?: string;
   verified: boolean;
+  verificationStatus?: VerificationStatus;
+  verificationDocUrl?: string;
+  verificationNotes?: string;
   ruc?: string;
   contactPerson?: string;
   painDescription?: string;
@@ -52,6 +56,10 @@ export interface Developer {
   specialtyBadges: string[];
   trustPoints: number;
   verified: boolean;
+  verificationStatus?: VerificationStatus;
+  verificationDocUrl?: string;
+  verificationDocType?: string;
+  verificationNotes?: string;
   ruc?: string;
   warrantyDays?: number;
 }
@@ -155,7 +163,10 @@ export type NotificationType =
   | 'CONTRACT_COMPLETED'
   | 'MESSAGE_RECEIVED'
   | 'DISPUTE_OPENED'
-  | 'DISPUTE_RESOLVED';
+  | 'DISPUTE_RESOLVED'
+  | 'VERIFICATION_SUBMITTED'
+  | 'VERIFICATION_APPROVED'
+  | 'VERIFICATION_REJECTED';
 
 export interface Notification {
   id: string;

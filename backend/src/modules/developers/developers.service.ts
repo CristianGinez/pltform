@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateDeveloperDto } from './dto/update-developer.dto';
 
 @Injectable()
 export class DevelopersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   findAll(skill?: string) {
     return this.prisma.developer.findMany({
@@ -62,5 +66,33 @@ export class DevelopersService {
     const developer = await this.prisma.developer.findUnique({ where: { userId } });
     if (!developer) throw new NotFoundException('Developer not found');
     return this.prisma.developer.update({ where: { userId }, data: dto });
+  }
+
+  async submitVerification(userId: string, docUrl: string, docType: string) {
+    const developer = await this.prisma.developer.findUnique({ where: { userId } });
+    if (!developer) throw new NotFoundException('Developer not found');
+    if (developer.verificationStatus === 'PENDING') {
+      throw new BadRequestException('Ya tienes una solicitud de verificación pendiente');
+    }
+    if (developer.verified) {
+      throw new BadRequestException('Tu cuenta ya está verificada');
+    }
+    await this.prisma.developer.update({
+      where: { userId },
+      data: { verificationStatus: 'PENDING', verificationDocUrl: docUrl, verificationDocType: docType, verificationNotes: null },
+    });
+    // Notify admins
+    const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' } });
+    await Promise.all(admins.map((admin) =>
+      this.notifications.create({
+        userId: admin.id,
+        type: 'VERIFICATION_SUBMITTED',
+        title: 'Nueva solicitud de verificación',
+        body: `El developer ${developer.name} ha solicitado verificación de identidad`,
+        entityId: developer.id,
+        entityType: 'developer',
+      }),
+    ));
+    return { ok: true };
   }
 }

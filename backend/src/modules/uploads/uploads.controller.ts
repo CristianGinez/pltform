@@ -39,4 +39,24 @@ export class UploadsController {
     if (!file) throw new BadRequestException('No se recibió ningún archivo');
     return { url: `/uploads/${file.filename}` };
   }
+
+  @Post('document')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage,
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+      fileFilter: (_req, file, cb) => {
+        const allowed = /^(image\/(jpeg|png|gif|webp)|application\/pdf)$/;
+        if (!file.mimetype.match(allowed)) {
+          return cb(new BadRequestException('Solo se permiten imágenes o PDF'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadDocument(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No se recibió ningún archivo');
+    return { url: `/uploads/${file.filename}` };
+  }
 }

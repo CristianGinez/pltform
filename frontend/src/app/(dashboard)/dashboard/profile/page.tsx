@@ -5,6 +5,7 @@ import {
   CheckCircle, MapPin, Globe, Github, Linkedin, Code, Star,
   Pencil, Check, X, Plus, Shield, GraduationCap, Clock,
   DollarSign, Phone, AlertCircle, Wallet, Building2,
+  BadgeCheck, BadgeX, ClipboardList, Upload, ExternalLink,
 } from 'lucide-react';
 import { Camera } from 'lucide-react';
 import { defaultAvatar } from '@/lib/avatar';
@@ -12,7 +13,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { useMe, useUpdateProfile } from '@/hooks/use-profile';
 import { DevCard, Tip, Stars, BADGES } from '@/components/ui/dev-card';
 import { AvatarPicker } from '@/components/ui/avatar-picker';
-import type { User } from '@/types';
+import { useUploadDocument } from '@/hooks/use-upload';
+import { useSubmitDeveloperVerification, useSubmitCompanyVerification, useValidateRuc } from '@/hooks/use-verification';
+import type { User, VerificationStatus } from '@/types';
 
 const PAYMENT_OPTIONS = ['Yape / Plin', 'PagoEfectivo', 'Culqi / Tarjeta', 'Niubiz', 'Transferencia'];
 
@@ -494,6 +497,236 @@ function PaymentSelector({ selected, onChange }: { selected: string[]; onChange:
   );
 }
 
+// ─── Verification section ─────────────────────────────────────────────────────
+
+const DOC_TYPES_DEV = ['DNI', 'Pasaporte', 'Carné de extranjería'];
+
+function VerificationStatusBadge({ status, notes }: { status: VerificationStatus; notes?: string }) {
+  if (status === 'APPROVED') return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+      <BadgeCheck size={16} className="text-green-600 shrink-0" />
+      <span className="text-sm font-semibold text-green-700">Verificado</span>
+    </div>
+  );
+  if (status === 'PENDING') return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
+      <ClipboardList size={16} className="text-blue-600 shrink-0" />
+      <span className="text-sm font-medium text-blue-700">Solicitud en revisión — el equipo la procesará en 24-48 h</span>
+    </div>
+  );
+  if (status === 'REJECTED') return (
+    <div className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+      <BadgeX size={16} className="text-red-500 mt-0.5 shrink-0" />
+      <div>
+        <p className="text-sm font-semibold text-red-700">Solicitud rechazada</p>
+        {notes && <p className="text-xs text-red-600 mt-0.5">Motivo: {notes}</p>}
+        <p className="text-xs text-red-500 mt-0.5">Puedes enviar una nueva solicitud con documentación actualizada.</p>
+      </div>
+    </div>
+  );
+  return null;
+}
+
+function DeveloperVerificationSection({ user }: { user: User }) {
+  const dev = user.developer!;
+  const status = dev.verificationStatus ?? 'NONE';
+  const [docType, setDocType] = useState(DOC_TYPES_DEV[0]);
+  const [docUrl, setDocUrl] = useState('');
+  const { upload, uploading, error: uploadError } = useUploadDocument();
+  const submit = useSubmitDeveloperVerification();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const canSubmit = status === 'NONE' || status === 'REJECTED';
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await upload(file);
+    if (url) setDocUrl(url);
+  };
+
+  if (status === 'APPROVED') return (
+    <div className="py-1">
+      <VerificationStatusBadge status="APPROVED" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 py-1">
+      {status !== 'NONE' && <VerificationStatusBadge status={status} notes={dev.verificationNotes ?? undefined} />}
+
+      {canSubmit && (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500">
+            Sube una foto o escaneo de tu documento de identidad. El equipo lo revisará y activará tu sello de verificación.
+          </p>
+
+          {/* Doc type */}
+          <div className="flex flex-wrap gap-2">
+            {DOC_TYPES_DEV.map((t) => (
+              <button key={t} type="button" onClick={() => setDocType(t)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${
+                  docType === t ? 'bg-primary-600 text-white border-primary-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
+                }`}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Upload area */}
+          <div
+            onClick={() => fileRef.current?.click()}
+            className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-primary-300 hover:bg-gray-50 transition-colors"
+          >
+            {docUrl ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-green-700">
+                <CheckCircle size={15} />
+                <span>Archivo cargado</span>
+                <a href={docUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  className="text-primary-600 hover:underline flex items-center gap-0.5 cursor-pointer">
+                  <ExternalLink size={11} />Ver
+                </a>
+              </div>
+            ) : (
+              <>
+                <Upload size={22} className="mx-auto text-gray-300 mb-1.5" />
+                <p className="text-sm text-gray-600 font-medium">Subir documento</p>
+                <p className="text-xs text-gray-400 mt-0.5">JPG, PNG o PDF · máx. 10 MB</p>
+              </>
+            )}
+            {uploading && <p className="text-xs text-primary-600 mt-1">Subiendo…</p>}
+            {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFile} />
+
+          <button
+            onClick={() => submit.mutate({ docUrl, docType })}
+            disabled={!docUrl || submit.isPending}
+            className="w-full py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 transition-colors cursor-pointer"
+          >
+            {submit.isPending ? 'Enviando…' : 'Solicitar verificación'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompanyVerificationSection({ user }: { user: User }) {
+  const company = user.company!;
+  const status = company.verificationStatus ?? 'NONE';
+  const [ruc, setRuc] = useState(company.ruc ?? '');
+  const [rucInfo, setRucInfo] = useState<{ valid: boolean; razonSocial?: string; estado?: string } | null>(null);
+  const [docUrl, setDocUrl] = useState('');
+  const { upload, uploading, error: uploadError } = useUploadDocument();
+  const validateRuc = useValidateRuc();
+  const submit = useSubmitCompanyVerification();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const canSubmit = status === 'NONE' || status === 'REJECTED';
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await upload(file);
+    if (url) setDocUrl(url);
+  };
+
+  const handleValidate = async () => {
+    const result = await validateRuc.mutateAsync(ruc);
+    setRucInfo(result);
+  };
+
+  if (status === 'APPROVED') return (
+    <div className="py-1">
+      <VerificationStatusBadge status="APPROVED" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 py-1">
+      {status !== 'NONE' && <VerificationStatusBadge status={status} notes={company.verificationNotes ?? undefined} />}
+
+      {canSubmit && (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500">
+            Puedes verificar tu empresa por RUC (consulta automática a SUNAT) y/o subiendo documentos. El equipo revisará y activará tu sello.
+          </p>
+
+          {/* RUC */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1.5">Verificación por RUC</p>
+            <div className="flex gap-2">
+              <input
+                value={ruc}
+                onChange={(e) => { setRuc(e.target.value); setRucInfo(null); }}
+                placeholder="20XXXXXXXXX"
+                maxLength={11}
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
+              />
+              <button
+                onClick={handleValidate}
+                disabled={ruc.length !== 11 || validateRuc.isPending}
+                className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {validateRuc.isPending ? 'Consultando…' : 'Validar'}
+              </button>
+            </div>
+            {rucInfo && (
+              <div className={`mt-2 px-3 py-2 rounded-lg text-xs ${rucInfo.valid ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-600'}`}>
+                {rucInfo.valid ? (
+                  <>
+                    <p className="font-semibold">{rucInfo.razonSocial}</p>
+                    {rucInfo.estado && <p className="mt-0.5">Estado: {rucInfo.estado}</p>}
+                  </>
+                ) : (
+                  <p>RUC no encontrado en SUNAT. Verifica el número e intenta de nuevo.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Optional doc upload */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1.5">Documento adicional (opcional)</p>
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-primary-300 hover:bg-gray-50 transition-colors"
+            >
+              {docUrl ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-green-700">
+                  <CheckCircle size={15} />
+                  <span>Archivo cargado</span>
+                  <a href={docUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                    className="text-primary-600 hover:underline flex items-center gap-0.5 cursor-pointer">
+                    <ExternalLink size={11} />Ver
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <Upload size={20} className="mx-auto text-gray-300 mb-1" />
+                  <p className="text-xs text-gray-500">Ficha RUC, Vigencia de Poder, etc. · JPG/PNG/PDF · 10 MB</p>
+                </>
+              )}
+              {uploading && <p className="text-xs text-primary-600 mt-1">Subiendo…</p>}
+              {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+            </div>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFile} />
+          </div>
+
+          <button
+            onClick={() => submit.mutate({ ruc: ruc.length === 11 ? ruc : undefined, docUrl: docUrl || undefined })}
+            disabled={(!ruc || ruc.length !== 11) && !docUrl || submit.isPending}
+            className="w-full py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 transition-colors cursor-pointer"
+          >
+            {submit.isPending ? 'Enviando…' : 'Solicitar verificación'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -744,6 +977,10 @@ export default function ProfilePage() {
                   onChange={(m) => setPendingArray('paymentMethods', m)}
                 />
               </Section>
+
+              <Section title="Verificación">
+                {user && <CompanyVerificationSection user={user} />}
+              </Section>
             </>
           ) : (
             <>
@@ -852,6 +1089,10 @@ export default function ProfilePage() {
 
               <Section title="Facturación">
                 {F('ruc', 'RUC (Cuarta Categoría)', { placeholder: '10XXXXXXXXX' })}
+              </Section>
+
+              <Section title="Verificación de identidad">
+                {user && <DeveloperVerificationSection user={user} />}
               </Section>
             </>
           )}

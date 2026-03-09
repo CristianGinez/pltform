@@ -11,6 +11,9 @@ import {
   CheckSquare,
   MessageSquare,
   ShieldAlert,
+  BadgeCheck,
+  BadgeX,
+  ClipboardList,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +35,9 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   MESSAGE_RECEIVED: <MessageSquare size={16} className="text-blue-500" />,
   DISPUTE_OPENED: <ShieldAlert size={16} className="text-red-500" />,
   DISPUTE_RESOLVED: <CheckCircle size={16} className="text-green-600" />,
+  VERIFICATION_SUBMITTED: <ClipboardList size={16} className="text-blue-500" />,
+  VERIFICATION_APPROVED: <BadgeCheck size={16} className="text-green-600" />,
+  VERIFICATION_REJECTED: <BadgeX size={16} className="text-red-500" />,
 };
 
 function getNotificationUrl(n: Notification): string | null {

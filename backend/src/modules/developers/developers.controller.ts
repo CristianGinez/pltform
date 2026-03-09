@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { DevelopersService } from './developers.service';
@@ -25,6 +25,17 @@ export class DevelopersController {
   @Patch('me')
   updateMyProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateDeveloperDto) {
     return this.developersService.updateMyProfile(user.id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.DEVELOPER)
+  @Post('me/verify')
+  submitVerification(
+    @CurrentUser() user: { id: string },
+    @Body() body: { docUrl: string; docType: string },
+  ) {
+    return this.developersService.submitVerification(user.id, body.docUrl, body.docType);
   }
 
   @Get(':id')

@@ -69,6 +69,16 @@ enum NotificationType {
   MESSAGE_RECEIVED
   DISPUTE_OPENED
   DISPUTE_RESOLVED
+  VERIFICATION_SUBMITTED
+  VERIFICATION_APPROVED
+  VERIFICATION_REJECTED
+}
+
+enum VerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -99,7 +109,10 @@ model Company {
   website           String?
   logoUrl           String?
   location          String?
-  verified          Boolean   @default(false)
+  verified              Boolean            @default(false)
+  verificationStatus    VerificationStatus @default(NONE)
+  verificationDocUrl    String?
+  verificationNotes     String?
   // nuevos campos de perfil
   ruc               String?
   contactPerson     String?
@@ -133,7 +146,11 @@ model Developer {
   cycle           String?
   specialtyBadges String[]
   trustPoints     Int        @default(0)
-  verified        Boolean    @default(false)
+  verified              Boolean            @default(false)
+  verificationStatus    VerificationStatus @default(NONE)
+  verificationDocUrl    String?
+  verificationDocType   String?
+  verificationNotes     String?
   ruc             String?
   warrantyDays    Int?
   proposals       Proposal[]
