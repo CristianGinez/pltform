@@ -6,7 +6,8 @@ export function useNotifications() {
   return useQuery<Notification[]>({
     queryKey: ['notifications'],
     queryFn: () => api.get('/notifications').then((r) => r.data),
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
+    staleTime: 0,
   });
 }
 
@@ -30,6 +31,7 @@ export function useAdminNotifications() {
   return useQuery<Notification[]>({
     queryKey: ['notifications-admin'],
     queryFn: () => api.get('/notifications/admin').then((r) => r.data),
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
+    staleTime: 0,
   });
 }

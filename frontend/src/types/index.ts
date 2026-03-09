@@ -127,6 +127,8 @@ export interface ContractMessage {
     deliveryLink?: string;
     reason?: string;
     amount?: string;
+    isCounter?: boolean;
+    replyTo?: string;
   } | null;
   createdAt: string;
   sender: {

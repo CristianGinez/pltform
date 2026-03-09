@@ -400,9 +400,19 @@ export class ContractsService {
           break;
       }
     } else if (dto.counter) {
-      // Post counter message as TEXT
+      // Post counter as TEXT with metadata so frontend can style it
       await this.prisma.contractMessage.create({
-        data: { contractId, senderId: userId, content: dto.counter, type: 'TEXT' },
+        data: {
+          contractId,
+          senderId: userId,
+          content: dto.counter,
+          type: 'TEXT',
+          metadata: {
+            isCounter: true,
+            replyTo: messageId,
+            milestoneTitle: meta.milestoneTitle,
+          },
+        },
       });
     }
 
