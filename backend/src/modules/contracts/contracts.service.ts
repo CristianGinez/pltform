@@ -393,10 +393,10 @@ export class ContractsService {
           });
           break;
         case 'PROPOSE_REVISION':
-          await this.doRequestRevision(contractId, meta.milestoneId, userId, meta.reason);
+          await this.doRequestRevision(contractId, meta.milestoneId, message.senderId, meta.reason);
           break;
         case 'PROPOSE_APPROVE':
-          await this.doApproveMilestone(contractId, meta.milestoneId, userId);
+          await this.doApproveMilestone(contractId, meta.milestoneId, message.senderId);
           break;
       }
     } else if (dto.counter) {
