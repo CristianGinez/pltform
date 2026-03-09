@@ -110,10 +110,22 @@ export interface Contract {
   createdAt: string;
 }
 
+export type MessageType = 'TEXT' | 'EVENT';
+
 export interface ContractMessage {
   id: string;
   contractId: string;
   content: string;
+  type: MessageType;
+  metadata?: {
+    action?: string;
+    milestoneId?: string;
+    milestoneTitle?: string;
+    deliveryNote?: string;
+    deliveryLink?: string;
+    reason?: string;
+    amount?: string;
+  } | null;
   createdAt: string;
   sender: {
     id: string;

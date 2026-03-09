@@ -46,6 +46,11 @@ enum MilestoneStatus {
   PAID
 }
 
+enum MessageType {
+  TEXT
+  EVENT
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 enum NotificationType {
@@ -201,13 +206,15 @@ model Milestone {
 }
 
 model ContractMessage {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   contractId String
-  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contract   Contract    @relation(fields: [contractId], references: [id], onDelete: Cascade)
   senderId   String
-  sender     User     @relation(fields: [senderId], references: [id])
+  sender     User        @relation(fields: [senderId], references: [id])
   content    String
-  createdAt  DateTime @default(now())
+  type       MessageType @default(TEXT)
+  metadata   Json?
+  createdAt  DateTime    @default(now())
 
   @@index([contractId, createdAt])
 }

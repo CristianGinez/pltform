@@ -2,12 +2,31 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+const MSG_SELECT = {
+  id: true,
+  role: true,
+  company: { select: { name: true } },
+  developer: { select: { name: true } },
+};
+
 @Injectable()
 export class ContractsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
   ) {}
+
+  // ─── Helper: post an EVENT message to the contract chat ───────────────────
+  private async postEvent(
+    contractId: string,
+    senderId: string,
+    content: string,
+    metadata: object,
+  ) {
+    return this.prisma.contractMessage.create({
+      data: { contractId, senderId, content, type: 'EVENT', metadata },
+    });
+  }
 
   async findById(id: string, userId: string) {
     const contract = await this.prisma.contract.findUnique({
@@ -31,11 +50,7 @@ export class ContractsService {
         id: milestoneId,
         contractId,
         contract: {
-          project: {
-            proposals: {
-              some: { status: 'ACCEPTED', developer: { userId } },
-            },
-          },
+          project: { proposals: { some: { status: 'ACCEPTED', developer: { userId } } } },
         },
       },
     });
@@ -47,7 +62,6 @@ export class ContractsService {
       data: { status: 'IN_PROGRESS', startedAt: new Date() },
     });
 
-    // Notify company
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
       include: { project: { include: { company: true } } },
@@ -60,6 +74,11 @@ export class ContractsService {
         body: `El developer comenzó a trabajar en "${milestone.title}"`,
         entityId: contractId,
         entityType: 'contract',
+      });
+      await this.postEvent(contractId, userId, `Comenzó a trabajar en "${milestone.title}"`, {
+        action: 'MILESTONE_STARTED',
+        milestoneId,
+        milestoneTitle: milestone.title,
       });
     }
 
@@ -77,11 +96,7 @@ export class ContractsService {
         id: milestoneId,
         contractId,
         contract: {
-          project: {
-            proposals: {
-              some: { status: 'ACCEPTED', developer: { userId } },
-            },
-          },
+          project: { proposals: { some: { status: 'ACCEPTED', developer: { userId } } } },
         },
       },
     });
@@ -100,7 +115,6 @@ export class ContractsService {
       },
     });
 
-    // Notify company
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
       include: { project: { include: { company: true } } },
@@ -113,6 +127,13 @@ export class ContractsService {
         body: `El developer entregó "${milestone.title}"`,
         entityId: contractId,
         entityType: 'contract',
+      });
+      await this.postEvent(contractId, userId, `Entregó "${milestone.title}" para revisión`, {
+        action: 'MILESTONE_SUBMITTED',
+        milestoneId,
+        milestoneTitle: milestone.title,
+        deliveryNote: dto.deliveryNote,
+        deliveryLink: dto.deliveryLink,
       });
     }
 
@@ -147,7 +168,6 @@ export class ContractsService {
       data: { status: 'REVISION_REQUESTED' },
     });
 
-    // Notify developer
     const acceptedProposal = await this.prisma.proposal.findFirst({
       where: { projectId: contract.projectId, status: 'ACCEPTED' },
       include: { developer: true },
@@ -164,6 +184,12 @@ export class ContractsService {
         entityType: 'contract',
       });
     }
+    await this.postEvent(contractId, userId, `Solicitó revisión de "${milestone.title}"${dto.reason ? `: ${dto.reason}` : ''}`, {
+      action: 'MILESTONE_REVISION_REQUESTED',
+      milestoneId,
+      milestoneTitle: milestone.title,
+      reason: dto.reason,
+    });
 
     return updated;
   }
@@ -184,17 +210,8 @@ export class ContractsService {
     return this.prisma.contractMessage.findMany({
       where: { contractId },
       orderBy: { createdAt: 'asc' },
-      take: 100,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            role: true,
-            company: { select: { name: true } },
-            developer: { select: { name: true } },
-          },
-        },
-      },
+      take: 200,
+      include: { sender: { select: MSG_SELECT } },
     });
   }
 
@@ -210,31 +227,18 @@ export class ContractsService {
       where: { projectId: contract.projectId, status: 'ACCEPTED', developer: { userId } },
     });
     if (!isCompany && !isDeveloper) throw new ForbiddenException();
-
     if (!content?.trim()) throw new BadRequestException('El mensaje no puede estar vacío');
 
     return this.prisma.contractMessage.create({
       data: { contractId, senderId: userId, content: content.trim() },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            role: true,
-            company: { select: { name: true } },
-            developer: { select: { name: true } },
-          },
-        },
-      },
+      include: { sender: { select: MSG_SELECT } },
     });
   }
 
   async approveMilestone(contractId: string, milestoneId: string, userId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
-      include: {
-        project: { include: { company: true } },
-        milestones: true,
-      },
+      include: { project: { include: { company: true } }, milestones: true },
     });
     if (!contract) throw new NotFoundException();
 
@@ -249,7 +253,6 @@ export class ContractsService {
       throw new BadRequestException('Solo puedes aprobar un milestone SUBMITTED');
     }
 
-    // Approve → immediately PAID (escrow simulation)
     const updated = await this.prisma.milestone.update({
       where: { id: milestoneId },
       data: { status: 'PAID' },
@@ -271,20 +274,25 @@ export class ContractsService {
       });
     }
 
-    // Check if all milestones are now PAID → complete contract + project
+    await this.postEvent(contractId, userId, `Aprobó y liberó el pago de "${milestone.title}"`, {
+      action: 'MILESTONE_PAID',
+      milestoneId,
+      milestoneTitle: milestone.title,
+      amount: milestone.amount.toString(),
+    });
+
+    // Check if all milestones are now PAID → complete contract
     const allMilestones = contract.milestones.map((m) =>
       m.id === milestoneId ? { ...m, status: 'PAID' as const } : m,
     );
     const allPaid = allMilestones.every((m) => m.status === 'PAID');
 
     if (allPaid) {
-      await this.prisma.contract.update({
-        where: { id: contractId },
-        data: { status: 'COMPLETED' },
-      });
-      await this.prisma.project.update({
-        where: { id: contract.projectId },
-        data: { status: 'COMPLETED' },
+      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'COMPLETED' } });
+      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
+
+      await this.postEvent(contractId, userId, '🎉 ¡Proyecto completado! Todos los milestones han sido aprobados y pagados.', {
+        action: 'CONTRACT_COMPLETED',
       });
 
       await this.notifications.create({
