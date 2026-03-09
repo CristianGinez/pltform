@@ -373,7 +373,7 @@ export default function ProjectDetailPage() {
               <form onSubmit={handleEditSubmit(handleSaveEdit)} className="space-y-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm font-semibold text-gray-700">Editar proyecto</p>
-                  <button type="button" onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                     <X size={16} />
                   </button>
                 </div>

@@ -97,7 +97,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => markAllRead()}
             disabled={isPending}
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50 cursor-pointer"
           >
             Marcar todo como leído
           </button>

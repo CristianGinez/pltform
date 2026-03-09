@@ -77,19 +77,19 @@ function DisputeCard({ dispute }: { dispute: {
         <button
           onClick={() => resolve.mutate('dev_wins')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer">
           <ThumbsUp size={12} />A favor del developer
         </button>
         <button
           onClick={() => resolve.mutate('company_wins')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors cursor-pointer">
           <ThumbsDown size={12} />A favor de la empresa
         </button>
         <button
           onClick={() => resolve.mutate('mutual')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors cursor-pointer">
           <Handshake size={12} />Cancelación mutua
         </button>
       </div>

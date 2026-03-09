@@ -177,7 +177,7 @@ export default function PublicProjectDetailPage() {
                   <>
                     <div className="flex items-center justify-between mb-5">
                       <h2 className="font-semibold text-gray-900">Enviar propuesta</h2>
-                      <button onClick={() => setShowForm(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                      <button onClick={() => setShowForm(false)} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Cancelar</button>
                     </div>
                     <form onSubmit={handleSubmit(handleApply)} className="space-y-4">
                       <div>

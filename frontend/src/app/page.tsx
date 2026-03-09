@@ -338,7 +338,7 @@ function AuthenticatedHome() {
           <Link href="/projects" className="hover:text-gray-600 transition-colors">Todos los proyectos</Link>
           <Link href="/developers" className="hover:text-gray-600 transition-colors">Directorio de developers</Link>
           <Link href="/dashboard" className="hover:text-gray-600 transition-colors">Dashboard completo</Link>
-          <button onClick={handleLogout} className="hover:text-red-500 transition-colors ml-auto">
+          <button onClick={handleLogout} className="hover:text-red-500 transition-colors ml-auto cursor-pointer">
             Cerrar sesión
           </button>
         </div>

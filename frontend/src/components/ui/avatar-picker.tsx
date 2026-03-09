@@ -95,7 +95,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Cambiar foto de perfil</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -138,7 +138,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                 tab === t ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -185,7 +185,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
                     <button
                       key={s.id}
                       onClick={() => { setSelectedStyle(s.id); setPreview(dicebearUrl(s.id, seed)); }}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${
                         selectedStyle === s.id
                           ? 'bg-primary-600 text-white border-primary-600'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
@@ -228,7 +228,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
                       <button
                         key={suffix}
                         onClick={() => { setSeed(s); setPreview(url); }}
-                        className={`rounded-xl overflow-hidden border-2 transition-all ${
+                        className={`rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                           preview === url ? 'border-primary-500 shadow-sm' : 'border-gray-100 hover:border-gray-300'
                         }`}
                       >
@@ -247,7 +247,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
                     <button
                       key={i}
                       onClick={() => handleSelectGradient(g)}
-                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${g[0]} ${g[1]} flex items-center justify-center text-white font-bold text-sm border-2 transition-all ${
+                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${g[0]} ${g[1]} flex items-center justify-center text-white font-bold text-sm border-2 transition-all cursor-pointer ${
                         preview === `gradient:${g[0]}:${g[1]}` ? 'border-primary-500 scale-110 shadow' : 'border-transparent hover:scale-105'
                       }`}
                     >

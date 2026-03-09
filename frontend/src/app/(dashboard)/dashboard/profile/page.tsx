@@ -227,10 +227,10 @@ function EditableField({
                 className="flex-1 text-sm border border-primary-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             )}
-            <button onClick={onConfirm} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0">
+            <button onClick={onConfirm} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0 cursor-pointer">
               <Check size={14} />
             </button>
-            <button onClick={onCancel} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0">
+            <button onClick={onCancel} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0 cursor-pointer">
               <X size={14} />
             </button>
           </div>
@@ -239,7 +239,7 @@ function EditableField({
             <span className="text-sm text-gray-800 break-all">{displayVal}</span>
             <button
               onClick={onStartEdit}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0 cursor-pointer"
             >
               <Pencil size={12} />
             </button>
@@ -318,7 +318,7 @@ function AutocompleteTagInput({
         {tags.map((s) => (
           <span key={s} className="flex items-center gap-1 text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
             {s}
-            <button onClick={() => onChange(tags.filter((x) => x !== s))} className="hover:text-red-500 leading-none ml-0.5">×</button>
+            <button onClick={() => onChange(tags.filter((x) => x !== s))} className="hover:text-red-500 leading-none ml-0.5 cursor-pointer">×</button>
           </span>
         ))}
         {tags.length === 0 && <span className="text-gray-300 italic text-xs">Sin agregar</span>}
@@ -411,13 +411,13 @@ function AutocompleteField({
                 </div>
               )}
             </div>
-            <button onClick={() => { setOpen(false); onConfirm(); }} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0"><Check size={14} /></button>
-            <button onClick={() => { setOpen(false); onCancel(); }} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0"><X size={14} /></button>
+            <button onClick={() => { setOpen(false); onConfirm(); }} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0 cursor-pointer"><Check size={14} /></button>
+            <button onClick={() => { setOpen(false); onCancel(); }} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0 cursor-pointer"><X size={14} /></button>
           </div>
         ) : (
           <div className="flex items-center gap-2 min-h-[28px]">
             <span className="text-sm text-gray-800">{value || <span className="text-gray-300 italic">Sin completar</span>}</span>
-            <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0">
+            <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0 cursor-pointer">
               <Pencil size={12} />
             </button>
           </div>

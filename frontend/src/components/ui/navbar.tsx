@@ -93,7 +93,7 @@ export function Navbar() {
                 <div ref={dropdownRef} className="relative">
                   <button
                     onClick={() => setDropdownOpen((o) => !o)}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
                   >
                     <img
                       src={avatarUrl && !avatarUrl.startsWith('gradient:') ? avatarUrl : defaultAvatar(profileName)}
@@ -127,7 +127,7 @@ export function Navbar() {
                       <div className="my-1 border-t border-gray-100" />
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <LogOut size={14} /> Cerrar sesión
                       </button>
@@ -155,7 +155,7 @@ export function Navbar() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
