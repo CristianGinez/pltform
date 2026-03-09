@@ -2,7 +2,7 @@ export type Role = 'COMPANY' | 'DEVELOPER' | 'ADMIN';
 export type ProjectStatus = 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
 export type ContractStatus = 'ACTIVE' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
-export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'APPROVED' | 'PAID';
+export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'APPROVED' | 'PAID';
 
 export interface User {
   id: string;
@@ -93,6 +93,10 @@ export interface Milestone {
   status: MilestoneStatus;
   dueDate?: string;
   order: number;
+  deliveryNote?: string;
+  deliveryLink?: string;
+  startedAt?: string;
+  submittedAt?: string;
 }
 
 export interface Contract {
@@ -112,7 +116,11 @@ export type NotificationType =
   | 'PROPOSAL_WITHDRAWN'
   | 'CONTRACT_CREATED'
   | 'MILESTONE_SUBMITTED'
-  | 'MILESTONE_APPROVED';
+  | 'MILESTONE_APPROVED'
+  | 'MILESTONE_STARTED'
+  | 'MILESTONE_REVISION_REQUESTED'
+  | 'MILESTONE_PAID'
+  | 'CONTRACT_COMPLETED';
 
 export interface Notification {
   id: string;

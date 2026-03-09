@@ -106,40 +106,66 @@ Ciclo de vida de un contrato.
 
 ## Máquina de estados: MilestoneStatus
 
-Ciclo de vida de un hito de entrega.
+Ciclo de vida de un hito de entrega, incluyendo el ciclo de revisiones.
 
 ```
            ┌─────────┐
            │ PENDING │  ← Estado inicial
            └────┬────┘
-                │ developer inicia trabajo
+                │ DEVELOPER: "Iniciar"
                 ▼
          ┌─────────────┐
          │ IN_PROGRESS │
          └──────┬──────┘
-                │ developer entrega
+                │ DEVELOPER: "Entregar" (nota + link)
                 ▼
           ┌───────────┐
-          │ SUBMITTED │
-          └─────┬─────┘
-                │ company revisa y aprueba
-                ▼
-          ┌──────────┐
-          │ APPROVED │
-          └─────┬────┘
-                │ pago procesado
-                ▼
-            ┌──────┐
-            │ PAID │  ← Estado final
-            └──────┘
+          │ SUBMITTED │◀─────────────────────────┐
+          └─────┬─────┘                          │
+        ┌───────┴────────┐                       │
+        │                │                       │
+        ▼                ▼                       │
+   COMPANY:         COMPANY:                     │
+   "Aprobar"     "Pedir revisión"                │
+        │                │                       │
+        ▼                ▼                       │
+    ┌──────┐   ┌────────────────────┐            │
+    │ PAID │   │ REVISION_REQUESTED │────────────┘
+    └──────┘   └────────────────────┘
+  Estado final   DEVELOPER: "Volver a entregar"
 ```
 
 | Transición | Actor | Endpoint |
 |------------|-------|----------|
-| `PENDING → IN_PROGRESS` | DEVELOPER | (manual o automático) |
-| `IN_PROGRESS → SUBMITTED` | DEVELOPER | `PATCH /contracts/:id/milestones/:mid/submit` |
-| `SUBMITTED → APPROVED` | COMPANY | `PATCH /contracts/:id/milestones/:mid/approve` |
-| `APPROVED → PAID` | Sistema / Stripe | (fase 2 — integración de pagos) |
+| `PENDING → IN_PROGRESS` | DEVELOPER | `PATCH /contracts/:id/milestones/:mid/start` |
+| `IN_PROGRESS → SUBMITTED` | DEVELOPER | `PATCH /contracts/:id/milestones/:mid/submit` (body: `deliveryNote`, `deliveryLink`) |
+| `SUBMITTED → PAID` | COMPANY | `PATCH /contracts/:id/milestones/:mid/approve` (simula liberación de escrow) |
+| `SUBMITTED → REVISION_REQUESTED` | COMPANY | `PATCH /contracts/:id/milestones/:mid/request-revision` (body: `reason`) |
+| `REVISION_REQUESTED → SUBMITTED` | DEVELOPER | `PATCH /contracts/:id/milestones/:mid/submit` (re-entrega) |
+
+**Notas:**
+- Al aprobar, el sistema pasa directamente de `SUBMITTED → PAID` (el estado `APPROVED` ya no existe en el flujo activo).
+- Si todos los milestones del contrato quedan en `PAID`, el sistema automáticamente marca el `Contract` y el `Project` como `COMPLETED`.
+- El developer puede re-entregar desde `REVISION_REQUESTED` usando el mismo endpoint de submit.
+
+---
+
+## NotificationType
+
+Tipos de notificaciones generadas por el sistema.
+
+| Tipo | Generada cuando | Destinatario |
+|------|-----------------|--------------|
+| `PROPOSAL_RECEIVED` | Developer postula a un proyecto | COMPANY |
+| `PROPOSAL_ACCEPTED` | Empresa acepta una propuesta | DEVELOPER |
+| `PROPOSAL_REJECTED` | Empresa rechaza una propuesta | DEVELOPER |
+| `PROPOSAL_WITHDRAWN` | Developer retira su propuesta | COMPANY |
+| `CONTRACT_CREATED` | Se crea el contrato | DEVELOPER |
+| `MILESTONE_STARTED` | Developer inicia un milestone | COMPANY |
+| `MILESTONE_SUBMITTED` | Developer entrega un milestone | COMPANY |
+| `MILESTONE_REVISION_REQUESTED` | Empresa pide revisión con motivo | DEVELOPER |
+| `MILESTONE_PAID` | Milestone aprobado y pagado automáticamente | DEVELOPER |
+| `CONTRACT_COMPLETED` | Todos los milestones están PAID | COMPANY + DEVELOPER |
 
 ---
 
@@ -150,4 +176,4 @@ Ciclo de vida de un hito de entrega.
 | `Project` | 5 | `DRAFT` | `COMPLETED`, `CANCELLED` |
 | `Proposal` | 4 | `PENDING` | `ACCEPTED`, `REJECTED`, `WITHDRAWN` |
 | `Contract` | 4 | `ACTIVE` | `COMPLETED`, `CANCELLED` |
-| `Milestone` | 5 | `PENDING` | `PAID` |
+| `Milestone` | 6 | `PENDING` | `PAID` |

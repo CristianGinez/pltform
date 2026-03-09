@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 import { ContractsService } from './contracts.service';
@@ -17,13 +17,33 @@ export class ContractsController {
     return this.contractsService.findById(id, user.id);
   }
 
+  @Patch(':id/milestones/:milestoneId/start')
+  startMilestone(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.contractsService.startMilestone(id, milestoneId, user.id);
+  }
+
   @Patch(':id/milestones/:milestoneId/submit')
   submitMilestone(
     @Param('id') id: string,
     @Param('milestoneId') milestoneId: string,
     @CurrentUser() user: User,
+    @Body() body: { deliveryNote?: string; deliveryLink?: string },
   ) {
-    return this.contractsService.submitMilestone(id, milestoneId, user.id);
+    return this.contractsService.submitMilestone(id, milestoneId, user.id, body);
+  }
+
+  @Patch(':id/milestones/:milestoneId/request-revision')
+  requestRevision(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+    @Body() body: { reason?: string },
+  ) {
+    return this.contractsService.requestRevision(id, milestoneId, user.id, body);
   }
 
   @Patch(':id/milestones/:milestoneId/approve')

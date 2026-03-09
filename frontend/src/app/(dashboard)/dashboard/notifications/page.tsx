@@ -23,6 +23,10 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   CONTRACT_CREATED: <ScrollText size={16} className="text-purple-500" />,
   MILESTONE_SUBMITTED: <ScrollText size={16} className="text-orange-500" />,
   MILESTONE_APPROVED: <CheckSquare size={16} className="text-green-600" />,
+  MILESTONE_STARTED: <ScrollText size={16} className="text-blue-500" />,
+  MILESTONE_REVISION_REQUESTED: <ScrollText size={16} className="text-orange-600" />,
+  MILESTONE_PAID: <CheckSquare size={16} className="text-emerald-600" />,
+  CONTRACT_COMPLETED: <CheckCircle size={16} className="text-green-700" />,
 };
 
 function NotificationRow({ n }: { n: Notification }) {

@@ -18,7 +18,7 @@ pltform/
 │   └── src/
 │       ├── app/               # Rutas (App Router)
 │       ├── components/ui/     # Navbar, DevCard, AvatarPicker
-│       ├── hooks/             # use-projects, use-proposals, use-developers, use-profile, use-upload
+│       ├── hooks/             # use-projects, use-proposals, use-developers, use-profile, use-upload, use-contracts
 │       ├── schemas/           # Zod schemas (project, proposal)
 │       ├── lib/               # axios, avatar, query-client
 │       ├── store/             # Zustand auth store
@@ -62,9 +62,12 @@ Empresa crea proyecto (DRAFT)
               └─▶ Empresa acepta propuesta
                     └─▶ Proyecto pasa a IN_PROGRESS
                     └─▶ Contrato + Milestones creados automáticamente
-                          └─▶ Developer completa milestones (SUBMITTED)
-                                └─▶ Empresa aprueba (APPROVED → PAID)
-                                      └─▶ Proyecto COMPLETED
+                          └─▶ Developer inicia milestone (IN_PROGRESS)
+                                └─▶ Developer entrega (SUBMITTED + nota + link)
+                                      ├─▶ Empresa pide revisión (REVISION_REQUESTED)
+                                      │     └─▶ Developer vuelve a entregar → SUBMITTED
+                                      └─▶ Empresa aprueba → PAID (auto)
+                                              └─▶ Si todos PAID: Contrato + Proyecto COMPLETED
 ```
 
 ---
@@ -160,14 +163,18 @@ model Contract {
 }
 
 model Milestone {
-  id          String          @id @default(cuid())
-  contractId  String
-  title       String
-  description String?
-  amount      Decimal
-  status      MilestoneStatus @default(PENDING)
-  dueDate     DateTime?
-  order       Int
+  id           String          @id @default(cuid())
+  contractId   String
+  title        String
+  description  String?
+  amount       Decimal
+  status       MilestoneStatus @default(PENDING)
+  dueDate      DateTime?
+  order        Int
+  deliveryNote String?
+  deliveryLink String?
+  startedAt    DateTime?
+  submittedAt  DateTime?
 }
 ```
 
@@ -192,7 +199,9 @@ app/
 │       │   ├── new/page.tsx        # Selector de paquetes + preview en tiempo real
 │       │   └── [id]/page.tsx       # Detalle + propuestas + edición borrador
 │       ├── proposals/page.tsx      # Mis postulaciones
-│       ├── contracts/page.tsx      # Contratos activos
+│       ├── contracts/
+│       │   ├── page.tsx            # Lista de contratos activos (con links al detalle)
+│       │   └── [id]/page.tsx       # Detalle del contrato: milestones interactivos por rol
 │       └── profile/page.tsx        # Edición inline de perfil
 │
 ├── projects/
@@ -224,10 +233,26 @@ app/
 - ✅ Perfiles públicos de developers (bio, skills, badges, trabajos anteriores)
 - ✅ Dashboard diferenciado por rol (COMPANY / DEVELOPER)
 - ✅ Diseño 100% responsive (mobile bottom-tabs, hamburger navbar, layouts apilables)
+- ✅ Sistema de notificaciones in-app con polling (bell + página de notificaciones)
+- ✅ Panel Admin: vista de todas las notificaciones del sistema
+
+### Fase 1.5 — Flujo completo de contrato ✅ Completado
+
+- ✅ Milestone: iniciar (PENDING → IN_PROGRESS) con timestamp `startedAt`
+- ✅ Milestone: entregar con nota y link (IN_PROGRESS → SUBMITTED) con timestamp `submittedAt`
+- ✅ Milestone: ciclo de revisión sin disputa (SUBMITTED → REVISION_REQUESTED → SUBMITTED)
+- ✅ Milestone: aprobación directa a PAID (simula escrow; sin Stripe aún)
+- ✅ Auto-completar contrato y proyecto cuando todos los milestones están PAID
+- ✅ Página de detalle del contrato (`/dashboard/contracts/[id]`) con acciones por rol
+- ✅ Modal "Entregar milestone" (nota + link al entregable)
+- ✅ Modal "Pedir revisión" (motivo de la revisión)
+- ✅ Barra de progreso de pagos en la página de detalle
+- ✅ Hooks de React Query: `useContract`, `useStartMilestone`, `useSubmitMilestone`, `useApproveMilestone`, `useRequestRevision`
+- ✅ Nuevas notificaciones: `MILESTONE_STARTED`, `MILESTONE_REVISION_REQUESTED`, `MILESTONE_PAID`, `CONTRACT_COMPLETED`
 
 ### Fase 2 — Monetización y Confianza 🔜
 
-- [ ] Integración Stripe (pagos en escrow por milestone)
+- [ ] Integración Stripe (reemplazar escrow simulado por pagos reales)
 - [ ] Reviews y ratings tras completar proyecto (actualiza `rating` y `trustPoints`)
 - [ ] Verificación de identidad de developers y empresas
 - [ ] Notificaciones email (Resend) — nueva propuesta, propuesta aceptada, milestone aprobado

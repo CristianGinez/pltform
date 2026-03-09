@@ -180,6 +180,10 @@ Hito de entrega dentro de un contrato. Permite pagos parciales.
 | `status` | `MilestoneStatus` | Estado del hito |
 | `dueDate` | `DateTime?` | Fecha límite del hito |
 | `order` | `Int` | Orden de entrega (1, 2, 3...) |
+| `deliveryNote` | `String?` | Nota de entrega escrita por el developer |
+| `deliveryLink` | `String?` | Link a staging / repo / demo al entregar |
+| `startedAt` | `DateTime?` | Timestamp cuando el developer inició el milestone |
+| `submittedAt` | `DateTime?` | Timestamp cuando el developer entregó el milestone |
 | `createdAt` | `DateTime` | Fecha de creación |
 | `updatedAt` | `DateTime` | Última actualización |
 

@@ -126,34 +126,73 @@ DB resultante:
 
 ---
 
-## Flujo 5: Entrega y aprobación de milestone
+## Flujo 5: Ciclo completo de un milestone (post-aceptación)
 
 ```
-Actor: DEVELOPER → entrega trabajo
+1. DEVELOPER → Iniciar milestone
 
-PATCH /api/contracts/:id/milestones/:milestoneId/submit
-  Backend:
-    1. Verifica que el developer es parte del contrato
-    2. Milestone.update({ status: SUBMITTED })
+   PATCH /api/contracts/:id/milestones/:milestoneId/start
+   Backend:
+     1. Verifica que el developer es parte del contrato (propuesta ACCEPTED)
+     2. Verifica que milestone.status === PENDING
+     3. Milestone.update({ status: IN_PROGRESS, startedAt: now() })
+     4. Notifica a COMPANY: MILESTONE_STARTED
 
-Actor: COMPANY → revisa y aprueba
+   DB: Milestone { status: IN_PROGRESS, startedAt: "..." }
 
-PATCH /api/contracts/:id/milestones/:milestoneId/approve
-  Backend:
-    1. Verifica que la empresa es dueña del proyecto
-    2. Milestone.update({ status: APPROVED })
+──────────────────────────────────────────────
 
-  [Fase 2 — Stripe]:
-    3. Procesa pago al developer (descontando platformFee)
-    4. Milestone.update({ status: PAID })
-    5. Si todos los milestones están PAID:
-       Contract.update({ status: COMPLETED })
-       Project.update({ status: COMPLETED })
+2. DEVELOPER → Entregar milestone
 
-DB resultante:
-  Milestone { status: PAID }
-  Contract { status: COMPLETED }  ← si era el último milestone
-  Project { status: COMPLETED }   ← si era el último milestone
+   PATCH /api/contracts/:id/milestones/:milestoneId/submit
+   body: { deliveryNote: "Aquí el link al staging...", deliveryLink: "https://..." }
+   Backend:
+     1. Verifica que el developer es parte del contrato
+     2. Verifica que milestone.status IN [IN_PROGRESS, REVISION_REQUESTED]
+     3. Milestone.update({
+          status: SUBMITTED,
+          deliveryNote, deliveryLink,
+          submittedAt: now()
+        })
+     4. Notifica a COMPANY: MILESTONE_SUBMITTED
+
+   DB: Milestone { status: SUBMITTED, deliveryNote: "...", deliveryLink: "...", submittedAt: "..." }
+
+──────────────────────────────────────────────
+
+3a. COMPANY → Pedir revisión (ciclo de revisión)
+
+   PATCH /api/contracts/:id/milestones/:milestoneId/request-revision
+   body: { reason: "Falta la pantalla de login" }
+   Backend:
+     1. Verifica que la empresa es dueña del proyecto
+     2. Verifica que milestone.status === SUBMITTED
+     3. Milestone.update({ status: REVISION_REQUESTED })
+     4. Notifica a DEVELOPER: MILESTONE_REVISION_REQUESTED con el motivo
+
+   DB: Milestone { status: REVISION_REQUESTED }
+   → DEVELOPER vuelve al paso 2 ("Volver a entregar")
+
+──────────────────────────────────────────────
+
+3b. COMPANY → Aprobar milestone
+
+   PATCH /api/contracts/:id/milestones/:milestoneId/approve
+   Backend:
+     1. Verifica que la empresa es dueña del proyecto
+     2. Verifica que milestone.status === SUBMITTED
+     3. Milestone.update({ status: PAID })         ← SUBMITTED → PAID directamente
+     4. Notifica a DEVELOPER: MILESTONE_PAID
+     5. Si TODOS los milestones del contrato están en PAID:
+        Contract.update({ status: COMPLETED })
+        Project.update({ status: COMPLETED })
+        Notifica a COMPANY: CONTRACT_COMPLETED
+        Notifica a DEVELOPER: CONTRACT_COMPLETED
+
+   DB resultante (milestone final):
+     Milestone { status: PAID }
+     Contract { status: COMPLETED }  ← si era el último
+     Project { status: COMPLETED }   ← si era el último
 ```
 
 ---
@@ -184,5 +223,7 @@ La `platformFee` se almacena en el contrato al momento de su creación, por lo q
 | Postular | DEVELOPER | Token + rol + proyecto OPEN + no ha postulado antes |
 | Aceptar propuesta | COMPANY | Token + rol + es dueño del proyecto |
 | Retirar propuesta | DEVELOPER | Token + rol + es autor de la propuesta + estado PENDING |
-| Entregar milestone | DEVELOPER | Token + es parte del contrato |
-| Aprobar milestone | COMPANY | Token + es dueña del proyecto del contrato |
+| Iniciar milestone | DEVELOPER | Token + es parte del contrato + milestone PENDING |
+| Entregar milestone | DEVELOPER | Token + es parte del contrato + milestone IN_PROGRESS o REVISION_REQUESTED |
+| Aprobar milestone | COMPANY | Token + es dueña del proyecto del contrato + milestone SUBMITTED |
+| Pedir revisión | COMPANY | Token + es dueña del proyecto del contrato + milestone SUBMITTED |

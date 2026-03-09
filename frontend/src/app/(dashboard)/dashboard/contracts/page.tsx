@@ -14,6 +14,7 @@ type ProjectWithContract = Project & {
     status: string;
     milestones: Milestone[];
   };
+  company?: { name?: string };
   proposals?: Proposal[];
 };
 
@@ -21,6 +22,7 @@ const MILESTONE_ICONS: Record<string, React.ReactNode> = {
   PENDING: <Circle size={14} className="text-gray-300" />,
   IN_PROGRESS: <Clock size={14} className="text-blue-500" />,
   SUBMITTED: <Clock size={14} className="text-yellow-500" />,
+  REVISION_REQUESTED: <Clock size={14} className="text-orange-500" />,
   APPROVED: <CheckCircle size={14} className="text-green-500" />,
   PAID: <CheckCircle size={14} className="text-green-700" />,
 };
@@ -82,23 +84,28 @@ export default function ContractsPage() {
             <div key={project.id} className="bg-white rounded-xl border border-gray-100 p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <Link
-                    href={`/dashboard/projects/${project.id}`}
-                    className="font-semibold text-gray-900 hover:text-primary-700 transition-colors"
-                  >
-                    {project.title}
-                  </Link>
+                  <p className="font-semibold text-gray-900">{project.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Presupuesto: ${Number(project.budget).toLocaleString()}
+                    Presupuesto: S/ {Number(project.budget).toLocaleString()}
                   </p>
                 </div>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                  }`}
-                >
-                  {project.status === 'IN_PROGRESS' ? 'En progreso' : 'Completado'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                    }`}
+                  >
+                    {project.status === 'IN_PROGRESS' ? 'En progreso' : 'Completado'}
+                  </span>
+                  {project.contract && (
+                    <Link
+                      href={`/dashboard/contracts/${project.contract.id}`}
+                      className="text-xs text-primary-600 hover:underline whitespace-nowrap"
+                    >
+                      Ver contrato →
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {project.contract?.milestones && project.contract.milestones.length > 0 && (
@@ -109,7 +116,7 @@ export default function ContractsPage() {
                       <div key={m.id} className="flex items-center gap-2 text-sm">
                         {MILESTONE_ICONS[m.status] ?? <Circle size={14} />}
                         <span className="flex-1 text-gray-700">{m.title}</span>
-                        <span className="text-gray-400 text-xs">${Number(m.amount).toLocaleString()}</span>
+                        <span className="text-gray-400 text-xs">S/ {Number(m.amount).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -130,28 +137,33 @@ export default function ContractsPage() {
       {!isCompany && (
         <div className="space-y-4">
           {devProposals.map((proposal) => {
-            const project = proposal.project as (typeof proposal.project & { company?: { name?: string } });
+            const project = proposal.project as ProjectWithContract | undefined;
             return (
               <div key={proposal.id} className="bg-white rounded-xl border border-gray-100 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <Link
-                      href={`/dashboard/projects/${proposal.projectId}`}
-                      className="font-semibold text-gray-900 hover:text-primary-700 transition-colors"
-                    >
-                      {project?.title ?? 'Proyecto'}
-                    </Link>
+                    <p className="font-semibold text-gray-900">{project?.title ?? 'Proyecto'}</p>
                     {project?.company && (
                       <p className="text-xs text-gray-400 mt-0.5">{project.company.name}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Tu presupuesto acordado: <span className="font-medium">${Number(proposal.budget).toLocaleString()}</span>
+                      Acordado: <span className="font-medium">S/ {Number(proposal.budget).toLocaleString()}</span>
                       {' · '} {proposal.timeline} días
                     </p>
                   </div>
-                  <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700 whitespace-nowrap">
-                    Propuesta aceptada
-                  </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">
+                      Aceptada
+                    </span>
+                    {project?.contract && (
+                      <Link
+                        href={`/dashboard/contracts/${project.contract.id}`}
+                        className="text-xs text-primary-600 hover:underline whitespace-nowrap"
+                      >
+                        Ver contrato →
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             );

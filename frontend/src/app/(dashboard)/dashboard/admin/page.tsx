@@ -17,6 +17,10 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   CONTRACT_CREATED: 'Contrato creado',
   MILESTONE_SUBMITTED: 'Milestone entregado',
   MILESTONE_APPROVED: 'Milestone aprobado',
+  MILESTONE_STARTED: 'Milestone iniciado',
+  MILESTONE_REVISION_REQUESTED: 'Revisión solicitada',
+  MILESTONE_PAID: 'Milestone pagado',
+  CONTRACT_COMPLETED: 'Proyecto completado',
 };
 
 const TYPE_COLORS: Record<NotificationType, string> = {
@@ -27,6 +31,10 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   CONTRACT_CREATED: 'bg-purple-100 text-purple-700',
   MILESTONE_SUBMITTED: 'bg-orange-100 text-orange-700',
   MILESTONE_APPROVED: 'bg-emerald-100 text-emerald-700',
+  MILESTONE_STARTED: 'bg-blue-100 text-blue-700',
+  MILESTONE_REVISION_REQUESTED: 'bg-orange-100 text-orange-700',
+  MILESTONE_PAID: 'bg-emerald-100 text-emerald-700',
+  CONTRACT_COMPLETED: 'bg-green-100 text-green-700',
 };
 
 export default function AdminPage() {

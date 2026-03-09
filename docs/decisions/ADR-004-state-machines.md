@@ -35,7 +35,7 @@ Cada entidad tiene un campo `status` de tipo enum. El backend valida que la tran
 
 ## Decisión
 
-Implementar máquinas de estado unidireccionales para las cuatro entidades. El backend lanza `BadRequestException` si se intenta una transición inválida.
+Implementar máquinas de estado para las cuatro entidades. El backend lanza `BadRequestException` si se intenta una transición inválida. `Milestone` tiene un ciclo bidireccional controlado para soportar revisiones.
 
 ```
 Project:   DRAFT → OPEN → IN_PROGRESS → COMPLETED
@@ -50,8 +50,13 @@ Contract:  ACTIVE → COMPLETED
                   → DISPUTED
                   → CANCELLED
 
-Milestone: PENDING → IN_PROGRESS → SUBMITTED → APPROVED → PAID
+Milestone: PENDING → IN_PROGRESS → SUBMITTED ──→ PAID
+                                       ↑    ↘
+                                       │     REVISION_REQUESTED
+                                       └─────────────┘
 ```
+
+**Excepción controlada:** `Milestone` permite el ciclo `SUBMITTED → REVISION_REQUESTED → SUBMITTED` para gestionar iteraciones de revisión sin abrir disputas. Esto no viola el principio general ya que `REVISION_REQUESTED` es un estado intermedio, no un retroceso terminal.
 
 ---
 
@@ -60,21 +65,22 @@ Milestone: PENDING → IN_PROGRESS → SUBMITTED → APPROVED → PAID
 Cada módulo valida el estado actual antes de ejecutar la transición:
 
 ```typescript
-// Ejemplo en ProposalsService
-async accept(proposalId: string, companyId: string) {
-  const proposal = await this.prisma.proposal.findUnique(...);
-
-  if (proposal.status !== ProposalStatus.PENDING) {
-    throw new BadRequestException('Solo se pueden aceptar propuestas en estado PENDING');
-  }
-  // ... ejecutar transacción
+// Ejemplo en ContractsService
+async startMilestone(contractId, milestoneId, userId) {
+  const milestone = await this.prisma.milestone.findFirst({ ... });
+  if (milestone.status !== 'PENDING')
+    throw new BadRequestException('El milestone no está en estado PENDING');
+  return this.prisma.milestone.update({
+    where: { id: milestoneId },
+    data: { status: 'IN_PROGRESS', startedAt: new Date() },
+  });
 }
 ```
 
-Las transiciones con efectos secundarios se ejecutan en transacciones de Prisma:
+Las transiciones con efectos secundarios se ejecutan directamente (Milestone no usa transacciones):
 
-- `PENDING → ACCEPTED` en Proposal: rechaza las demás propuestas + crea Contract + cambia Project a IN_PROGRESS
-- `APPROVED → PAID` en Milestone: si todos los milestones son PAID, cierra Contract y Project
+- `PENDING → ACCEPTED` en Proposal: rechaza las demás propuestas + crea Contract + cambia Project a IN_PROGRESS (transacción Prisma)
+- `SUBMITTED → PAID` en Milestone (via approve): si todos los milestones son PAID → Contract y Project pasan a COMPLETED + notificaciones a ambas partes
 
 ---
 
@@ -82,11 +88,12 @@ Las transiciones con efectos secundarios se ejecutan en transacciones de Prisma:
 
 **Positivas:**
 - La integridad del negocio se garantiza en la capa de servicio
-- Es imposible saltarse pasos del flujo (ej: pagar un milestone no aprobado)
-- Los estados finales (`COMPLETED`, `CANCELLED`, `PAID`, `WITHDRAWN`, `REJECTED`) son terminales: una vez alcanzados no cambian
-- El historial de estados es implícito: si un proyecto está `IN_PROGRESS`, necesariamente pasó por `DRAFT` y `OPEN`
+- Es imposible saltarse pasos del flujo (ej: pagar un milestone no entregado)
+- Los estados finales (`COMPLETED`, `CANCELLED`, `PAID`, `WITHDRAWN`, `REJECTED`) son terminales
+- Los timestamps `startedAt` y `submittedAt` en Milestone proveen trazabilidad básica sin necesitar un audit log completo
+- El ciclo de revisión es explícito y rastreable: el estado `REVISION_REQUESTED` es visible para ambas partes
 
 **Negativas / Trade-offs:**
-- No hay tabla de historial de transiciones (audit log). Si se necesita saber "cuándo pasó de OPEN a IN_PROGRESS", no está almacenado actualmente
-- Las transiciones con efectos secundarios (aceptar propuesta) son complejas: requieren transacciones de DB con múltiples operaciones
-- Si en el futuro se necesita una transición inversa (ej: re-abrir un proyecto cancelado), el diseño debe revisarse
+- No hay tabla de historial de transiciones (audit log). Si se necesita saber "cuánto tiempo tardó en pasar de PENDING a PAID", la información es parcial
+- El ciclo de revisión en Milestone rompe la estricta unidireccionalidad; compensado por validación explícita en cada endpoint
+- Si en el futuro se necesita saber cuántas iteraciones de revisión tuvo un milestone, habría que agregar un contador o tabla de eventos
