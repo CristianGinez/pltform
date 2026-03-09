@@ -62,7 +62,16 @@ export class ProjectsService {
 
     return this.prisma.project.findMany({
       where: { companyId: company.id },
-      include: { _count: { select: { proposals: true } } },
+      include: {
+        _count: { select: { proposals: true } },
+        contract: {
+          select: {
+            id: true,
+            status: true,
+            milestones: { orderBy: { order: 'asc' } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
