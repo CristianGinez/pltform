@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { User } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { ContractsService } from './contracts.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('contracts')
@@ -11,6 +13,13 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @Controller('contracts')
 export class ContractsController {
   constructor(private contractsService: ContractsService) {}
+
+  @Get('disputed')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  getDisputed() {
+    return this.contractsService.getDisputedContracts();
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: User) {
@@ -79,6 +88,14 @@ export class ContractsController {
     return this.contractsService.proposeAction(id, milestoneId, user.id, body as any);
   }
 
+  @Post(':id/propose-cancel')
+  proposeCancelContract(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.contractsService.proposeAction(id, undefined, user.id, { action: 'PROPOSE_CANCEL' });
+  }
+
   @Post(':id/proposals/:messageId/respond')
   respondToProposal(
     @Param('id') id: string,
@@ -106,6 +123,35 @@ export class ContractsController {
     @CurrentUser() user: User,
   ) {
     return this.contractsService.markReadyForTesting(id, milestoneId, user.id);
+  }
+
+  @Post(':id/dispute')
+  openDispute(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: { reason: string },
+  ) {
+    return this.contractsService.openDispute(id, user.id, body.reason);
+  }
+
+  @Patch(':id/resolve')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  resolveDispute(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: { outcome: 'dev_wins' | 'company_wins' | 'mutual' },
+  ) {
+    return this.contractsService.resolveDispute(id, user.id, body.outcome);
+  }
+
+  @Post(':id/milestones/:milestoneId/force-approve')
+  forceApprove(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.contractsService.forceApprove(id, milestoneId, user.id);
   }
 
   @Post(':id/review')

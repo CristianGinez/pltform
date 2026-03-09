@@ -14,7 +14,7 @@ const SENDER_SELECT = {
   developer: { select: { name: true } },
 };
 
-type ProposalAction = 'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE';
+type ProposalAction = 'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | 'PROPOSE_CANCEL';
 type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED';
 
 @Injectable()
@@ -277,7 +277,7 @@ export class ContractsService {
 
   async proposeAction(
     contractId: string,
-    milestoneId: string,
+    milestoneId: string | undefined,
     userId: string,
     dto: {
       action: ProposalAction;
@@ -287,6 +287,57 @@ export class ContractsService {
     },
   ) {
     const { contract, isCompany } = await this.getContractWithAccess(contractId, userId);
+
+    // PROPOSE_CANCEL doesn't require a milestone
+    if (dto.action === 'PROPOSE_CANCEL') {
+      if (contract.status !== 'ACTIVE')
+        throw new BadRequestException('Solo puedes proponer cancelar un contrato ACTIVE');
+
+      const message = await this.prisma.contractMessage.create({
+        data: {
+          contractId,
+          senderId: userId,
+          content: 'Propone cancelar el contrato por mutuo acuerdo',
+          type: 'PROPOSAL',
+          metadata: {
+            action: 'PROPOSE_CANCEL',
+            proposalStatus: 'PENDING' as ProposalStatus,
+            milestoneId: '',
+            milestoneTitle: '',
+          },
+        },
+        include: { sender: { select: SENDER_SELECT } },
+      });
+
+      const notifBody = 'Se propone cancelar el contrato por mutuo acuerdo';
+      if (isCompany) {
+        const acceptedDev = await this.prisma.proposal.findFirst({
+          where: { projectId: contract.projectId, status: 'ACCEPTED' },
+          include: { developer: { select: { userId: true } } },
+        });
+        if (acceptedDev) {
+          await this.notifications.create({
+            userId: acceptedDev.developer.userId,
+            type: 'PROPOSAL_RECEIVED',
+            title: 'Propuesta de cancelación',
+            body: notifBody,
+            entityId: contractId,
+            entityType: 'contract',
+          });
+        }
+      } else {
+        await this.notifications.create({
+          userId: contract.project.company.userId,
+          type: 'PROPOSAL_RECEIVED',
+          title: 'Propuesta de cancelación',
+          body: notifBody,
+          entityId: contractId,
+          entityType: 'contract',
+        });
+      }
+
+      return message;
+    }
 
     const milestone = await this.prisma.milestone.findFirst({ where: { id: milestoneId, contractId } });
     if (!milestone) throw new NotFoundException('Milestone no encontrado');
@@ -298,16 +349,16 @@ export class ContractsService {
       throw new ForbiddenException('Solo la empresa puede proponer esta acción');
 
     // Validate milestone state
-    const validStates: Record<ProposalAction, string[]> = {
+    const validStates: Record<Exclude<ProposalAction, 'PROPOSE_CANCEL'>, string[]> = {
       PROPOSE_START: ['PENDING'],
       PROPOSE_SUBMIT: ['IN_PROGRESS', 'REVISION_REQUESTED'],
       PROPOSE_REVISION: ['SUBMITTED'],
       PROPOSE_APPROVE: ['SUBMITTED'],
     };
-    if (!validStates[dto.action].includes(milestone.status))
+    if (!(validStates as Record<string, string[]>)[dto.action]?.includes(milestone.status))
       throw new BadRequestException(`El milestone no está en un estado válido para esta acción`);
 
-    const labels: Record<ProposalAction, string> = {
+    const labels: Record<Exclude<ProposalAction, 'PROPOSE_CANCEL'>, string> = {
       PROPOSE_START:    `Propone iniciar "${milestone.title}"`,
       PROPOSE_SUBMIT:   `Propone entregar "${milestone.title}"`,
       PROPOSE_REVISION: `Propone revisión de "${milestone.title}"${dto.reason ? `: ${dto.reason}` : ''}`,
@@ -388,15 +439,18 @@ export class ContractsService {
     if (meta.proposalStatus !== 'PENDING')
       throw new BadRequestException('Esta propuesta ya fue respondida');
 
-    const { isCompany } = await this.getContractWithAccess(contractId, userId);
+    const { contract, isCompany } = await this.getContractWithAccess(contractId, userId);
 
     // Validate who responds to what
-    const responderShouldBeCompany =
-      meta.action === 'PROPOSE_START' || meta.action === 'PROPOSE_SUBMIT';
-    if (responderShouldBeCompany && !isCompany)
-      throw new ForbiddenException('Solo la empresa puede responder esta propuesta');
-    if (!responderShouldBeCompany && isCompany)
-      throw new ForbiddenException('Solo el developer puede responder esta propuesta');
+    // For PROPOSE_CANCEL: either party can respond (the one who didn't send it)
+    if (meta.action !== 'PROPOSE_CANCEL') {
+      const responderShouldBeCompany =
+        meta.action === 'PROPOSE_START' || meta.action === 'PROPOSE_SUBMIT';
+      if (responderShouldBeCompany && !isCompany)
+        throw new ForbiddenException('Solo la empresa puede responder esta propuesta');
+      if (!responderShouldBeCompany && isCompany)
+        throw new ForbiddenException('Solo el developer puede responder esta propuesta');
+    }
 
     // Can't respond to your own proposal
     if (message.senderId === userId)
@@ -429,6 +483,28 @@ export class ContractsService {
         case 'PROPOSE_APPROVE':
           await this.doApproveMilestone(contractId, meta.milestoneId, message.senderId);
           break;
+        case 'PROPOSE_CANCEL': {
+          await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+          await this.postEvent(contractId, userId, 'Contrato cancelado por acuerdo mutuo', {
+            action: 'CONTRACT_CANCELLED_MUTUAL',
+          });
+          // Notify both parties
+          const devProposalCancel = await this.prisma.proposal.findFirst({
+            where: { projectId: contract.projectId, status: 'ACCEPTED' },
+            include: { developer: { select: { userId: true } } },
+          });
+          const notifPayloadCancel = {
+            type: 'CONTRACT_COMPLETED' as const,
+            title: 'Contrato cancelado',
+            body: 'El contrato fue cancelado por acuerdo mutuo.',
+            entityId: contractId,
+            entityType: 'contract',
+          };
+          await this.notifications.create({ userId: contract.project.company.userId, ...notifPayloadCancel });
+          if (devProposalCancel)
+            await this.notifications.create({ userId: devProposalCancel.developer.userId, ...notifPayloadCancel });
+          break;
+        }
       }
     } else if (dto.counter) {
       // Post counter as TEXT with metadata so frontend can style it
@@ -552,6 +628,189 @@ export class ContractsService {
 
   async approveMilestone(contractId: string, milestoneId: string, userId: string) {
     return this.doApproveMilestone(contractId, milestoneId, userId);
+  }
+
+  // ─── Dispute system ───────────────────────────────────────────────────────
+
+  async openDispute(contractId: string, userId: string, reason: string) {
+    const { contract, isCompany } = await this.getContractWithAccess(contractId, userId);
+    if (contract.status !== 'ACTIVE')
+      throw new BadRequestException('Solo puedes abrir una disputa en un contrato ACTIVE');
+    if (!reason?.trim() || reason.trim().length < 10)
+      throw new BadRequestException('El motivo debe tener al menos 10 caracteres');
+
+    await this.prisma.contract.update({
+      where: { id: contractId },
+      data: { status: 'DISPUTED', disputeReason: reason.trim(), disputeOpenedById: userId },
+    });
+
+    await this.postEvent(contractId, userId, `Disputa abierta: "${reason.trim()}"`, {
+      action: 'DISPUTE_OPENED',
+      reason: reason.trim(),
+    });
+
+    // Notify the other party
+    if (isCompany) {
+      const devProposal = await this.prisma.proposal.findFirst({
+        where: { projectId: contract.projectId, status: 'ACCEPTED' },
+        include: { developer: { select: { userId: true } } },
+      });
+      if (devProposal) {
+        await this.notifications.create({
+          userId: devProposal.developer.userId,
+          type: 'DISPUTE_OPENED',
+          title: 'Disputa abierta',
+          body: `La empresa abrió una disputa: "${reason.trim()}"`,
+          entityId: contractId,
+          entityType: 'contract',
+        });
+      }
+    } else {
+      await this.notifications.create({
+        userId: contract.project.company.userId,
+        type: 'DISPUTE_OPENED',
+        title: 'Disputa abierta',
+        body: `El developer abrió una disputa: "${reason.trim()}"`,
+        entityId: contractId,
+        entityType: 'contract',
+      });
+    }
+
+    // Notify all admins
+    const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' } });
+    await Promise.all(
+      admins.map((admin) =>
+        this.notifications.create({
+          userId: admin.id,
+          type: 'DISPUTE_OPENED',
+          title: 'Nueva disputa',
+          body: `Disputa en contrato ${contractId}: "${reason.trim()}"`,
+          entityId: contractId,
+          entityType: 'contract',
+        }),
+      ),
+    );
+
+    return { success: true };
+  }
+
+  async resolveDispute(contractId: string, adminId: string, outcome: 'dev_wins' | 'company_wins' | 'mutual') {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { project: { include: { company: true } }, milestones: true },
+    });
+    if (!contract) throw new NotFoundException('Contrato no encontrado');
+    if (contract.status !== 'DISPUTED')
+      throw new BadRequestException('El contrato no está en disputa');
+
+    const acceptedProposal = await this.prisma.proposal.findFirst({
+      where: { projectId: contract.projectId, status: 'ACCEPTED' },
+      include: { developer: true },
+    });
+
+    if (outcome === 'dev_wins') {
+      // Approve all SUBMITTED milestones
+      const submittedMilestones = contract.milestones.filter((m) => m.status === 'SUBMITTED');
+      await Promise.all(
+        submittedMilestones.map((m) =>
+          this.prisma.milestone.update({ where: { id: m.id }, data: { status: 'PAID' } }),
+        ),
+      );
+      // Reload milestones to check completion
+      const allMilestones = contract.milestones.map((m) =>
+        submittedMilestones.find((s) => s.id === m.id) ? { ...m, status: 'PAID' as const } : m,
+      );
+      const allPaid = allMilestones.every((m) => m.status === 'PAID');
+      await this.prisma.contract.update({
+        where: { id: contractId },
+        data: { status: allPaid ? 'COMPLETED' : 'ACTIVE' },
+      });
+      if (allPaid) {
+        await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
+      }
+    } else if (outcome === 'company_wins') {
+      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+      // Deduct 15 trustPoints from developer (min 0)
+      if (acceptedProposal) {
+        const dev = await this.prisma.developer.findUnique({
+          where: { id: acceptedProposal.developerId },
+        });
+        if (dev) {
+          await this.prisma.developer.update({
+            where: { id: acceptedProposal.developerId },
+            data: { trustPoints: Math.max(0, dev.trustPoints - 15) },
+          });
+        }
+      }
+    } else {
+      // mutual
+      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+    }
+
+    await this.postEvent(contractId, adminId, `Disputa resuelta: ${outcome === 'dev_wins' ? 'a favor del developer' : outcome === 'company_wins' ? 'a favor de la empresa' : 'cancelación mutua'}`, {
+      action: 'DISPUTE_RESOLVED',
+      outcome,
+    });
+
+    // Notify both parties
+    const notifBody = outcome === 'dev_wins'
+      ? 'La disputa fue resuelta a favor del developer. Los milestones entregados han sido pagados.'
+      : outcome === 'company_wins'
+      ? 'La disputa fue resuelta a favor de la empresa. El contrato ha sido cancelado.'
+      : 'La disputa fue resuelta por cancelación mutua.';
+
+    const notifPayload = {
+      type: 'DISPUTE_RESOLVED' as const,
+      title: 'Disputa resuelta',
+      body: notifBody,
+      entityId: contractId,
+      entityType: 'contract',
+    };
+    await this.notifications.create({ userId: contract.project.company.userId, ...notifPayload });
+    if (acceptedProposal)
+      await this.notifications.create({ userId: acceptedProposal.developer.userId, ...notifPayload });
+
+    return { success: true, outcome };
+  }
+
+  async forceApprove(contractId: string, milestoneId: string, userId: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { project: { include: { company: true } } },
+    });
+    if (!contract) throw new NotFoundException('Contrato no encontrado');
+
+    // Only the developer of the contract
+    const devProposal = await this.prisma.proposal.findFirst({
+      where: { projectId: contract.projectId, status: 'ACCEPTED', developer: { userId } },
+    });
+    if (!devProposal) throw new ForbiddenException('Solo el developer del contrato puede forzar la aprobación');
+
+    const milestone = await this.prisma.milestone.findFirst({ where: { id: milestoneId, contractId } });
+    if (!milestone) throw new NotFoundException('Milestone no encontrado');
+    if (milestone.status !== 'SUBMITTED')
+      throw new BadRequestException('Solo puedes forzar la aprobación de un milestone SUBMITTED');
+
+    if (!milestone.submittedAt)
+      throw new BadRequestException('El milestone no tiene fecha de entrega registrada');
+
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - new Date(milestone.submittedAt).getTime() < sevenDaysMs)
+      throw new BadRequestException('El milestone aún está dentro del plazo de respuesta (7 días)');
+
+    const companyUserId = contract.project.company.userId;
+    return this.doApproveMilestone(contractId, milestoneId, companyUserId);
+  }
+
+  async getDisputedContracts() {
+    return this.prisma.contract.findMany({
+      where: { status: 'DISPUTED' },
+      include: {
+        project: { include: { company: { select: { name: true } } } },
+        milestones: { select: { status: true, amount: true } },
+      },
+      orderBy: { updatedAt: 'asc' },
+    });
   }
 
   async createReview(contractId: string, userId: string, rating: number, comment?: string) {

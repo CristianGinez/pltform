@@ -8,13 +8,14 @@ import {
   Send, ThumbsUp, MessageSquare, ListChecks, LayoutDashboard,
   Rocket, RotateCcw, DollarSign, PartyPopper, Building2, User,
   Star, ChevronRight, X, Edit3, Activity, Eye, Lock, Zap, RefreshCw,
-  Trophy, Award,
+  Trophy, Award, ShieldAlert, Ban,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useContract, useContractMessages, useSendMessage,
   useProposeAction, useRespondToProposal,
   useSendProgressUpdate, useMarkReadyForTesting, useCreateReview,
+  useOpenDispute, useProposeCancel, useForceApprove,
 } from '@/hooks/use-contracts';
 import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus } from '@/types';
 
@@ -56,6 +57,9 @@ function EventIcon({ action }: { action?: string }) {
     case 'CONTRACT_COMPLETED':   return <PartyPopper size={14} className="text-purple-500" />;
     case 'PROGRESS_UPDATE':      return <Activity size={14} className="text-blue-400" />;
     case 'READY_FOR_TESTING':    return <Eye size={14} className="text-purple-500" />;
+    case 'DISPUTE_OPENED':       return <ShieldAlert size={14} className="text-red-500" />;
+    case 'DISPUTE_RESOLVED':     return <CheckCircle size={14} className="text-green-600" />;
+    case 'CONTRACT_CANCELLED_MUTUAL': return <Ban size={14} className="text-gray-500" />;
     default:                     return <CheckCircle size={14} className="text-gray-400" />;
   }
 }
@@ -67,6 +71,9 @@ const EVENT_COLORS: Record<string, string> = {
   CONTRACT_COMPLETED: 'bg-purple-50 border-purple-200 text-purple-800',
   PROGRESS_UPDATE: 'bg-sky-50 border-sky-200 text-sky-800',
   READY_FOR_TESTING: 'bg-purple-50 border-purple-200 text-purple-800',
+  DISPUTE_OPENED: 'bg-red-50 border-red-200 text-red-800',
+  DISPUTE_RESOLVED: 'bg-green-50 border-green-200 text-green-800',
+  CONTRACT_CANCELLED_MUTUAL: 'bg-gray-50 border-gray-200 text-gray-700',
 };
 
 // ─── Proposal action labels ───────────────────────────────────────────────────
@@ -76,6 +83,7 @@ const PROPOSAL_LABELS: Record<string, { icon: React.ReactNode; label: string; co
   PROPOSE_SUBMIT:   { icon: <Send size={14} />,      label: 'Propone entregar',  color: 'text-yellow-700' },
   PROPOSE_REVISION: { icon: <RotateCcw size={14} />, label: 'Pide revisión',     color: 'text-orange-700' },
   PROPOSE_APPROVE:  { icon: <ThumbsUp size={14} />,  label: 'Propone aprobar',   color: 'text-green-700' },
+  PROPOSE_CANCEL:   { icon: <Ban size={14} />,        label: 'Propone cancelar',  color: 'text-gray-600' },
 };
 
 // ─── Profile card (side column, vertical) ────────────────────────────────────
@@ -489,6 +497,48 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
   );
 }
 
+// ─── Dispute Modal ────────────────────────────────────────────────────────────
+
+function DisputeModal({ contractId, onClose }: { contractId: string; onClose: () => void }) {
+  const [reason, setReason] = useState('');
+  const openDispute = useOpenDispute(contractId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <ShieldAlert size={20} className="text-red-500" />
+          <h3 className="font-semibold text-gray-900">Abrir disputa</h3>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Explica el motivo de la disputa. Un administrador revisará el caso y resolverá a la brevedad.
+        </p>
+        <textarea
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400 mb-1"
+          rows={4}
+          placeholder="¿Por qué estás abriendo esta disputa? (min. 10 caracteres)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <p className="text-[10px] text-gray-400 mb-4">{reason.length} / 10 mínimo</p>
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button
+            onClick={() => openDispute.mutate(reason, { onSuccess: onClose })}
+            disabled={reason.trim().length < 10 || openDispute.isPending}
+            className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60">
+            {openDispute.isPending ? 'Enviando...' : 'Abrir disputa'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Tab: Chat ────────────────────────────────────────────────────────────────
 
 function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: {
@@ -605,11 +655,22 @@ function MilestoneStep({
   const [modal, setModal] = useState<'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [confirmTesting, setConfirmTesting] = useState(false);
+  const [confirmForceApprove, setConfirmForceApprove] = useState(false);
   const readyForTesting = useMarkReadyForTesting(contractId);
+  const forceApprove = useForceApprove();
 
   const colors = STEP_COLORS[milestone.status];
   const isDone = milestone.status === 'APPROVED' || milestone.status === 'PAID';
   const isActive = ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED'].includes(milestone.status);
+
+  // Auto-approve: days since submission
+  const daysSinceSubmission = milestone.submittedAt
+    ? Math.floor((Date.now() - new Date(milestone.submittedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const canForceApprove = !isCompany && milestone.status === 'SUBMITTED' && daysSinceSubmission !== null && daysSinceSubmission >= 7;
+  const daysRemaining = !isCompany && milestone.status === 'SUBMITTED' && daysSinceSubmission !== null && daysSinceSubmission < 7
+    ? 7 - daysSinceSubmission
+    : null;
 
   // Actions available to developer based on status
   const devActions: { label: string; icon: React.ReactNode; onClick: () => void; style: string }[] = [];
@@ -755,6 +816,22 @@ function MilestoneStep({
               ))}
             </div>
           )}
+
+          {/* Auto-approve (developer only, SUBMITTED > 7 days) */}
+          {canForceApprove && (
+            <div className="mt-3 pt-3 border-t border-orange-100">
+              <button
+                onClick={() => setConfirmForceApprove(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors">
+                <AlertCircle size={12} />Aprobación automática disponible (7 días sin respuesta)
+              </button>
+            </div>
+          )}
+          {daysRemaining !== null && (
+            <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
+              <Clock size={10} />La empresa tiene {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''} para responder
+            </p>
+          )}
         </motion.div>
       </div>
 
@@ -784,6 +861,33 @@ function MilestoneStep({
                   disabled={readyForTesting.isPending}
                   className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-60">
                   {readyForTesting.isPending ? 'Enviando...' : 'Confirmar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {confirmForceApprove && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 text-center">
+              <AlertCircle size={32} className="text-orange-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-1">Aprobación automática</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Han pasado {daysSinceSubmission} días desde que entregaste <span className="font-medium">"{milestone.title}"</span> sin respuesta. ¿Confirmar aprobación automática?
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmForceApprove(false)}
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => forceApprove.mutate(
+                    { contractId, milestoneId: milestone.id },
+                    { onSuccess: () => setConfirmForceApprove(false) },
+                  )}
+                  disabled={forceApprove.isPending}
+                  className="flex-1 py-2.5 text-sm font-semibold bg-orange-600 text-white rounded-xl hover:bg-orange-700 disabled:opacity-60">
+                  {forceApprove.isPending ? 'Procesando...' : 'Confirmar'}
                 </button>
               </div>
             </motion.div>
@@ -1144,6 +1248,9 @@ export default function ContractDetailPage() {
   const [tab, setTab] = useState<Tab>('chat');
   const [direction, setDirection] = useState(0);
   const [showRateOverlay, setShowRateOverlay] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const proposeCancel = useProposeCancel(id);
 
   const isCompany = user?.role === 'COMPANY';
 
@@ -1212,7 +1319,82 @@ export default function ContractDetailPage() {
             </span>
           </div>
         </div>
+        {/* Dispute / Cancel buttons — only for ACTIVE contracts */}
+        {contract.status === 'ACTIVE' && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+              Proponer cancelación
+            </button>
+            <button
+              onClick={() => setShowDisputeModal(true)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1">
+              <ShieldAlert size={12} />Abrir disputa
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Dispute banner */}
+      {contract.status === 'DISPUTED' && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <ShieldAlert size={18} className="text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Contrato en disputa</p>
+            {(contract as typeof contract & { disputeReason?: string }).disputeReason && (
+              <p className="text-xs text-red-600 mt-0.5">
+                Motivo: "{(contract as typeof contract & { disputeReason?: string }).disputeReason}"
+              </p>
+            )}
+            <p className="text-xs text-red-500 mt-1">El equipo está revisando el caso y resolverá a la brevedad.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled banner */}
+      {contract.status === 'CANCELLED' && (
+        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
+          <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
+            <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Dispute modal */}
+      <AnimatePresence>
+        {showDisputeModal && <DisputeModal contractId={contract.id} onClose={() => setShowDisputeModal(false)} />}
+      </AnimatePresence>
+
+      {/* Propose cancel confirm */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 text-center">
+              <Ban size={32} className="text-gray-400 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-1">Proponer cancelación</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Se enviará una propuesta de cancelación por mutuo acuerdo. La otra parte deberá aceptarla para que el contrato se cancele.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => proposeCancel.mutate(undefined, { onSuccess: () => setShowCancelConfirm(false) })}
+                  disabled={proposeCancel.isPending}
+                  className="flex-1 py-2.5 text-sm font-semibold bg-gray-700 text-white rounded-xl hover:bg-gray-800 disabled:opacity-60">
+                  {proposeCancel.isPending ? 'Enviando...' : 'Proponer cancelación'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* 3-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-start">

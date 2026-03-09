@@ -107,6 +107,8 @@ export interface Contract {
   milestones: Milestone[];
   status: ContractStatus;
   platformFee: number;
+  disputeReason?: string;
+  disputeOpenedById?: string;
   createdAt: string;
 }
 
@@ -151,7 +153,9 @@ export type NotificationType =
   | 'MILESTONE_REVISION_REQUESTED'
   | 'MILESTONE_PAID'
   | 'CONTRACT_COMPLETED'
-  | 'MESSAGE_RECEIVED';
+  | 'MESSAGE_RECEIVED'
+  | 'DISPUTE_OPENED'
+  | 'DISPUTE_RESOLVED';
 
 export interface Notification {
   id: string;

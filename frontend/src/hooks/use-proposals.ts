@@ -3,11 +3,14 @@ import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import type { Proposal } from '@/types';
 import type { ProposalFormData } from '@/schemas/proposal.schema';
+import { useAuthStore } from '@/store/auth.store';
 
 export function useMyProposals() {
+  const { user } = useAuthStore();
   return useQuery<Proposal[]>({
     queryKey: ['my-proposals'],
     queryFn: () => api.get('/proposals/my').then((r) => r.data),
+    enabled: user?.role === 'DEVELOPER',
   });
 }
 

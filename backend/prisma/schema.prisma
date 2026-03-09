@@ -67,6 +67,8 @@ enum NotificationType {
   MILESTONE_PAID
   CONTRACT_COMPLETED
   MESSAGE_RECEIVED
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
 }
 
 model User {
@@ -184,10 +186,12 @@ model Contract {
   milestones  Milestone[]
   messages    ContractMessage[]
   reviews     Review[]
-  status      ContractStatus    @default(ACTIVE)
-  platformFee Decimal           @default(10) @db.Decimal(5, 2)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  status            ContractStatus    @default(ACTIVE)
+  platformFee       Decimal           @default(10) @db.Decimal(5, 2)
+  disputeReason     String?
+  disputeOpenedById String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model Milestone {

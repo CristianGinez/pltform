@@ -217,6 +217,81 @@ export function useMarkReadyForTesting(contractId: string) {
   });
 }
 
+export function useOpenDispute(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) =>
+      api.post(`/contracts/${contractId}/dispute`, { reason }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      toast.success('Disputa abierta. El equipo revisará tu caso.');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al abrir la disputa');
+    },
+  });
+}
+
+export function useResolveDispute(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (outcome: 'dev_wins' | 'company_wins' | 'mutual') =>
+      api.patch(`/contracts/${contractId}/resolve`, { outcome }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+      qc.invalidateQueries({ queryKey: ['disputed-contracts'] });
+      toast.success('Disputa resuelta');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al resolver la disputa');
+    },
+  });
+}
+
+export function useForceApprove() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contractId, milestoneId }: { contractId: string; milestoneId: string }) =>
+      api.post(`/contracts/${contractId}/milestones/${milestoneId}/force-approve`).then((r) => r.data),
+    onSuccess: (_, { contractId }) => {
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      toast.success('Milestone aprobado automáticamente');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al forzar la aprobación');
+    },
+  });
+}
+
+export function useProposeCancel(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post(`/contracts/${contractId}/propose-cancel`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      toast.success('Propuesta de cancelación enviada');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al proponer cancelación');
+    },
+  });
+}
+
+export function useDisputedContracts() {
+  return useQuery({
+    queryKey: ['disputed-contracts'],
+    queryFn: () => api.get('/contracts/disputed').then((r) => r.data),
+    staleTime: 10_000,
+  });
+}
+
 export function useCreateReview(contractId: string) {
   const qc = useQueryClient();
   return useMutation({

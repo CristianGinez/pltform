@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Filter } from 'lucide-react';
+import { ShieldAlert, Filter, Gavel, ThumbsUp, ThumbsDown, Handshake } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuthStore } from '@/store/auth.store';
 import { useAdminNotifications } from '@/hooks/use-notifications';
+import { useDisputedContracts, useResolveDispute } from '@/hooks/use-contracts';
 import type { NotificationType } from '@/types';
 
 const TYPE_LABELS: Record<NotificationType, string> = {
@@ -22,6 +23,8 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   MILESTONE_PAID: 'Milestone pagado',
   CONTRACT_COMPLETED: 'Proyecto completado',
   MESSAGE_RECEIVED: 'Nuevo mensaje',
+  DISPUTE_OPENED: 'Disputa abierta',
+  DISPUTE_RESOLVED: 'Disputa resuelta',
 };
 
 const TYPE_COLORS: Record<NotificationType, string> = {
@@ -37,13 +40,69 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   MILESTONE_PAID: 'bg-emerald-100 text-emerald-700',
   CONTRACT_COMPLETED: 'bg-green-100 text-green-700',
   MESSAGE_RECEIVED: 'bg-blue-100 text-blue-700',
+  DISPUTE_OPENED: 'bg-red-100 text-red-700',
+  DISPUTE_RESOLVED: 'bg-green-100 text-green-700',
 };
+
+function DisputeCard({ dispute }: { dispute: {
+  id: string;
+  disputeReason?: string | null;
+  disputeOpenedById?: string | null;
+  project: { title: string; company: { name: string } };
+  milestones: { status: string; amount: number }[];
+} }) {
+  const resolve = useResolveDispute(dispute.id);
+  const submittedCount = dispute.milestones.filter((m) => m.status === 'SUBMITTED').length;
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <p className="font-semibold text-sm text-gray-900">{dispute.project.title}</p>
+          <p className="text-xs text-gray-500">{dispute.project.company.name}</p>
+        </div>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">
+          En disputa
+        </span>
+      </div>
+      {dispute.disputeReason && (
+        <p className="text-xs text-gray-700 mb-3 bg-white rounded-lg p-2 border border-red-100">
+          <span className="font-medium">Motivo:</span> {dispute.disputeReason}
+        </p>
+      )}
+      <p className="text-xs text-gray-500 mb-3">
+        {submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en estado SUBMITTED
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => resolve.mutate('dev_wins')}
+          disabled={resolve.isPending}
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors">
+          <ThumbsUp size={12} />A favor del developer
+        </button>
+        <button
+          onClick={() => resolve.mutate('company_wins')}
+          disabled={resolve.isPending}
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors">
+          <ThumbsDown size={12} />A favor de la empresa
+        </button>
+        <button
+          onClick={() => resolve.mutate('mutual')}
+          disabled={resolve.isPending}
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors">
+          <Handshake size={12} />Cancelación mutua
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [filter, setFilter] = useState<NotificationType | ''>('');
   const { data: notifications = [], isLoading } = useAdminNotifications();
+  const { data: disputes = [], isLoading: isLoadingDisputes } = useDisputedContracts();
 
   if (!user) return null;
   if (user.role !== 'ADMIN') {
@@ -71,61 +130,91 @@ export default function AdminPage() {
         <h1 className="text-xl font-bold text-gray-900">Panel de Administración</h1>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Filter size={15} className="text-gray-400" />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as NotificationType | '')}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="">Todos los eventos</option>
-          {(Object.keys(TYPE_LABELS) as NotificationType[]).map((t) => (
-            <option key={t} value={t}>
-              {TYPE_LABELS[t]}
-            </option>
-          ))}
-        </select>
-        <span className="text-sm text-gray-400">{filtered.length} eventos</span>
+      {/* Disputas activas */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Gavel size={16} className="text-red-500" />
+          <h2 className="text-base font-semibold text-gray-800">Disputas activas</h2>
+          {disputes.length > 0 && (
+            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {disputes.length}
+            </span>
+          )}
+        </div>
+        {isLoadingDisputes ? (
+          <div className="flex justify-center py-6">
+            <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : disputes.length === 0 ? (
+          <p className="text-sm text-gray-400 bg-gray-50 rounded-xl p-4 text-center">
+            No hay disputas activas.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {(disputes as Parameters<typeof DisputeCard>[0]['dispute'][]).map((d) => (
+              <DisputeCard key={d.id} dispute={d} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      <div className="border-t border-gray-100 pt-4">
+        <div className="flex items-center gap-3 mb-4">
+          <Filter size={15} className="text-gray-400" />
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as NotificationType | '')}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Todos los eventos</option>
+            {(Object.keys(TYPE_LABELS) as NotificationType[]).map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t]}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-gray-400">{filtered.length} eventos</span>
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-12">Sin eventos registrados</p>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 font-medium">
-                <th className="px-4 py-3">Usuario</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Descripción</th>
-                <th className="px-4 py-3 text-right">Fecha</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((n) => (
-                <tr key={n.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-600 text-xs">{n.user?.email ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[n.type]}`}
-                    >
-                      {TYPE_LABELS[n.type]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{n.body}</td>
-                  <td className="px-4 py-3 text-right text-xs text-gray-400 whitespace-nowrap">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
-                  </td>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-12">Sin eventos registrados</p>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs text-gray-500 font-medium">
+                  <th className="px-4 py-3">Usuario</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Descripción</th>
+                  <th className="px-4 py-3 text-right">Fecha</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((n) => (
+                  <tr key={n.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-600 text-xs">{n.user?.email ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[n.type]}`}
+                      >
+                        {TYPE_LABELS[n.type]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{n.body}</td>
+                    <td className="px-4 py-3 text-right text-xs text-gray-400 whitespace-nowrap">
+                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
