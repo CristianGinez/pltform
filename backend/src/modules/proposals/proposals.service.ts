@@ -62,7 +62,12 @@ export class ProposalsService {
     return this.prisma.proposal.findMany({
       where: { developerId: developer.id },
       include: {
-        project: { include: { company: { select: { name: true, logoUrl: true } } } },
+        project: {
+          include: {
+            company: { select: { name: true, logoUrl: true } },
+            contract: { select: { id: true, status: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

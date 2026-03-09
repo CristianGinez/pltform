@@ -68,6 +68,7 @@ export interface Project {
   category?: string;
   status: ProjectStatus;
   _count?: { proposals: number };
+  contract?: { id: string; status: ContractStatus };
   createdAt: string;
 }
 

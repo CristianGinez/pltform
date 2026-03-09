@@ -51,7 +51,8 @@ export default function ProposalsPage() {
 
       <div className="space-y-3">
         {proposals.map((proposal: Proposal) => {
-          const project = proposal.project as (typeof proposal.project & { company?: { name?: string } });
+          const project = proposal.project as (typeof proposal.project & { company?: { name?: string }; contract?: { id: string } });
+          const contractId = project?.contract?.id;
           return (
             <div
               key={proposal.id}
@@ -80,7 +81,7 @@ export default function ProposalsPage() {
                   <p className="text-sm text-gray-500 mt-2 line-clamp-2">{proposal.coverLetter}</p>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-400">
-                    <span>Presupuesto: <span className="text-gray-700">${Number(proposal.budget).toLocaleString()}</span></span>
+                    <span>Presupuesto: <span className="text-gray-700">S/ {Number(proposal.budget).toLocaleString()}</span></span>
                     <span>Plazo: <span className="text-gray-700">{proposal.timeline} días</span></span>
                     <span>{new Date(proposal.createdAt).toLocaleDateString('es')}</span>
                   </div>
@@ -89,10 +90,10 @@ export default function ProposalsPage() {
                 <div className="flex flex-col items-end gap-2">
                   {proposal.status === 'ACCEPTED' && (
                     <Link
-                      href="/dashboard/contracts"
-                      className="text-xs text-primary-600 hover:underline whitespace-nowrap"
+                      href={contractId ? `/dashboard/contracts/${contractId}` : '/dashboard/contracts'}
+                      className="text-xs text-primary-600 hover:underline whitespace-nowrap font-medium"
                     >
-                      Ver contrato →
+                      Ir al contrato →
                     </Link>
                   )}
                   {proposal.status === 'PENDING' && (
