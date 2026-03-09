@@ -4,15 +4,178 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
-import { ArrowLeft, Clock, DollarSign, Users, CheckCircle, Pencil, X, Plus } from 'lucide-react';
+import {
+  ArrowLeft, Clock, DollarSign, Users, CheckCircle, Pencil, X, Plus,
+  Star, Github, Globe, MapPin, ChevronRight,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { useProject, usePublishProject, useAcceptProposal, useUpdateProject } from '@/hooks/use-projects';
 import { useSubmitProposal } from '@/hooks/use-proposals';
 import { proposalSchema, type ProposalFormData } from '@/schemas/proposal.schema';
 import { projectSchema, type ProjectFormData } from '@/schemas/project.schema';
+import type { Proposal } from '@/types';
 
 const CATEGORIES = ['Web', 'Mobile', 'E-commerce', 'SaaS', 'API / Backend', 'Data / Analytics', 'Automatización', 'Diseño UI/UX', 'Otro'];
+
+// ─── Proposal detail drawer ───────────────────────────────────────────────────
+
+type ProposalWithDev = Proposal & {
+  developer?: {
+    name: string; avatarUrl?: string | null; bio?: string | null; skills: string[];
+    rating: number; reviewCount: number; hourlyRate?: number | null;
+    githubUrl?: string | null; portfolioUrl?: string | null; location?: string | null;
+    university?: string | null; trustPoints: number;
+  };
+};
+
+function ProposalDetailDrawer({
+  proposal, projectId, projectStatus, onClose,
+}: {
+  proposal: ProposalWithDev;
+  projectId: string;
+  projectStatus: string;
+  onClose: () => void;
+}) {
+  const acceptProposal = useAcceptProposal(projectId);
+  const dev = proposal.developer;
+
+  const handleAccept = () => {
+    acceptProposal.mutate(proposal.id, { onSuccess: onClose });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <h2 className="text-base font-semibold text-gray-900">Detalle de propuesta</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Developer profile */}
+          {dev && (
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-full bg-violet-100 flex items-center justify-center shrink-0 overflow-hidden">
+                {dev.avatarUrl
+                  ? <img src={dev.avatarUrl} alt={dev.name} className="w-full h-full object-cover" />
+                  : <span className="text-violet-700 font-bold text-lg">{dev.name.charAt(0)}</span>
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900">{dev.name}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                  {dev.rating > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                      {dev.rating.toFixed(1)} ({dev.reviewCount} reseñas)
+                    </span>
+                  )}
+                  {dev.location && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <MapPin size={11} /> {dev.location}
+                    </span>
+                  )}
+                  {dev.university && (
+                    <span className="text-xs text-gray-400">{dev.university}</span>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-1.5">
+                  {dev.githubUrl && (
+                    <a href={dev.githubUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                      <Github size={12} /> GitHub
+                    </a>
+                  )}
+                  {dev.portfolioUrl && (
+                    <a href={dev.portfolioUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                      <Globe size={12} /> Portafolio
+                    </a>
+                  )}
+                </div>
+              </div>
+              {dev.trustPoints > 0 && (
+                <div className="text-center shrink-0">
+                  <p className="text-lg font-bold text-primary-600">{dev.trustPoints}</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Trust<br/>Points</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Skills */}
+          {dev && dev.skills.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1.5">Habilidades</p>
+              <div className="flex flex-wrap gap-1.5">
+                {dev.skills.map((s) => (
+                  <span key={s} className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bio */}
+          {dev?.bio && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Sobre el developer</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{dev.bio}</p>
+            </div>
+          )}
+
+          {/* Propuesta económica */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">S/ {Number(proposal.budget).toLocaleString()}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Presupuesto propuesto</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">{proposal.timeline} días</p>
+              <p className="text-xs text-gray-400 mt-0.5">Tiempo estimado</p>
+            </div>
+          </div>
+
+          {/* Cover letter */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1.5">Carta de presentación</p>
+            <div className="bg-gray-50 rounded-xl p-4">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{proposal.coverLetter}</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Enviada el {new Date(proposal.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+
+        {/* Footer actions */}
+        {proposal.status === 'PENDING' && projectStatus === 'OPEN' && (
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 flex gap-3 rounded-b-2xl">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Cerrar
+            </button>
+            <button
+              onClick={handleAccept}
+              disabled={acceptProposal.isPending}
+              className="flex-1 py-2.5 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={15} />
+              {acceptProposal.isPending ? 'Aceptando...' : 'Aceptar propuesta'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -30,6 +193,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<ProposalWithDev | null>(null);
 
   const { data: project, isLoading } = useProject(id);
   const publishProject = usePublishProject(id);
@@ -306,43 +470,65 @@ export default function ProjectDetailPage() {
             </p>
           )}
 
-          <div className="space-y-4">
-            {project.proposals?.map((proposal) => (
-              <div key={proposal.id} className="border border-gray-100 rounded-lg p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <p className="text-sm font-medium text-gray-900">
-                        {(proposal.developer as unknown as { name?: string })?.name ?? 'Developer'}
-                      </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${PROPOSAL_COLORS[proposal.status]}`}>
-                        {proposal.status}
-                      </span>
+          <div className="space-y-3">
+            {project.proposals?.map((proposal) => {
+              const dev = proposal.developer as ProposalWithDev['developer'];
+              return (
+                <button
+                  key={proposal.id}
+                  onClick={() => setSelectedProposal(proposal as ProposalWithDev)}
+                  className="w-full text-left border border-gray-100 rounded-xl p-4 hover:border-primary-200 hover:bg-primary-50/30 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0 overflow-hidden">
+                      {dev?.avatarUrl
+                        ? <img src={dev.avatarUrl} alt={dev.name} className="w-full h-full object-cover" />
+                        : <span className="text-violet-700 font-semibold text-sm">{(dev?.name ?? 'D').charAt(0)}</span>
+                      }
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-3">{proposal.coverLetter}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                      <span>${Number(proposal.budget).toLocaleString()}</span>
-                      <span>{proposal.timeline} días</span>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-gray-900">{dev?.name ?? 'Developer'}</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROPOSAL_COLORS[proposal.status]}`}>
+                          {proposal.status === 'PENDING' ? 'Pendiente' : proposal.status === 'ACCEPTED' ? 'Aceptada' : proposal.status === 'REJECTED' ? 'Rechazada' : 'Retirada'}
+                        </span>
+                        {dev && dev.rating > 0 && (
+                          <span className="flex items-center gap-0.5 text-xs text-gray-400">
+                            <Star size={10} className="text-yellow-400 fill-yellow-400" />
+                            {dev.rating.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{proposal.coverLetter}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        <span>S/ {Number(proposal.budget).toLocaleString()}</span>
+                        <span>{proposal.timeline} días</span>
+                        {dev?.skills?.slice(0, 2).map((s) => (
+                          <span key={s} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{s}</span>
+                        ))}
+                      </div>
                     </div>
+
+                    <ChevronRight size={16} className="text-gray-300 group-hover:text-primary-400 transition-colors shrink-0" />
                   </div>
-                  {proposal.status === 'PENDING' && project.status === 'OPEN' && (
-                    <button
-                      onClick={() => {
-                        setAcceptingId(proposal.id);
-                        acceptProposal.mutate(proposal.id, { onSettled: () => setAcceptingId(null) });
-                      }}
-                      disabled={acceptProposal.isPending && acceptingId === proposal.id}
-                      className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors whitespace-nowrap"
-                    >
-                      <CheckCircle size={13} />
-                      {acceptProposal.isPending && acceptingId === proposal.id ? 'Aceptando...' : 'Aceptar'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
+      )}
+
+      {/* Proposal detail drawer */}
+      {selectedProposal && (
+        <ProposalDetailDrawer
+          proposal={selectedProposal}
+          projectId={id}
+          projectStatus={project.status}
+          onClose={() => setSelectedProposal(null)}
+        />
       )}
 
       {/* DEVELOPER: formulario */}
