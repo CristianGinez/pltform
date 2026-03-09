@@ -79,7 +79,7 @@ function NotificationItem({ n, onRead }: { n: Notification; onRead: (id: string)
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 320 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: notifications = [] } = useNotifications();
@@ -89,16 +89,15 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const preview = notifications.slice(0, 10);
 
-  const DROPDOWN_W = 320;
   const MARGIN = 8;
 
   const calcPosition = useCallback(() => {
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
-    // Align right edge of dropdown to right edge of button, then clamp to viewport
-    let left = rect.right - DROPDOWN_W;
-    left = Math.max(MARGIN, Math.min(left, window.innerWidth - DROPDOWN_W - MARGIN));
-    setDropdownStyle({ top: rect.bottom + MARGIN, left });
+    const dropW = Math.min(320, window.innerWidth - MARGIN * 2);
+    let left = rect.right - dropW;
+    left = Math.max(MARGIN, Math.min(left, window.innerWidth - dropW - MARGIN));
+    setDropdownStyle({ top: rect.bottom + MARGIN, left, width: dropW });
   }, []);
 
   const handleToggle = () => {
@@ -152,8 +151,8 @@ export default function NotificationBell() {
         createPortal(
           <div
             ref={dropdownRef}
-            style={{ top: dropdownStyle.top, left: dropdownStyle.left }}
-            className="fixed w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-[9999] overflow-hidden"
+            style={{ top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width }}
+            className="fixed bg-white rounded-xl shadow-xl border border-gray-100 z-[9999] overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <span className="text-sm font-semibold text-gray-900">Notificaciones</span>

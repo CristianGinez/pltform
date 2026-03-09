@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Star, CheckCircle, MapPin, Package, CreditCard, Zap, Code, ShoppingBag, Smartphone, DollarSign, Shield } from 'lucide-react';
 import { defaultAvatar } from '@/lib/avatar';
@@ -20,14 +21,35 @@ export const BADGES: Record<string, { label: string; icon: React.ElementType; co
 
 export function Tip({ text, children }: { text: string; children: React.ReactNode }) {
   const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const ref = useRef<HTMLSpanElement>(null);
+
+  const calcPos = useCallback(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const TIP_W = 208;
+    const MARGIN = 8;
+    let left = rect.left + rect.width / 2 - TIP_W / 2;
+    left = Math.max(MARGIN, Math.min(left, window.innerWidth - TIP_W - MARGIN));
+    setPos({ top: rect.top - 10, left });
+  }, []);
+
   return (
-    <span className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+    <span
+      ref={ref}
+      className="relative inline-flex"
+      onMouseEnter={() => { calcPos(); setShow(true); }}
+      onMouseLeave={() => setShow(false)}
+    >
       {children}
-      {show && (
-        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[9999] w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white text-center shadow-xl">
+      {show && typeof window !== 'undefined' && createPortal(
+        <span
+          className="pointer-events-none fixed z-[9999] w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white text-center shadow-xl -translate-y-full"
+          style={{ top: pos.top, left: pos.left }}
+        >
           {text}
-          <span className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-900" />
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );

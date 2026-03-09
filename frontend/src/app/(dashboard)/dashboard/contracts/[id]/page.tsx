@@ -1321,16 +1321,28 @@ export default function ContractDetailPage() {
         </div>
         {/* Dispute / Cancel buttons — only for ACTIVE contracts */}
         {contract.status === 'ACTIVE' && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+              className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors hidden sm:block">
               Proponer cancelación
             </button>
             <button
+              onClick={() => setShowCancelConfirm(true)}
+              title="Proponer cancelación"
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors sm:hidden">
+              <Ban size={14} />
+            </button>
+            <button
               onClick={() => setShowDisputeModal(true)}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1">
+              className="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors items-center gap-1 hidden sm:flex">
               <ShieldAlert size={12} />Abrir disputa
+            </button>
+            <button
+              onClick={() => setShowDisputeModal(true)}
+              title="Abrir disputa"
+              className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors sm:hidden">
+              <ShieldAlert size={14} />
             </button>
           </div>
         )}
