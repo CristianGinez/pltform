@@ -33,7 +33,7 @@ export class ProjectsService {
     return this.prisma.project.findMany({
       where: { status },
       include: {
-        company: { select: { name: true, logoUrl: true, verified: true, location: true } },
+        company: { select: { id: true, name: true, logoUrl: true, verified: true, location: true, clientRating: true, clientReviewCount: true } },
         _count: { select: { proposals: true } },
       },
       orderBy: { createdAt: 'desc' },

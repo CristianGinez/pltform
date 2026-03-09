@@ -59,7 +59,7 @@ export interface Developer {
 export interface Project {
   id: string;
   companyId: string;
-  company: Pick<Company, 'name' | 'logoUrl' | 'verified' | 'location'>;
+  company: Pick<Company, 'id' | 'name' | 'logoUrl' | 'verified' | 'location' | 'clientRating' | 'clientReviewCount'>;
   title: string;
   description: string;
   budget: number;

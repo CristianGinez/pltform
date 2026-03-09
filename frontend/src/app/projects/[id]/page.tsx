@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
-  Building2, Globe, Calendar, Tag, Send,
+  Building2, Globe, Calendar, Tag, Send, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
@@ -266,7 +266,9 @@ export default function PublicProjectDetailPage() {
                 )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-gray-900 text-sm truncate">{project.company.name}</span>
+                    <Link href={`/companies/${project.companyId}`} className="font-bold text-gray-900 text-sm truncate hover:text-blue-700 transition-colors">
+                      {project.company.name}
+                    </Link>
                     {project.company.verified && (
                       <CheckCircle size={14} className="text-blue-500 flex-shrink-0" fill="currentColor" />
                     )}
@@ -275,6 +277,17 @@ export default function PublicProjectDetailPage() {
                     <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
                       {(project.company as { industry?: string }).industry}
                     </span>
+                  )}
+                  {((project.company as { clientRating?: number; clientReviewCount?: number }).clientRating ?? 0) > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star size={11} className="fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs text-yellow-600 font-medium">
+                        {(project.company as { clientRating?: number }).clientRating?.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        ({(project.company as { clientReviewCount?: number }).clientReviewCount} reseña{(project.company as { clientReviewCount?: number }).clientReviewCount !== 1 ? 's' : ''})
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

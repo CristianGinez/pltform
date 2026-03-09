@@ -17,7 +17,30 @@ export class CompaniesService {
     return this.prisma.company.findUnique({
       where: { id },
       include: {
-        projects: { where: { status: 'OPEN' }, orderBy: { createdAt: 'desc' } },
+        projects: {
+          where: { status: { in: ['OPEN', 'COMPLETED', 'IN_PROGRESS'] } },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true, title: true, description: true, budget: true,
+            status: true, category: true, skills: true, createdAt: true,
+            _count: { select: { proposals: true } },
+          },
+        },
+        user: {
+          select: {
+            reviewsReceived: {
+              take: 20,
+              orderBy: { createdAt: 'desc' },
+              include: {
+                reviewer: {
+                  select: {
+                    developer: { select: { name: true, avatarUrl: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }

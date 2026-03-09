@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, DollarSign, Users } from 'lucide-react';
+import { Clock, DollarSign, Users, Star } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
 import { usePublicProjects } from '@/hooks/use-projects';
@@ -94,14 +94,25 @@ export default function ProjectsPage() {
             >
               {/* Company */}
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
+                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
                   {project.company.name.charAt(0)}
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-700">{project.company.name}</p>
-                  {project.company.verified && (
-                    <span className="text-xs text-green-600">✓ Verificada</span>
-                  )}
+                <div className="min-w-0">
+                  <Link href={`/companies/${project.company.id}`} onClick={(e) => e.stopPropagation()}
+                    className="text-xs font-medium text-gray-700 hover:text-primary-600 transition-colors line-clamp-1">
+                    {project.company.name}
+                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    {project.company.verified && (
+                      <span className="text-xs text-green-600">✓ Verificada</span>
+                    )}
+                    {((project.company as { clientRating?: number }).clientRating ?? 0) > 0 && (
+                      <span className="flex items-center gap-0.5 text-xs text-yellow-600">
+                        <Star size={10} className="fill-yellow-400 text-yellow-400" />
+                        {(project.company as { clientRating?: number }).clientRating?.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
