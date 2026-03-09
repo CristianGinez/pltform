@@ -54,6 +54,7 @@ export class ContractsService {
       where: { id },
       include: {
         milestones: { orderBy: { order: 'asc' } },
+        reviews: { where: { reviewerId: userId } },
         project: {
           include: {
             company: { select: { name: true, userId: true, logoUrl: true, industry: true, location: true } },
@@ -313,7 +314,7 @@ export class ContractsService {
       PROPOSE_APPROVE:  `Propone aprobar y pagar "${milestone.title}"`,
     };
 
-    return this.prisma.contractMessage.create({
+    const message = await this.prisma.contractMessage.create({
       data: {
         contractId,
         senderId: userId,
@@ -331,6 +332,36 @@ export class ContractsService {
       },
       include: { sender: { select: SENDER_SELECT } },
     });
+
+    // Notify the other party
+    const notifTitle = isCompany ? 'Nueva propuesta del cliente' : 'Nueva propuesta del developer';
+    if (isCompany) {
+      const acceptedDev = await this.prisma.proposal.findFirst({
+        where: { projectId: contract.projectId, status: 'ACCEPTED' },
+        include: { developer: { select: { userId: true } } },
+      });
+      if (acceptedDev) {
+        await this.notifications.create({
+          userId: acceptedDev.developer.userId,
+          type: 'PROPOSAL_RECEIVED',
+          title: notifTitle,
+          body: labels[dto.action],
+          entityId: contractId,
+          entityType: 'contract',
+        });
+      }
+    } else {
+      await this.notifications.create({
+        userId: contract.project.company.userId,
+        type: 'PROPOSAL_RECEIVED',
+        title: notifTitle,
+        body: labels[dto.action],
+        entityId: contractId,
+        entityType: 'contract',
+      });
+    }
+
+    return message;
   }
 
   async respondToProposal(
@@ -521,5 +552,65 @@ export class ContractsService {
 
   async approveMilestone(contractId: string, milestoneId: string, userId: string) {
     return this.doApproveMilestone(contractId, milestoneId, userId);
+  }
+
+  async createReview(contractId: string, userId: string, rating: number, comment?: string) {
+    const { contract, isCompany } = await this.getContractWithAccess(contractId, userId);
+    if (contract.status !== 'COMPLETED')
+      throw new BadRequestException('Solo puedes calificar contratos completados');
+    if (rating < 1 || rating > 5)
+      throw new BadRequestException('El rating debe ser entre 1 y 5');
+
+    // Find the other party (reviewed)
+    let reviewedUserId: string;
+    if (isCompany) {
+      const devProposal = await this.prisma.proposal.findFirst({
+        where: { projectId: contract.projectId, status: 'ACCEPTED' },
+        include: { developer: { select: { userId: true } } },
+      });
+      if (!devProposal) throw new NotFoundException('Developer no encontrado');
+      reviewedUserId = devProposal.developer.userId;
+    } else {
+      reviewedUserId = contract.project.company.userId;
+    }
+
+    const review = await this.prisma.review.create({
+      data: { contractId, reviewerId: userId, reviewedId: reviewedUserId, rating, comment },
+    });
+
+    // Update stats
+    if (isCompany) {
+      // Update developer rating and trustPoints
+      const dev = await this.prisma.developer.findUnique({ where: { userId: reviewedUserId } });
+      if (dev) {
+        const allReviews = await this.prisma.review.findMany({
+          where: { reviewed: { developer: { userId: reviewedUserId } } },
+        });
+        const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+        await this.prisma.developer.update({
+          where: { userId: reviewedUserId },
+          data: {
+            rating: Math.round(avg * 10) / 10,
+            reviewCount: allReviews.length,
+            trustPoints: { increment: rating * 5 },
+          },
+        });
+      }
+    } else {
+      // Update company clientRating
+      const allReviews = await this.prisma.review.findMany({
+        where: { reviewed: { company: { userId: reviewedUserId } } },
+      });
+      const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+      await this.prisma.company.update({
+        where: { userId: reviewedUserId },
+        data: {
+          clientRating: Math.round(avg * 10) / 10,
+          clientReviewCount: allReviews.length,
+        },
+      });
+    }
+
+    return review;
   }
 }

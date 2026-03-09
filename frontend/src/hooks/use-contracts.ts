@@ -216,3 +216,19 @@ export function useMarkReadyForTesting(contractId: string) {
     },
   });
 }
+
+export function useCreateReview(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rating, comment }: { rating: number; comment?: string }) =>
+      api.post(`/contracts/${contractId}/review`, { rating, comment }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+      toast.success('¡Calificación enviada!');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al enviar la calificación');
+    },
+  });
+}

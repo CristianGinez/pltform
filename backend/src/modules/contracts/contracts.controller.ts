@@ -107,4 +107,13 @@ export class ContractsController {
   ) {
     return this.contractsService.markReadyForTesting(id, milestoneId, user.id);
   }
+
+  @Post(':id/review')
+  createReview(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: { rating: number; comment?: string },
+  ) {
+    return this.contractsService.createReview(id, user.id, body.rating, body.comment);
+  }
 }

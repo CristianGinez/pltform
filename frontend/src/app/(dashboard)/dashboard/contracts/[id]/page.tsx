@@ -8,12 +8,13 @@ import {
   Send, ThumbsUp, MessageSquare, ListChecks, LayoutDashboard,
   Rocket, RotateCcw, DollarSign, PartyPopper, Building2, User,
   Star, ChevronRight, X, Edit3, Activity, Eye, Lock, Zap, RefreshCw,
+  Trophy, Award,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useContract, useContractMessages, useSendMessage,
   useProposeAction, useRespondToProposal,
-  useSendProgressUpdate, useMarkReadyForTesting,
+  useSendProgressUpdate, useMarkReadyForTesting, useCreateReview,
 } from '@/hooks/use-contracts';
 import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus } from '@/types';
 
@@ -151,11 +152,12 @@ function EmptyProfileCard({ label }: { label: string }) {
 // ─── Propose modal ────────────────────────────────────────────────────────────
 
 function ProposeModal({
-  milestone, contractId, action, onClose,
+  milestone, contractId, action, onClose, onProposed,
 }: {
   milestone: Milestone; contractId: string;
   action: 'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE';
   onClose: () => void;
+  onProposed?: () => void;
 }) {
   const propose = useProposeAction(contractId);
   const [note, setNote] = useState('');
@@ -178,7 +180,7 @@ function ProposeModal({
   const handleSend = () => {
     propose.mutate(
       { milestoneId: milestone.id, action, deliveryNote: note || undefined, deliveryLink: link || undefined, reason: reason || undefined },
-      { onSuccess: onClose },
+      { onSuccess: () => { onClose(); onProposed?.(); } },
     );
   };
 
@@ -301,8 +303,8 @@ function CounterModal({
 // ─── Proposal card (in chat) ──────────────────────────────────────────────────
 
 function ProposalCard({
-  msg, contractId, currentUserId,
-}: { msg: ContractMessage; contractId: string; currentUserId?: string }) {
+  msg, contractId, currentUserId, onGoToMilestones,
+}: { msg: ContractMessage; contractId: string; currentUserId?: string; onGoToMilestones?: () => void }) {
   const respond = useRespondToProposal(contractId);
   const [showCounter, setShowCounter] = useState(false);
   const meta = msg.metadata;
@@ -338,7 +340,15 @@ function ProposalCard({
 
           {/* Body */}
           <div className="px-4 py-3">
-            <p className="text-sm font-medium text-gray-800">{meta?.milestoneTitle}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-800">{meta?.milestoneTitle}</p>
+              {onGoToMilestones && (
+                <button onClick={onGoToMilestones}
+                  className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 ml-2">
+                  Ver milestone <ChevronRight size={11} />
+                </button>
+              )}
+            </div>
             {meta?.deliveryNote && (
               <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Nota:</span> {meta.deliveryNote}</p>
             )}
@@ -402,9 +412,9 @@ function ProposalCard({
 
 // ─── Chat message ─────────────────────────────────────────────────────────────
 
-function ChatMessage({ msg, contractId, currentUserId }: { msg: ContractMessage; contractId: string; currentUserId?: string }) {
+function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg: ContractMessage; contractId: string; currentUserId?: string; onGoToMilestones?: () => void }) {
   if (msg.type === 'PROPOSAL') {
-    return <ProposalCard msg={msg} contractId={contractId} currentUserId={currentUserId} />;
+    return <ProposalCard msg={msg} contractId={contractId} currentUserId={currentUserId} onGoToMilestones={onGoToMilestones} />;
   }
 
   if (msg.type === 'EVENT') {
@@ -481,10 +491,15 @@ function ChatMessage({ msg, contractId, currentUserId }: { msg: ContractMessage;
 
 // ─── Tab: Chat ────────────────────────────────────────────────────────────────
 
-function ChatTab({ contractId }: { contractId: string }) {
+function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: {
+  contractId: string;
+  messages: ContractMessage[];
+  isLoadingMessages: boolean;
+  onGoToMilestones?: () => void;
+}) {
   const { user } = useAuthStore();
-  const { data: messages = [], isLoading } = useContractMessages(contractId);
   const sendMessage = useSendMessage(contractId);
+  const isLoading = isLoadingMessages;
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -513,7 +528,7 @@ function ChatTab({ contractId }: { contractId: string }) {
           </div>
         )}
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} msg={msg} contractId={contractId} currentUserId={user?.id} />
+          <ChatMessage key={msg.id} msg={msg} contractId={contractId} currentUserId={user?.id} onGoToMilestones={onGoToMilestones} />
         ))}
         <div ref={bottomRef} />
       </div>
@@ -585,8 +600,8 @@ function ProgressUpdateModal({
 }
 
 function MilestoneStep({
-  milestone, index, total, contractId, isCompany, locked,
-}: { milestone: Milestone; index: number; total: number; contractId: string; isCompany: boolean; locked: boolean }) {
+  milestone, index, total, contractId, isCompany, locked, onProposed,
+}: { milestone: Milestone; index: number; total: number; contractId: string; isCompany: boolean; locked: boolean; onProposed?: () => void }) {
   const [modal, setModal] = useState<'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [confirmTesting, setConfirmTesting] = useState(false);
@@ -745,7 +760,7 @@ function MilestoneStep({
 
       <AnimatePresence>
         {modal && (
-          <ProposeModal milestone={milestone} contractId={contractId} action={modal} onClose={() => setModal(null)} />
+          <ProposeModal milestone={milestone} contractId={contractId} action={modal} onClose={() => setModal(null)} onProposed={onProposed} />
         )}
         {showProgressModal && (
           <ProgressUpdateModal milestone={milestone} contractId={contractId} onClose={() => setShowProgressModal(false)} />
@@ -779,7 +794,7 @@ function MilestoneStep({
   );
 }
 
-function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Milestone[]; contractId: string; isCompany: boolean }) {
+function MilestonesTab({ milestones, contractId, isCompany, onProposed }: { milestones: Milestone[]; contractId: string; isCompany: boolean; onProposed?: () => void }) {
   const done = milestones.filter((m) => m.status === 'PAID').length;
   const hasStarted = milestones.some((m) => ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED'].includes(m.status));
   const rawPct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
@@ -846,6 +861,7 @@ function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Mile
             contractId={contractId}
             isCompany={isCompany}
             locked={isLocked(i)}
+            onProposed={onProposed}
           />
         ))}
       </div>
@@ -925,6 +941,136 @@ function ResumenTab({ contract }: { contract: NonNullable<ReturnType<typeof useC
   );
 }
 
+// ─── Completion overlay ────────────────────────────────────────────────────────
+
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button key={s} type="button"
+          onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
+          onClick={() => onChange(s)}
+          className="transition-transform hover:scale-110">
+          <Star size={28} className={`${(hover || value) >= s ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} transition-colors`} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CompletionOverlay({ contract, currentUserId, alreadyReviewed }: {
+  contract: NonNullable<ReturnType<typeof useContract>['data']>;
+  currentUserId?: string;
+  alreadyReviewed: boolean;
+}) {
+  const [phase, setPhase] = useState<'animate' | 'review' | 'done'>(alreadyReviewed ? 'done' : 'animate');
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const createReview = useCreateReview(contract.id);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (phase === 'animate') {
+      const t = setTimeout(() => setPhase('review'), 2200);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+
+  if (dismissed || (alreadyReviewed && phase === 'done')) return null;
+
+  const isCompany = (contract.project as { company?: { userId?: string } })?.company?.userId !== currentUserId;
+  const otherName = isCompany
+    ? ((contract.project as { proposals?: Array<{ developer?: { name?: string } }> })?.proposals?.[0]?.developer?.name ?? 'el developer')
+    : ((contract.project as { company?: { name?: string } })?.company?.name ?? 'la empresa');
+
+  const handleSubmitReview = () => {
+    if (!rating) return;
+    createReview.mutate({ rating, comment: comment.trim() || undefined }, {
+      onSuccess: () => setPhase('done'),
+    });
+  };
+
+  return (
+    <AnimatePresence>
+      {phase !== 'done' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+          >
+            {phase === 'animate' && (
+              <div className="p-8 text-center">
+                <motion.div
+                  initial={{ scale: 0 }} animate={{ scale: 1, rotate: [0, -10, 10, 0] }}
+                  transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                  className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Trophy size={36} className="text-white" />
+                </motion.div>
+                <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  className="text-2xl font-bold text-gray-900 mb-2">¡Proyecto completado!</motion.h2>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                  className="text-gray-500 text-sm mb-6">Todos los milestones han sido pagados exitosamente.</motion.p>
+                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <motion.div
+                    className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full"
+                    initial={{ width: '80%' }} animate={{ width: '100%' }}
+                    transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
+                  />
+                </div>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }}
+                  className="text-xs text-emerald-600 font-medium mt-2">100% completado</motion.p>
+              </div>
+            )}
+
+            {phase === 'review' && (
+              <div className="p-6">
+                <div className="text-center mb-5">
+                  <Award size={32} className="text-primary-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-bold text-gray-900">Califica a {otherName}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Tu opinión ayuda a mejorar la plataforma</p>
+                </div>
+                <div className="flex justify-center mb-4">
+                  <StarRating value={rating} onChange={setRating} />
+                </div>
+                {rating > 0 && (
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="text-center text-sm font-medium text-yellow-600 mb-3">
+                    {rating === 5 ? '¡Excelente! ⭐' : rating === 4 ? 'Muy bueno 👍' : rating === 3 ? 'Aceptable' : rating === 2 ? 'Regular' : 'Necesita mejorar'}
+                  </motion.p>
+                )}
+                <textarea
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
+                  rows={3} placeholder="Escribe un comentario (opcional)..."
+                  value={comment} onChange={(e) => setComment(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button onClick={() => setDismissed(true)}
+                    className="flex-1 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+                    Después
+                  </button>
+                  <button onClick={handleSubmitReview} disabled={!rating || createReview.isPending}
+                    className="flex-1 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60">
+                    {createReview.isPending ? 'Enviando...' : 'Enviar calificación'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ─── Contract status helpers ──────────────────────────────────────────────────
 
 const CONTRACT_STATUS_LABELS: Record<string, string> = {
@@ -948,6 +1094,7 @@ export default function ContractDetailPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { data: contract, isLoading, error } = useContract(id);
+  const { data: messages = [], isLoading: isLoadingMessages } = useContractMessages(id);
   const [tab, setTab] = useState<Tab>('chat');
   const [direction, setDirection] = useState(0);
 
@@ -959,6 +1106,16 @@ export default function ContractDetailPage() {
     setDirection(to > from ? 1 : -1);
     setTab(next);
   };
+
+  // Tab badges
+  const chatBadge = messages.filter(
+    (m) => m.type === 'PROPOSAL' && m.metadata?.proposalStatus === 'PENDING' && m.sender.id !== user?.id
+  ).length;
+  const milestoneBadge = contract
+    ? contract.milestones.filter((m) =>
+        isCompany ? m.status === 'SUBMITTED' : ['PENDING', 'REVISION_REQUESTED'].includes(m.status)
+      ).length
+    : 0;
 
   if (isLoading) {
     return (
@@ -986,6 +1143,7 @@ export default function ContractDetailPage() {
       developer?: { name: string; avatarUrl?: string | null; rating?: number; skills?: string[] };
     }>;
   };
+  const myReview = (contract as typeof contract & { reviews?: Array<{ id: string }> }).reviews?.[0];
   const companyInfo = project?.company;
   const devInfo = project?.proposals?.[0]?.developer;
 
@@ -1028,18 +1186,29 @@ export default function ContractDetailPage() {
         <div>
           {/* Tab bar */}
           <div className="flex bg-white rounded-xl border border-gray-100 p-1 mb-4 gap-1">
-            {TABS.map((t) => (
-              <button key={t.id} onClick={() => switchTab(t.id)}
-                className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  tab === t.id ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
-                }`}>
-                {tab === t.id && (
-                  <motion.div layoutId="tab-indicator" className="absolute inset-0 bg-primary-50 rounded-lg"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
-                )}
-                <span className="relative z-10 flex items-center gap-1.5">{t.icon}{t.label}</span>
-              </button>
-            ))}
+            {TABS.map((t) => {
+              const badge = t.id === 'chat' ? chatBadge : t.id === 'milestones' ? milestoneBadge : 0;
+              return (
+                <button key={t.id} onClick={() => switchTab(t.id)}
+                  className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                    tab === t.id ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
+                  }`}>
+                  {tab === t.id && (
+                    <motion.div layoutId="tab-indicator" className="absolute inset-0 bg-primary-50 rounded-lg"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {t.icon}
+                    {t.label}
+                    {badge > 0 && (
+                      <span className="ml-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                        {badge > 9 ? '9+' : badge}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Tab content */}
@@ -1049,8 +1218,22 @@ export default function ContractDetailPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction * -20 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}>
-              {tab === 'chat' && <ChatTab contractId={contract.id} />}
-              {tab === 'milestones' && <MilestonesTab milestones={contract.milestones} contractId={contract.id} isCompany={isCompany} />}
+              {tab === 'chat' && (
+                <ChatTab
+                  contractId={contract.id}
+                  messages={messages}
+                  isLoadingMessages={isLoadingMessages}
+                  onGoToMilestones={() => switchTab('milestones')}
+                />
+              )}
+              {tab === 'milestones' && (
+                <MilestonesTab
+                  milestones={contract.milestones}
+                  contractId={contract.id}
+                  isCompany={isCompany}
+                  onProposed={() => switchTab('chat')}
+                />
+              )}
               {tab === 'resumen' && <ResumenTab contract={contract} />}
             </motion.div>
           </AnimatePresence>
@@ -1073,6 +1256,15 @@ export default function ContractDetailPage() {
         </div>
 
       </div>
+
+      {/* Completion overlay */}
+      {contract.status === 'COMPLETED' && (
+        <CompletionOverlay
+          contract={contract}
+          currentUserId={user?.id}
+          alreadyReviewed={!!myReview}
+        />
+      )}
     </div>
   );
 }

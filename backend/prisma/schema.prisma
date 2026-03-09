@@ -78,6 +78,8 @@ model User {
   developer        Developer?
   notifications    Notification[]
   contractMessages ContractMessage[]
+  reviewsGiven    Review[] @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -181,6 +183,7 @@ model Contract {
   project     Project           @relation(fields: [projectId], references: [id])
   milestones  Milestone[]
   messages    ContractMessage[]
+  reviews     Review[]
   status      ContractStatus    @default(ACTIVE)
   platformFee Decimal           @default(10) @db.Decimal(5, 2)
   createdAt   DateTime          @default(now())
@@ -235,4 +238,21 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  contractId String
+  reviewerId String
+  reviewedId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  reviewer User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewed User     @relation("ReviewsReceived", fields: [reviewedId], references: [id])
+
+  @@unique([contractId, reviewerId])
+  @@index([reviewedId])
 }
