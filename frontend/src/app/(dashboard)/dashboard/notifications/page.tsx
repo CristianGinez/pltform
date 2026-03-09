@@ -18,6 +18,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNotifications, useMarkRead, useMarkAllRead } from '@/hooks/use-notifications';
+import { useAuthStore } from '@/store/auth.store';
 import type { Notification, NotificationType } from '@/types';
 
 const typeIcon: Record<NotificationType, React.ReactNode> = {
@@ -40,24 +41,28 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   VERIFICATION_REJECTED: <BadgeX size={16} className="text-red-500" />,
 };
 
-function getNotificationUrl(n: Notification): string | null {
+function getNotificationUrl(n: Notification, isAdmin = false): string | null {
+  if (n.type === 'VERIFICATION_SUBMITTED') return '/dashboard/admin?tab=verificaciones';
+  if (n.type === 'DISPUTE_OPENED' && isAdmin) return '/dashboard/admin?tab=disputas';
+  if (n.type === 'DISPUTE_RESOLVED' && isAdmin) return '/dashboard/admin?tab=disputas';
+  if (n.type === 'VERIFICATION_APPROVED' || n.type === 'VERIFICATION_REJECTED') return '/dashboard/profile';
   if (!n.entityId) return null;
   if (n.entityType === 'contract') return `/dashboard/contracts/${n.entityId}`;
   if (n.entityType === 'project') return `/dashboard/projects/${n.entityId}`;
   return null;
 }
 
-function NotificationRow({ n }: { n: Notification }) {
+function NotificationRow({ n, isAdmin }: { n: Notification; isAdmin: boolean }) {
   const router = useRouter();
   const { mutate: markRead } = useMarkRead();
 
   const handleClick = () => {
     if (!n.read) markRead(n.id);
-    const url = getNotificationUrl(n);
+    const url = getNotificationUrl(n, isAdmin);
     if (url) router.push(url);
   };
 
-  const url = getNotificationUrl(n);
+  const url = getNotificationUrl(n, isAdmin);
 
   return (
     <button
@@ -84,6 +89,8 @@ function NotificationRow({ n }: { n: Notification }) {
 export default function NotificationsPage() {
   const { data: notifications = [], isLoading } = useNotifications();
   const { mutate: markAllRead, isPending } = useMarkAllRead();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -122,7 +129,7 @@ export default function NotificationsPage() {
       ) : (
         <div className="space-y-2">
           {notifications.map((n) => (
-            <NotificationRow key={n.id} n={n} />
+            <NotificationRow key={n.id} n={n} isAdmin={isAdmin} />
           ))}
         </div>
       )}

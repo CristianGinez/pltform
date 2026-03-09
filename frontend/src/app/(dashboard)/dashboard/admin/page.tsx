@@ -1,14 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ShieldAlert, Filter, Gavel, ThumbsUp, ThumbsDown, Handshake, BadgeCheck, BadgeX, ClipboardList, ExternalLink, Building2, User as UserIcon } from 'lucide-react';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ShieldAlert, Filter, Gavel, ThumbsUp, ThumbsDown, Handshake,
+  BadgeCheck, BadgeX, ClipboardList, ExternalLink, Building2,
+  User as UserIcon, LayoutDashboard, Activity, Users, Briefcase,
+  FileText, AlertTriangle,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuthStore } from '@/store/auth.store';
 import { useAdminNotifications } from '@/hooks/use-notifications';
 import { useDisputedContracts, useResolveDispute } from '@/hooks/use-contracts';
-import { useAdminVerifications, useApproveVerification, useRejectVerification } from '@/hooks/use-verification';
+import { useAdminVerifications, useApproveVerification, useRejectVerification, useAdminStats } from '@/hooks/use-verification';
 import { defaultAvatar } from '@/lib/avatar';
 import type { NotificationType } from '@/types';
 
@@ -52,27 +57,61 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   VERIFICATION_REJECTED: 'bg-red-100 text-red-700',
 };
 
-function VerificationCard({ entry }: { entry: {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  logoUrl?: string;
-  verificationDocUrl?: string;
-  verificationDocType?: string;
-  verificationNotes?: string;
-  ruc?: string;
-  type: 'developer' | 'company';
-} }) {
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon, color }: {
+  label: string;
+  value: number | undefined;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl p-5 flex items-center gap-4">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-gray-900 leading-none">
+          {value === undefined ? '—' : value}
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Verification card ────────────────────────────────────────────────────────
+
+function VerificationCard({ entry }: {
+  entry: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    logoUrl?: string;
+    verificationDocUrl?: string;
+    verificationDocType?: string;
+    verificationNotes?: string;
+    ruc?: string;
+    type: 'developer' | 'company';
+  };
+}) {
   const approve = useApproveVerification();
   const reject = useRejectVerification();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
-  const avatarSrc = entry.type === 'developer' ? (entry.avatarUrl || defaultAvatar(entry.name)) : (entry.logoUrl || defaultAvatar(entry.name));
+  const avatarSrc =
+    entry.type === 'developer'
+      ? entry.avatarUrl || defaultAvatar(entry.name)
+      : entry.logoUrl || defaultAvatar(entry.name);
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
       <div className="flex items-center gap-3 mb-3">
-        <img src={avatarSrc} alt={entry.name} className="w-10 h-10 rounded-full object-cover border border-blue-100 bg-gray-50" />
+        <img
+          src={avatarSrc}
+          alt={entry.name}
+          className="w-10 h-10 rounded-full object-cover border border-blue-100 bg-gray-50"
+        />
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-gray-900 truncate">{entry.name}</p>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -89,8 +128,12 @@ function VerificationCard({ entry }: { entry: {
       </div>
 
       {entry.verificationDocUrl && (
-        <a href={entry.verificationDocUrl} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline mb-3 cursor-pointer">
+        <a
+          href={entry.verificationDocUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline mb-3 cursor-pointer"
+        >
           <ExternalLink size={11} />Ver documento adjunto
         </a>
       )}
@@ -105,14 +148,17 @@ function VerificationCard({ entry }: { entry: {
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
           />
           <div className="flex gap-2">
-            <button onClick={() => setRejecting(false)}
-              className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <button
+              onClick={() => setRejecting(false)}
+              className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+            >
               Cancelar
             </button>
             <button
               onClick={() => reject.mutate({ type: entry.type, id: entry.id, reason })}
               disabled={!reason.trim() || reject.isPending}
-              className="flex-1 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 cursor-pointer">
+              className="flex-1 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 cursor-pointer"
+            >
               {reject.isPending ? 'Rechazando…' : 'Confirmar rechazo'}
             </button>
           </div>
@@ -122,12 +168,14 @@ function VerificationCard({ entry }: { entry: {
           <button
             onClick={() => approve.mutate({ type: entry.type, id: entry.id })}
             disabled={approve.isPending}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer">
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
+          >
             <BadgeCheck size={13} />Aprobar
           </button>
           <button
             onClick={() => setRejecting(true)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer">
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer"
+          >
             <BadgeX size={13} />Rechazar
           </button>
         </div>
@@ -136,13 +184,17 @@ function VerificationCard({ entry }: { entry: {
   );
 }
 
-function DisputeCard({ dispute }: { dispute: {
-  id: string;
-  disputeReason?: string | null;
-  disputeOpenedById?: string | null;
-  project: { title: string; company: { name: string } };
-  milestones: { status: string; amount: number }[];
-} }) {
+// ─── Dispute card ─────────────────────────────────────────────────────────────
+
+function DisputeCard({ dispute }: {
+  dispute: {
+    id: string;
+    disputeReason?: string | null;
+    disputeOpenedById?: string | null;
+    project: { title: string; company: { name: string } };
+    milestones: { status: string; amount: number }[];
+  };
+}) {
   const resolve = useResolveDispute(dispute.id);
   const submittedCount = dispute.milestones.filter((m) => m.status === 'SUBMITTED').length;
 
@@ -169,19 +221,22 @@ function DisputeCard({ dispute }: { dispute: {
         <button
           onClick={() => resolve.mutate('dev_wins')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
+        >
           <ThumbsUp size={12} />A favor del developer
         </button>
         <button
           onClick={() => resolve.mutate('company_wins')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors cursor-pointer">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors cursor-pointer"
+        >
           <ThumbsDown size={12} />A favor de la empresa
         </button>
         <button
           onClick={() => resolve.mutate('mutual')}
           disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors cursor-pointer">
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors cursor-pointer"
+        >
           <Handshake size={12} />Cancelación mutua
         </button>
       </div>
@@ -189,13 +244,216 @@ function DisputeCard({ dispute }: { dispute: {
   );
 }
 
-export default function AdminPage() {
-  const router = useRouter();
-  const { user } = useAuthStore();
-  const [filter, setFilter] = useState<NotificationType | ''>('');
+// ─── Tab content ──────────────────────────────────────────────────────────────
+
+function ResumenTab() {
+  const { data: stats, isLoading } = useAdminStats();
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <StatCard
+          label="Developers"
+          value={stats?.developers}
+          icon={<UserIcon size={18} className="text-blue-600" />}
+          color="bg-blue-50"
+        />
+        <StatCard
+          label="Empresas"
+          value={stats?.companies}
+          icon={<Building2 size={18} className="text-purple-600" />}
+          color="bg-purple-50"
+        />
+        <StatCard
+          label="Contratos activos"
+          value={stats?.activeContracts}
+          icon={<FileText size={18} className="text-green-600" />}
+          color="bg-green-50"
+        />
+        <StatCard
+          label="Proyectos abiertos"
+          value={stats?.openProjects}
+          icon={<Briefcase size={18} className="text-orange-600" />}
+          color="bg-orange-50"
+        />
+        <StatCard
+          label="Verificaciones pendientes"
+          value={stats?.pendingVerifications}
+          icon={<ClipboardList size={18} className="text-blue-600" />}
+          color="bg-blue-50"
+        />
+        <StatCard
+          label="Disputas abiertas"
+          value={stats?.disputes}
+          icon={<AlertTriangle size={18} className="text-red-600" />}
+          color="bg-red-50"
+        />
+      </div>
+      {isLoading && (
+        <div className="flex justify-center py-4">
+          <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VerificacionesTab() {
+  const { data: verificationsData, isLoading } = useAdminVerifications();
+  const all = [...(verificationsData?.developers ?? []), ...(verificationsData?.companies ?? [])];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (all.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <BadgeCheck size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm">No hay verificaciones pendientes.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {all.map((entry) => (
+        <VerificationCard key={`${entry.type}-${entry.id}`} entry={entry} />
+      ))}
+    </div>
+  );
+}
+
+function DisputasTab() {
+  const { data: disputes = [], isLoading } = useDisputedContracts();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-6 h-6 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (disputes.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <Gavel size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm">No hay disputas activas.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {(disputes as Parameters<typeof DisputeCard>[0]['dispute'][]).map((d) => (
+        <DisputeCard key={d.id} dispute={d} />
+      ))}
+    </div>
+  );
+}
+
+function ActividadTab() {
   const { data: notifications = [], isLoading } = useAdminNotifications();
-  const { data: disputes = [], isLoading: isLoadingDisputes } = useDisputedContracts();
-  const { data: verificationsData, isLoading: isLoadingVerifications } = useAdminVerifications();
+  const [filter, setFilter] = useState<NotificationType | ''>('');
+  const filtered = filter ? notifications.filter((n) => n.type === filter) : notifications;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Filter size={15} className="text-gray-400" />
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as NotificationType | '')}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">Todos los eventos</option>
+          {(Object.keys(TYPE_LABELS) as NotificationType[]).map((t) => (
+            <option key={t} value={t}>
+              {TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm text-gray-400">{filtered.length} eventos</span>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Activity size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Sin eventos registrados</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 font-medium">
+                <th className="px-4 py-3">Usuario</th>
+                <th className="px-4 py-3">Tipo</th>
+                <th className="px-4 py-3">Descripción</th>
+                <th className="px-4 py-3 text-right">Fecha</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map((n) => (
+                <tr key={n.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-600 text-xs">{n.user?.email ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[n.type]}`}>
+                      {TYPE_LABELS[n.type]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">{n.body}</td>
+                  <td className="px-4 py-3 text-right text-xs text-gray-400 whitespace-nowrap">
+                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+type Tab = 'resumen' | 'verificaciones' | 'disputas' | 'actividad';
+
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'resumen', label: 'Resumen', icon: <LayoutDashboard size={15} /> },
+  { id: 'verificaciones', label: 'Verificaciones', icon: <ClipboardList size={15} /> },
+  { id: 'disputas', label: 'Disputas', icon: <Gavel size={15} /> },
+  { id: 'actividad', label: 'Actividad', icon: <Activity size={15} /> },
+];
+
+function AdminPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuthStore();
+
+  const { data: verificationsData } = useAdminVerifications();
+  const { data: disputes = [] } = useDisputedContracts();
+
+  const verificationCount =
+    (verificationsData?.developers.length ?? 0) + (verificationsData?.companies.length ?? 0);
+  const disputeCount = disputes.length;
+
+  const activeTab = (searchParams.get('tab') as Tab) || 'resumen';
+
+  const setTab = (tab: Tab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.push(`?${params.toString()}`);
+  };
 
   if (!user) return null;
   if (user.role !== 'ADMIN') {
@@ -214,131 +472,61 @@ export default function AdminPage() {
     );
   }
 
-  const filtered = filter ? notifications.filter((n) => n.type === filter) : notifications;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <ShieldAlert size={20} className="text-gray-600" />
         <h1 className="text-xl font-bold text-gray-900">Panel de Administración</h1>
       </div>
 
-      {/* Verificaciones pendientes */}
-      {(() => {
-        const all = [...(verificationsData?.developers ?? []), ...(verificationsData?.companies ?? [])];
-        return (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <ClipboardList size={16} className="text-blue-500" />
-              <h2 className="text-base font-semibold text-gray-800">Verificaciones pendientes</h2>
-              {all.length > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {all.length}
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-100 overflow-x-auto">
+        {TABS.map((tab) => {
+          const badge =
+            tab.id === 'verificaciones' ? verificationCount
+            : tab.id === 'disputas' ? disputeCount
+            : 0;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg whitespace-nowrap transition-colors cursor-pointer border-b-2 -mb-px ${
+                isActive
+                  ? 'border-primary-600 text-primary-700 bg-primary-50/50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {badge > 0 && (
+                <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center leading-none ${
+                  tab.id === 'disputas' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+                }`}>
+                  {badge}
                 </span>
               )}
-            </div>
-            {isLoadingVerifications ? (
-              <div className="flex justify-center py-6">
-                <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : all.length === 0 ? (
-              <p className="text-sm text-gray-400 bg-gray-50 rounded-xl p-4 text-center">
-                No hay verificaciones pendientes.
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {all.map((entry) => <VerificationCard key={`${entry.type}-${entry.id}`} entry={entry} />)}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Disputas activas */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Gavel size={16} className="text-red-500" />
-          <h2 className="text-base font-semibold text-gray-800">Disputas activas</h2>
-          {disputes.length > 0 && (
-            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {disputes.length}
-            </span>
-          )}
-        </div>
-        {isLoadingDisputes ? (
-          <div className="flex justify-center py-6">
-            <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : disputes.length === 0 ? (
-          <p className="text-sm text-gray-400 bg-gray-50 rounded-xl p-4 text-center">
-            No hay disputas activas.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {(disputes as Parameters<typeof DisputeCard>[0]['dispute'][]).map((d) => (
-              <DisputeCard key={d.id} dispute={d} />
-            ))}
-          </div>
-        )}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="border-t border-gray-100 pt-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Filter size={15} className="text-gray-400" />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as NotificationType | '')}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Todos los eventos</option>
-            {(Object.keys(TYPE_LABELS) as NotificationType[]).map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-          <span className="text-sm text-gray-400">{filtered.length} eventos</span>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-12">Sin eventos registrados</p>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-xs text-gray-500 font-medium">
-                  <th className="px-4 py-3">Usuario</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Descripción</th>
-                  <th className="px-4 py-3 text-right">Fecha</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((n) => (
-                  <tr key={n.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 text-xs">{n.user?.email ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[n.type]}`}
-                      >
-                        {TYPE_LABELS[n.type]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{n.body}</td>
-                    <td className="px-4 py-3 text-right text-xs text-gray-400 whitespace-nowrap">
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Tab content */}
+      <div>
+        {activeTab === 'resumen' && <ResumenTab />}
+        {activeTab === 'verificaciones' && <VerificacionesTab />}
+        {activeTab === 'disputas' && <DisputasTab />}
+        {activeTab === 'actividad' && <ActividadTab />}
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense>
+      <AdminPageInner />
+    </Suspense>
   );
 }

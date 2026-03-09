@@ -37,6 +37,28 @@ export class AdminService {
     };
   }
 
+  async getStats() {
+    const [developers, companies, activeContracts, openProjects, disputes] = await Promise.all([
+      this.prisma.developer.count(),
+      this.prisma.company.count(),
+      this.prisma.contract.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.project.count({ where: { status: 'OPEN' } }),
+      this.prisma.contract.count({ where: { status: 'DISPUTED' } }),
+    ]);
+    const [pendingDevs, pendingCompanies] = await Promise.all([
+      this.prisma.developer.count({ where: { verificationStatus: 'PENDING' } }),
+      this.prisma.company.count({ where: { verificationStatus: 'PENDING' } }),
+    ]);
+    return {
+      developers,
+      companies,
+      activeContracts,
+      openProjects,
+      pendingVerifications: pendingDevs + pendingCompanies,
+      disputes,
+    };
+  }
+
   async approveDeveloper(id: string) {
     const dev = await this.prisma.developer.findUnique({ where: { id } });
     if (!dev) throw new NotFoundException('Developer not found');

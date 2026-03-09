@@ -69,6 +69,21 @@ interface VerificationEntry {
   type: 'developer' | 'company';
 }
 
+export function useAdminStats() {
+  return useQuery<{
+    developers: number;
+    companies: number;
+    activeContracts: number;
+    openProjects: number;
+    pendingVerifications: number;
+    disputes: number;
+  }>({
+    queryKey: ['admin-stats'],
+    queryFn: () => api.get('/admin/stats').then((r) => r.data),
+    refetchInterval: 30_000,
+  });
+}
+
 export function useAdminVerifications() {
   return useQuery<{ developers: VerificationEntry[]; companies: VerificationEntry[] }>({
     queryKey: ['admin-verifications'],

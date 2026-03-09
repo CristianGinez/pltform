@@ -14,6 +14,11 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
+  @Get('stats')
+  getStats() {
+    return this.adminService.getStats();
+  }
+
   @Get('verifications')
   getPendingVerifications() {
     return this.adminService.getPendingVerifications();

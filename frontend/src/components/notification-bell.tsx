@@ -21,6 +21,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNotifications, useMarkRead, useMarkAllRead } from '@/hooks/use-notifications';
+import { useAuthStore } from '@/store/auth.store';
 import type { Notification, NotificationType } from '@/types';
 
 const typeIcon: Record<NotificationType, React.ReactNode> = {
@@ -43,23 +44,27 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   VERIFICATION_REJECTED: <BadgeX size={15} className="text-red-500" />,
 };
 
-function getNotificationUrl(n: Notification): string | null {
+function getNotificationUrl(n: Notification, isAdmin = false): string | null {
+  if (n.type === 'VERIFICATION_SUBMITTED') return '/dashboard/admin?tab=verificaciones';
+  if (n.type === 'DISPUTE_OPENED' && isAdmin) return '/dashboard/admin?tab=disputas';
+  if (n.type === 'DISPUTE_RESOLVED' && isAdmin) return '/dashboard/admin?tab=disputas';
+  if (n.type === 'VERIFICATION_APPROVED' || n.type === 'VERIFICATION_REJECTED') return '/dashboard/profile';
   if (!n.entityId) return null;
   if (n.entityType === 'contract') return `/dashboard/contracts/${n.entityId}`;
   if (n.entityType === 'project') return `/dashboard/projects/${n.entityId}`;
   return null;
 }
 
-function NotificationItem({ n, onRead }: { n: Notification; onRead: (id: string) => void }) {
+function NotificationItem({ n, onRead, isAdmin }: { n: Notification; onRead: (id: string) => void; isAdmin: boolean }) {
   const router = useRouter();
 
   const handleClick = () => {
     if (!n.read) onRead(n.id);
-    const url = getNotificationUrl(n);
+    const url = getNotificationUrl(n, isAdmin);
     if (url) router.push(url);
   };
 
-  const url = getNotificationUrl(n);
+  const url = getNotificationUrl(n, isAdmin);
 
   return (
     <button
@@ -91,6 +96,8 @@ export default function NotificationBell() {
   const { data: notifications = [] } = useNotifications();
   const { mutate: markRead } = useMarkRead();
   const { mutate: markAllRead } = useMarkAllRead();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const preview = notifications.slice(0, 10);
@@ -177,7 +184,7 @@ export default function NotificationBell() {
                 <p className="text-sm text-gray-400 text-center py-8">Sin notificaciones</p>
               ) : (
                 preview.map((n) => (
-                  <NotificationItem key={n.id} n={n} onRead={(id) => { markRead(id); setOpen(false); }} />
+                  <NotificationItem key={n.id} n={n} isAdmin={isAdmin} onRead={(id) => { markRead(id); setOpen(false); }} />
                 ))
               )}
             </div>
