@@ -106,17 +106,23 @@ export class ProposalsService {
       data: { status: 'IN_PROGRESS' },
     });
 
-    // Create contract with a default milestone
+    // Create contract with default milestone roadmap
+    const b = Number(proposal.budget);
+    const m1 = Math.round(b * 0.15);
+    const m2 = Math.round(b * 0.20);
+    const m3 = Math.round(b * 0.30);
+    const m4 = Math.round(b * 0.20);
+    const m5 = b - m1 - m2 - m3 - m4;
     const contract = await this.prisma.contract.create({
       data: {
         projectId: proposal.projectId,
         milestones: {
           create: [
-            {
-              title: 'Entrega completa del proyecto',
-              amount: proposal.budget,
-              order: 1,
-            },
+            { title: 'Planificación y diseño',  amount: m1, order: 1 },
+            { title: 'Desarrollo inicial',       amount: m2, order: 2 },
+            { title: 'Desarrollo principal',     amount: m3, order: 3 },
+            { title: 'Testing y correcciones',   amount: m4, order: 4 },
+            { title: 'Entrega final',            amount: m5, order: 5 },
           ],
         },
       },
@@ -146,7 +152,7 @@ export class ProposalsService {
       ),
     );
 
-    return accepted;
+    return { ...accepted, contractId: contract.id };
   }
 
   async withdraw(id: string, userId: string) {

@@ -12,6 +12,7 @@ import {
   Minus,
   ScrollText,
   CheckSquare,
+  MessageSquare,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -30,6 +31,7 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   MILESTONE_REVISION_REQUESTED: <ScrollText size={15} className="text-orange-600" />,
   MILESTONE_PAID: <CheckSquare size={15} className="text-emerald-600" />,
   CONTRACT_COMPLETED: <CheckCircle size={15} className="text-green-700" />,
+  MESSAGE_RECEIVED: <MessageSquare size={15} className="text-blue-500" />,
 };
 
 function getNotificationUrl(n: Notification): string | null {

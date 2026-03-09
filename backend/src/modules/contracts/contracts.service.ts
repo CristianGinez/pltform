@@ -432,12 +432,45 @@ export class ContractsService {
   }
 
   async sendMessage(contractId: string, userId: string, content: string) {
-    await this.getContractWithAccess(contractId, userId);
+    const { contract, isCompany } = await this.getContractWithAccess(contractId, userId);
     if (!content?.trim()) throw new BadRequestException('El mensaje no puede estar vacío');
-    return this.prisma.contractMessage.create({
+
+    const message = await this.prisma.contractMessage.create({
       data: { contractId, senderId: userId, content: content.trim() },
       include: { sender: { select: SENDER_SELECT } },
     });
+
+    // Notify the other party
+    const senderName = message.sender.company?.name ?? message.sender.developer?.name ?? 'Alguien';
+    const preview = content.trim().length > 80 ? content.trim().slice(0, 80) + '...' : content.trim();
+
+    if (isCompany) {
+      const devProposal = await this.prisma.proposal.findFirst({
+        where: { projectId: contract.projectId, status: 'ACCEPTED' },
+        include: { developer: { select: { userId: true } } },
+      });
+      if (devProposal) {
+        await this.notifications.create({
+          userId: devProposal.developer.userId,
+          type: 'MESSAGE_RECEIVED',
+          title: 'Nuevo mensaje',
+          body: `${senderName}: ${preview}`,
+          entityId: contractId,
+          entityType: 'contract',
+        });
+      }
+    } else {
+      await this.notifications.create({
+        userId: contract.project.company.userId,
+        type: 'MESSAGE_RECEIVED',
+        title: 'Nuevo mensaje',
+        body: `${senderName}: ${preview}`,
+        entityId: contractId,
+        entityType: 'contract',
+      });
+    }
+
+    return message;
   }
 
   async sendProgressUpdate(contractId: string, milestoneId: string, userId: string, note: string) {

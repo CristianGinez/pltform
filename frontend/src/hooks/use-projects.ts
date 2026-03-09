@@ -23,6 +23,8 @@ export function useProject(id: string) {
     queryKey: ['project', id],
     queryFn: () => api.get(`/projects/${id}`).then((r) => r.data),
     enabled: !!id,
+    refetchInterval: 5_000,
+    staleTime: 0,
   });
 }
 
@@ -72,15 +74,16 @@ export function usePublishProject(id: string) {
   });
 }
 
-export function useAcceptProposal(projectId: string) {
+export function useAcceptProposal(projectId: string, onAccepted?: (contractId: string) => void) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (proposalId: string) =>
       api.patch(`/proposals/${proposalId}/accept`).then((r) => r.data),
-    onSuccess: () => {
+    onSuccess: (data: { contractId?: string }) => {
       qc.invalidateQueries({ queryKey: ['project', projectId] });
       qc.invalidateQueries({ queryKey: ['my-projects'] });
-      toast.success('Propuesta aceptada — se creó el contrato');
+      toast.success('Propuesta aceptada — redirigiendo al contrato...');
+      if (onAccepted && data?.contractId) onAccepted(data.contractId);
     },
     onError: () => toast.error('Error al aceptar la propuesta'),
   });

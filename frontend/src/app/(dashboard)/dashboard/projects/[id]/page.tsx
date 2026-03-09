@@ -37,7 +37,8 @@ function ProposalDetailDrawer({
   projectStatus: string;
   onClose: () => void;
 }) {
-  const acceptProposal = useAcceptProposal(projectId);
+  const drawerRouter = useRouter();
+  const acceptProposal = useAcceptProposal(projectId, (contractId) => drawerRouter.push(`/dashboard/contracts/${contractId}`));
   const dev = proposal.developer;
 
   const handleAccept = () => {
@@ -198,7 +199,7 @@ export default function ProjectDetailPage() {
   const { data: project, isLoading } = useProject(id);
   const publishProject = usePublishProject(id);
   const updateProject = useUpdateProject(id);
-  const acceptProposal = useAcceptProposal(id);
+  const acceptProposal = useAcceptProposal(id, (contractId) => router.push(`/dashboard/contracts/${contractId}`));
   const [editMode, setEditMode] = useState(false);
   const [editSkills, setEditSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');

@@ -163,7 +163,7 @@ function ProposeModal({
   const [reason, setReason] = useState('');
 
   const titles = {
-    PROPOSE_START: 'Proponer inicio de milestone',
+    PROPOSE_START: 'Proponer inicio del desarrollo',
     PROPOSE_SUBMIT: 'Proponer entrega de milestone',
     PROPOSE_REVISION: 'Proponer revisión',
     PROPOSE_APPROVE: 'Proponer aprobación y pago',
@@ -233,7 +233,7 @@ function ProposeModal({
           {(action === 'PROPOSE_START' || action === 'PROPOSE_APPROVE') && (
             <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
               {action === 'PROPOSE_START'
-                ? 'Se enviará una propuesta de inicio al cliente. Podrá aceptar, rechazar o hacerte una contraoferta.'
+                ? 'Se enviará una propuesta para iniciar el desarrollo de este milestone. El cliente podrá aceptar, rechazar o hacer una contraoferta.'
                 : 'Se enviará una propuesta de aprobación al developer. Podrá confirmar o responder.'}
             </p>
           )}
@@ -589,6 +589,7 @@ function MilestoneStep({
 }: { milestone: Milestone; index: number; total: number; contractId: string; isCompany: boolean; locked: boolean }) {
   const [modal, setModal] = useState<'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [confirmTesting, setConfirmTesting] = useState(false);
   const readyForTesting = useMarkReadyForTesting(contractId);
 
   const colors = STEP_COLORS[milestone.status];
@@ -617,7 +618,7 @@ function MilestoneStep({
         {
           label: 'Listo para testing',
           icon: <Eye size={12} />,
-          onClick: () => readyForTesting.mutate(milestone.id),
+          onClick: () => setConfirmTesting(true),
           style: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
         },
         {
@@ -749,6 +750,30 @@ function MilestoneStep({
         {showProgressModal && (
           <ProgressUpdateModal milestone={milestone} contractId={contractId} onClose={() => setShowProgressModal(false)} />
         )}
+        {confirmTesting && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 text-center">
+              <Eye size={32} className="text-purple-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-1">¿Listo para testing?</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Se notificará a la empresa que <span className="font-medium">"{milestone.title}"</span> está listo para revisión o testing.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmTesting(false)}
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => { readyForTesting.mutate(milestone.id, { onSuccess: () => setConfirmTesting(false) }); }}
+                  disabled={readyForTesting.isPending}
+                  className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-60">
+                  {readyForTesting.isPending ? 'Enviando...' : 'Confirmar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </>
   );
@@ -756,7 +781,9 @@ function MilestoneStep({
 
 function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Milestone[]; contractId: string; isCompany: boolean }) {
   const done = milestones.filter((m) => m.status === 'PAID').length;
-  const pct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
+  const hasStarted = milestones.some((m) => ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED'].includes(m.status));
+  const rawPct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
+  const pct = hasStarted && rawPct < 5 ? 5 : rawPct;
 
   // Determine which milestones are "locked" for dev
   // A milestone is locked if any previous milestone is not PAID

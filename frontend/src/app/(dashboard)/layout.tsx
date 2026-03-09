@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const items = navItems[user.role] ?? navItems.ADMIN;
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const contractUnread = notifications.filter((n) => !n.read && n.entityType === 'contract').length;
 
   const handleLogout = () => {
     logout();
@@ -94,6 +95,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-3 py-4 space-y-1">
           {items.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
+            const isContracts = href === '/dashboard/contracts';
+            const badge = isContracts && contractUnread > 0 ? contractUnread : 0;
             return (
               <Link
                 key={href}
@@ -105,7 +108,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }`}
               >
                 <Icon size={16} />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badge > 0 && (
+                  <span className="min-w-[18px] h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -133,6 +141,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex items-center justify-around px-1 py-1 safe-area-pb">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
+          const isContracts = href === '/dashboard/contracts';
+          const mobileBadge = isContracts && contractUnread > 0 ? contractUnread : 0;
           return (
             <Link
               key={href}
@@ -141,7 +151,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 active ? 'text-primary-700' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              <span className="relative">
+                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                {mobileBadge > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {mobileBadge > 9 ? '9+' : mobileBadge}
+                  </span>
+                )}
+              </span>
               <span className="text-[10px] font-medium leading-tight truncate">{label}</span>
             </Link>
           );

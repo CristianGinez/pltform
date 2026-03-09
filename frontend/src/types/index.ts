@@ -150,7 +150,8 @@ export type NotificationType =
   | 'MILESTONE_STARTED'
   | 'MILESTONE_REVISION_REQUESTED'
   | 'MILESTONE_PAID'
-  | 'CONTRACT_COMPLETED';
+  | 'CONTRACT_COMPLETED'
+  | 'MESSAGE_RECEIVED';
 
 export interface Notification {
   id: string;
