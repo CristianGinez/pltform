@@ -72,38 +72,73 @@ const PROPOSAL_LABELS: Record<string, { icon: React.ReactNode; label: string; co
   PROPOSE_APPROVE:  { icon: <ThumbsUp size={14} />,  label: 'Propone aprobar',   color: 'text-green-700' },
 };
 
-// ─── Profile card ─────────────────────────────────────────────────────────────
+// ─── Profile card (side column, vertical) ────────────────────────────────────
 
 function ProfileCard({
-  name, role, logoUrl, avatarUrl, rating, extra,
+  name, role, logoUrl, avatarUrl, rating, extra, skills, isCurrentUser,
 }: {
   name: string; role: 'company' | 'developer'; logoUrl?: string | null; avatarUrl?: string | null;
-  rating?: number; extra?: string | null;
+  rating?: number; extra?: string | null; skills?: string[]; isCurrentUser?: boolean;
 }) {
+  const img = logoUrl ?? avatarUrl;
   return (
-    <div className="flex-1 bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+    <div className={`bg-white rounded-2xl border p-4 flex flex-col items-center text-center gap-2 ${
+      isCurrentUser ? 'border-primary-200 ring-1 ring-primary-100' : 'border-gray-100'
+    }`}>
+      {/* Avatar */}
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
         role === 'company' ? 'bg-blue-100' : 'bg-violet-100'
       }`}>
-        {logoUrl || avatarUrl ? (
-          <img src={logoUrl ?? avatarUrl ?? ''} alt={name} className="w-10 h-10 rounded-full object-cover" />
+        {img ? (
+          <img src={img} alt={name} className="w-14 h-14 rounded-full object-cover" />
         ) : role === 'company' ? (
-          <Building2 size={18} className="text-blue-600" />
+          <Building2 size={22} className="text-blue-600" />
         ) : (
-          <User size={18} className="text-violet-600" />
+          <User size={22} className="text-violet-600" />
         )}
       </div>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
-        <p className="text-xs text-gray-400">{role === 'company' ? 'Empresa' : 'Developer'}</p>
-        {rating !== undefined && rating > 0 && (
-          <div className="flex items-center gap-1 mt-0.5">
-            <Star size={10} className="text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-gray-500">{rating.toFixed(1)}</span>
-          </div>
+
+      {/* Name + role */}
+      <div>
+        <p className="text-sm font-semibold text-gray-900 leading-tight">{name}</p>
+        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 ${
+          role === 'company' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'
+        }`}>
+          {role === 'company' ? 'Empresa' : 'Developer'}
+        </span>
+        {isCurrentUser && (
+          <p className="text-[10px] text-primary-500 mt-0.5">Tú</p>
         )}
-        {extra && <p className="text-xs text-gray-400 truncate">{extra}</p>}
       </div>
+
+      {/* Rating */}
+      {rating !== undefined && rating > 0 && (
+        <div className="flex items-center gap-1">
+          <Star size={11} className="text-yellow-400 fill-yellow-400" />
+          <span className="text-xs font-medium text-gray-700">{rating.toFixed(1)}</span>
+        </div>
+      )}
+
+      {/* Extra info */}
+      {extra && <p className="text-[11px] text-gray-400 leading-tight">{extra}</p>}
+
+      {/* Skills */}
+      {skills && skills.length > 0 && (
+        <div className="flex flex-wrap gap-1 justify-center mt-1">
+          {skills.slice(0, 3).map((s) => (
+            <span key={s} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{s}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyProfileCard({ label }: { label: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]">
+      <User size={20} className="text-gray-300" />
+      <p className="text-[11px] text-gray-400">{label}</p>
     </div>
   );
 }
@@ -706,7 +741,7 @@ export default function ContractDetailPage() {
   const devInfo = project?.proposals?.[0]?.developer;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-5xl mx-auto px-2">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.back()} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -722,60 +757,73 @@ export default function ContractDetailPage() {
         </div>
       </div>
 
-      {/* Party cards */}
-      <div className="flex gap-3 mb-4">
-        {companyInfo && (
-          <ProfileCard
-            name={companyInfo.name ?? 'Empresa'}
-            role="company"
-            logoUrl={companyInfo.logoUrl}
-            extra={companyInfo.industry}
-          />
-        )}
-        {devInfo && (
-          <ProfileCard
-            name={devInfo.name}
-            role="developer"
-            avatarUrl={devInfo.avatarUrl}
-            rating={devInfo.rating}
-            extra={devInfo.skills?.slice(0, 2).join(', ')}
-          />
-        )}
-        {!devInfo && (
-          <div className="flex-1 bg-white rounded-xl border border-dashed border-gray-200 p-4 flex items-center justify-center">
-            <p className="text-xs text-gray-400">Developer pendiente</p>
+      {/* 3-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-start">
+
+        {/* Left: Company card */}
+        <div className="hidden lg:block sticky top-4">
+          {companyInfo ? (
+            <ProfileCard
+              name={companyInfo.name ?? 'Empresa'}
+              role="company"
+              logoUrl={companyInfo.logoUrl}
+              extra={companyInfo.industry}
+              isCurrentUser={isCompany}
+            />
+          ) : (
+            <EmptyProfileCard label="Empresa" />
+          )}
+        </div>
+
+        {/* Center: Tab bar + content */}
+        <div>
+          {/* Tab bar */}
+          <div className="flex bg-white rounded-xl border border-gray-100 p-1 mb-4 gap-1">
+            {TABS.map((t) => (
+              <button key={t.id} onClick={() => switchTab(t.id)}
+                className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  tab === t.id ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
+                }`}>
+                {tab === t.id && (
+                  <motion.div layoutId="tab-indicator" className="absolute inset-0 bg-primary-50 rounded-lg"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">{t.icon}{t.label}</span>
+              </button>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Tab bar */}
-      <div className="flex bg-white rounded-xl border border-gray-100 p-1 mb-4 gap-1">
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => switchTab(t.id)}
-            className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.id ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            {tab === t.id && (
-              <motion.div layoutId="tab-indicator" className="absolute inset-0 bg-primary-50 rounded-lg"
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
-            )}
-            <span className="relative z-10 flex items-center gap-1.5">{t.icon}{t.label}</span>
-          </button>
-        ))}
-      </div>
+          {/* Tab content */}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div key={tab} custom={direction}
+              initial={{ opacity: 0, x: direction * 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -20 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}>
+              {tab === 'chat' && <ChatTab contractId={contract.id} />}
+              {tab === 'milestones' && <MilestonesTab milestones={contract.milestones} contractId={contract.id} isCompany={isCompany} />}
+              {tab === 'resumen' && <ResumenTab contract={contract} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-      {/* Tab content */}
-      <AnimatePresence mode="wait" custom={direction}>
-        <motion.div key={tab} custom={direction}
-          initial={{ opacity: 0, x: direction * 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: direction * -20 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}>
-          {tab === 'chat' && <ChatTab contractId={contract.id} />}
-          {tab === 'milestones' && <MilestonesTab milestones={contract.milestones} contractId={contract.id} isCompany={isCompany} />}
-          {tab === 'resumen' && <ResumenTab contract={contract} />}
-        </motion.div>
-      </AnimatePresence>
+        {/* Right: Developer card */}
+        <div className="hidden lg:block sticky top-4">
+          {devInfo ? (
+            <ProfileCard
+              name={devInfo.name}
+              role="developer"
+              avatarUrl={devInfo.avatarUrl}
+              rating={devInfo.rating}
+              extra={devInfo.skills?.slice(0, 2).join(', ')}
+              isCurrentUser={!isCompany}
+            />
+          ) : (
+            <EmptyProfileCard label="Developer" />
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

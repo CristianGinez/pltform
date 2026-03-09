@@ -8,6 +8,7 @@ export function useContract(id: string) {
     queryKey: ['contract', id],
     queryFn: () => api.get(`/contracts/${id}`).then((r) => r.data),
     enabled: !!id,
+    refetchInterval: 5_000,
   });
 }
 
@@ -102,7 +103,8 @@ export function useContractMessages(contractId: string) {
     queryKey: ['contract-messages', contractId],
     queryFn: () => api.get(`/contracts/${contractId}/messages`).then((r) => r.data),
     enabled: !!contractId,
-    refetchInterval: 10_000,
+    refetchInterval: 3_000,
+    staleTime: 0,
   });
 }
 
@@ -111,10 +113,27 @@ export function useSendMessage(contractId: string) {
   return useMutation({
     mutationFn: (content: string) =>
       api.post(`/contracts/${contractId}/messages`, { content }).then((r) => r.data),
-    onSuccess: () => {
+    onMutate: async (content) => {
+      await qc.cancelQueries({ queryKey: ['contract-messages', contractId] });
+      const prev = qc.getQueryData<ContractMessage[]>(['contract-messages', contractId]) ?? [];
+      const optimistic: ContractMessage = {
+        id: `optimistic-${Date.now()}`,
+        contractId,
+        content,
+        type: 'TEXT',
+        createdAt: new Date().toISOString(),
+        sender: { id: '__me__', role: 'COMPANY', company: null, developer: null },
+      };
+      qc.setQueryData(['contract-messages', contractId], [...prev, optimistic]);
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['contract-messages', contractId], ctx.prev);
+      toast.error('Error al enviar el mensaje');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
     },
-    onError: () => toast.error('Error al enviar el mensaje'),
   });
 }
 
