@@ -871,7 +871,15 @@ function MilestonesTab({ milestones, contractId, isCompany, onProposed }: { mile
 
 // ─── Tab: Resumen ─────────────────────────────────────────────────────────────
 
-function ResumenTab({ contract }: { contract: NonNullable<ReturnType<typeof useContract>['data']> }) {
+function ResumenTab({
+  contract, myReview, isCompleted, otherName, onRate,
+}: {
+  contract: NonNullable<ReturnType<typeof useContract>['data']>;
+  myReview?: { id: string; rating: number; comment?: string } | null;
+  isCompleted?: boolean;
+  otherName?: string;
+  onRate?: () => void;
+}) {
   const total = contract.milestones.reduce((s, m) => s + Number(m.amount), 0);
   const paid = contract.milestones.filter((m) => m.status === 'PAID').reduce((s, m) => s + Number(m.amount), 0);
   const pct = total > 0 ? (paid / total) * 100 : 0;
@@ -937,6 +945,31 @@ function ResumenTab({ contract }: { contract: NonNullable<ReturnType<typeof useC
           </div>
         </div>
       </div>
+
+      {/* Review section — only shown when contract is COMPLETED */}
+      {isCompleted && (
+        myReview ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Tu calificación</p>
+            <div className="flex gap-1 mb-2">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} size={20}
+                  className={`${s <= myReview.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
+              ))}
+              <span className="ml-2 text-sm font-semibold text-gray-700">{myReview.rating}/5</span>
+            </div>
+            {myReview.comment && (
+              <p className="text-sm text-gray-600 italic">"{myReview.comment}"</p>
+            )}
+          </div>
+        ) : (
+          <button onClick={onRate}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors text-sm font-medium">
+            <Star size={16} className="fill-yellow-400 text-yellow-400" />
+            Califica a {otherName ?? 'la otra parte'}
+          </button>
+        )
+      )}
     </div>
   );
 }
@@ -959,16 +992,25 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-function CompletionOverlay({ contract, currentUserId, alreadyReviewed }: {
+function CompletionOverlay({ contract, currentUserId, alreadyReviewed, skipAnimate, ignoreStorage, onClose }: {
   contract: NonNullable<ReturnType<typeof useContract>['data']>;
   currentUserId?: string;
   alreadyReviewed: boolean;
+  skipAnimate?: boolean;
+  ignoreStorage?: boolean;
+  onClose?: () => void;
 }) {
-  const [phase, setPhase] = useState<'animate' | 'review' | 'done'>(alreadyReviewed ? 'done' : 'animate');
+  const [phase, setPhase] = useState<'animate' | 'review' | 'done'>(
+    alreadyReviewed ? 'done' : skipAnimate ? 'review' : 'animate'
+  );
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const createReview = useCreateReview(contract.id);
-  const [dismissed, setDismissed] = useState(false);
+  const dismissKey = `review-dismissed-${contract.id}-${currentUserId}`;
+  const [dismissed, setDismissed] = useState(() => {
+    if (ignoreStorage) return false;
+    try { return !!localStorage.getItem(dismissKey); } catch { return false; }
+  });
 
   useEffect(() => {
     if (phase === 'animate') {
@@ -979,7 +1021,7 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed }: {
 
   if (dismissed || (alreadyReviewed && phase === 'done')) return null;
 
-  const isCompany = (contract.project as { company?: { userId?: string } })?.company?.userId !== currentUserId;
+  const isCompany = (contract.project as { company?: { userId?: string } })?.company?.userId === currentUserId;
   const otherName = isCompany
     ? ((contract.project as { proposals?: Array<{ developer?: { name?: string } }> })?.proposals?.[0]?.developer?.name ?? 'el developer')
     : ((contract.project as { company?: { name?: string } })?.company?.name ?? 'la empresa');
@@ -987,7 +1029,7 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed }: {
   const handleSubmitReview = () => {
     if (!rating) return;
     createReview.mutate({ rating, comment: comment.trim() || undefined }, {
-      onSuccess: () => setPhase('done'),
+      onSuccess: () => { setPhase('done'); onClose?.(); },
     });
   };
 
@@ -1053,7 +1095,11 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed }: {
                   value={comment} onChange={(e) => setComment(e.target.value)}
                 />
                 <div className="flex gap-2">
-                  <button onClick={() => setDismissed(true)}
+                  <button onClick={() => {
+                    if (!ignoreStorage) { try { localStorage.setItem(dismissKey, '1'); } catch {} }
+                    setDismissed(true);
+                    onClose?.();
+                  }}
                     className="flex-1 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
                     Después
                   </button>
@@ -1097,6 +1143,7 @@ export default function ContractDetailPage() {
   const { data: messages = [], isLoading: isLoadingMessages } = useContractMessages(id);
   const [tab, setTab] = useState<Tab>('chat');
   const [direction, setDirection] = useState(0);
+  const [showRateOverlay, setShowRateOverlay] = useState(false);
 
   const isCompany = user?.role === 'COMPANY';
 
@@ -1143,9 +1190,12 @@ export default function ContractDetailPage() {
       developer?: { name: string; avatarUrl?: string | null; rating?: number; skills?: string[] };
     }>;
   };
-  const myReview = (contract as typeof contract & { reviews?: Array<{ id: string }> }).reviews?.[0];
+  const myReview = (contract as typeof contract & { reviews?: Array<{ id: string; rating: number; comment?: string }> }).reviews?.[0];
   const companyInfo = project?.company;
   const devInfo = project?.proposals?.[0]?.developer;
+  const otherName = isCompany
+    ? (devInfo?.name ?? 'el developer')
+    : (companyInfo?.name ?? 'la empresa');
 
   return (
     <div className="max-w-5xl mx-auto px-2">
@@ -1234,7 +1284,15 @@ export default function ContractDetailPage() {
                   onProposed={() => switchTab('chat')}
                 />
               )}
-              {tab === 'resumen' && <ResumenTab contract={contract} />}
+              {tab === 'resumen' && (
+                <ResumenTab
+                  contract={contract}
+                  myReview={myReview}
+                  isCompleted={contract.status === 'COMPLETED'}
+                  otherName={otherName}
+                  onRate={() => setShowRateOverlay(true)}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1257,12 +1315,23 @@ export default function ContractDetailPage() {
 
       </div>
 
-      {/* Completion overlay */}
+      {/* Completion overlay (auto on completion, or manual from Resumen tab) */}
       {contract.status === 'COMPLETED' && (
         <CompletionOverlay
           contract={contract}
           currentUserId={user?.id}
           alreadyReviewed={!!myReview}
+        />
+      )}
+      {showRateOverlay && contract.status === 'COMPLETED' && !myReview && (
+        <CompletionOverlay
+          key="manual-rate"
+          contract={contract}
+          currentUserId={user?.id}
+          alreadyReviewed={false}
+          skipAnimate
+          ignoreStorage
+          onClose={() => setShowRateOverlay(false)}
         />
       )}
     </div>

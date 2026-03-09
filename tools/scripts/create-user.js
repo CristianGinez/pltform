@@ -32,8 +32,8 @@ if (fs.existsSync(envPath)) {
 
 // ─── Imports (después de cargar env) ─────────────────────────────────────────
 
-const { PrismaClient } = require('../../node_modules/@prisma/client');
-const bcrypt = require('../../node_modules/bcryptjs');
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
