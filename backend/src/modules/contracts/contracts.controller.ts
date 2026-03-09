@@ -88,4 +88,23 @@ export class ContractsController {
   ) {
     return this.contractsService.respondToProposal(id, messageId, user.id, body);
   }
+
+  @Post(':id/milestones/:milestoneId/progress')
+  sendProgressUpdate(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+    @Body() body: { note?: string },
+  ) {
+    return this.contractsService.sendProgressUpdate(id, milestoneId, user.id, body.note ?? '');
+  }
+
+  @Post(':id/milestones/:milestoneId/testing')
+  markReadyForTesting(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.contractsService.markReadyForTesting(id, milestoneId, user.id);
+  }
 }

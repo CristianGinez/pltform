@@ -440,6 +440,38 @@ export class ContractsService {
     });
   }
 
+  async sendProgressUpdate(contractId: string, milestoneId: string, userId: string, note: string) {
+    const { isCompany } = await this.getContractWithAccess(contractId, userId);
+    if (isCompany) throw new ForbiddenException('Solo el developer puede enviar actualizaciones');
+
+    const milestone = await this.prisma.milestone.findFirst({ where: { id: milestoneId, contractId } });
+    if (!milestone) throw new NotFoundException('Milestone no encontrado');
+    if (!['IN_PROGRESS', 'REVISION_REQUESTED'].includes(milestone.status))
+      throw new BadRequestException('El milestone debe estar en progreso');
+
+    return this.postEvent(contractId, userId, note?.trim() || `Actualización en "${milestone.title}"`, {
+      action: 'PROGRESS_UPDATE',
+      milestoneId,
+      milestoneTitle: milestone.title,
+    });
+  }
+
+  async markReadyForTesting(contractId: string, milestoneId: string, userId: string) {
+    const { isCompany } = await this.getContractWithAccess(contractId, userId);
+    if (isCompany) throw new ForbiddenException('Solo el developer puede marcar listo para testing');
+
+    const milestone = await this.prisma.milestone.findFirst({ where: { id: milestoneId, contractId } });
+    if (!milestone) throw new NotFoundException('Milestone no encontrado');
+    if (!['IN_PROGRESS', 'REVISION_REQUESTED'].includes(milestone.status))
+      throw new BadRequestException('El milestone debe estar en progreso');
+
+    return this.postEvent(contractId, userId, `"${milestone.title}" está listo para testing / revisión parcial`, {
+      action: 'READY_FOR_TESTING',
+      milestoneId,
+      milestoneTitle: milestone.title,
+    });
+  }
+
   // ─── Legacy direct milestone endpoints (kept for compat) ──────────────────
 
   async startMilestone(contractId: string, milestoneId: string, userId: string) {

@@ -7,12 +7,13 @@ import {
   ArrowLeft, CheckCircle, Circle, Clock, AlertCircle, ExternalLink,
   Send, ThumbsUp, MessageSquare, ListChecks, LayoutDashboard,
   Rocket, RotateCcw, DollarSign, PartyPopper, Building2, User,
-  Star, ChevronRight, X, Edit3,
+  Star, ChevronRight, X, Edit3, Activity, Eye, Lock, Zap, RefreshCw,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useContract, useContractMessages, useSendMessage,
   useProposeAction, useRespondToProposal,
+  useSendProgressUpdate, useMarkReadyForTesting,
 } from '@/hooks/use-contracts';
 import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus } from '@/types';
 
@@ -52,6 +53,8 @@ function EventIcon({ action }: { action?: string }) {
     case 'MILESTONE_REVISION_REQUESTED': return <RotateCcw size={14} className="text-orange-500" />;
     case 'MILESTONE_PAID':       return <DollarSign size={14} className="text-emerald-600" />;
     case 'CONTRACT_COMPLETED':   return <PartyPopper size={14} className="text-purple-500" />;
+    case 'PROGRESS_UPDATE':      return <Activity size={14} className="text-blue-400" />;
+    case 'READY_FOR_TESTING':    return <Eye size={14} className="text-purple-500" />;
     default:                     return <CheckCircle size={14} className="text-gray-400" />;
   }
 }
@@ -61,6 +64,8 @@ const EVENT_COLORS: Record<string, string> = {
   MILESTONE_REVISION_REQUESTED: 'bg-orange-50 border-orange-200 text-orange-800',
   MILESTONE_PAID: 'bg-emerald-50 border-emerald-200 text-emerald-800',
   CONTRACT_COMPLETED: 'bg-purple-50 border-purple-200 text-purple-800',
+  PROGRESS_UPDATE: 'bg-sky-50 border-sky-200 text-sky-800',
+  READY_FOR_TESTING: 'bg-purple-50 border-purple-200 text-purple-800',
 };
 
 // ─── Proposal action labels ───────────────────────────────────────────────────
@@ -532,85 +537,177 @@ function ChatTab({ contractId }: { contractId: string }) {
 
 // ─── Tab: Milestones ──────────────────────────────────────────────────────────
 
-const STEP_COLORS: Record<MilestoneStatus, { bg: string; border: string; text: string; dot: string }> = {
-  PENDING:            { bg: 'bg-gray-50',      border: 'border-gray-200',   text: 'text-gray-400',   dot: 'bg-gray-300' },
-  IN_PROGRESS:        { bg: 'bg-blue-50',      border: 'border-blue-300',   text: 'text-blue-700',   dot: 'bg-blue-500' },
-  SUBMITTED:          { bg: 'bg-yellow-50',    border: 'border-yellow-300', text: 'text-yellow-700', dot: 'bg-yellow-400' },
-  REVISION_REQUESTED: { bg: 'bg-orange-50',    border: 'border-orange-300', text: 'text-orange-700', dot: 'bg-orange-400' },
-  APPROVED:           { bg: 'bg-green-50',     border: 'border-green-300',  text: 'text-green-700',  dot: 'bg-green-500' },
-  PAID:               { bg: 'bg-emerald-50',   border: 'border-emerald-300',text: 'text-emerald-700',dot: 'bg-emerald-500' },
+const STEP_COLORS: Record<MilestoneStatus, { leftBorder: string; bg: string }> = {
+  PENDING:            { leftBorder: 'border-l-gray-200',   bg: 'bg-white' },
+  IN_PROGRESS:        { leftBorder: 'border-l-blue-400',   bg: 'bg-blue-50/40' },
+  SUBMITTED:          { leftBorder: 'border-l-yellow-400', bg: 'bg-yellow-50/40' },
+  REVISION_REQUESTED: { leftBorder: 'border-l-orange-400', bg: 'bg-orange-50/40' },
+  APPROVED:           { leftBorder: 'border-l-green-400',  bg: 'bg-green-50/30' },
+  PAID:               { leftBorder: 'border-l-emerald-400',bg: 'bg-emerald-50/30' },
 };
 
+function ProgressUpdateModal({
+  milestone, contractId, onClose,
+}: { milestone: Milestone; contractId: string; onClose: () => void }) {
+  const [note, setNote] = useState('');
+  const sendUpdate = useSendProgressUpdate(contractId);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Enviar actualización</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{milestone.title}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={15} className="text-gray-400" /></button>
+        </div>
+        <textarea
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+          rows={3} autoFocus placeholder="¿En qué estás trabajando? ¿Qué avances tienes? ¿Algún bloqueo?"
+          value={note} onChange={(e) => setNote(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button
+            onClick={() => sendUpdate.mutate({ milestoneId: milestone.id, note }, { onSuccess: onClose })}
+            disabled={!note.trim() || sendUpdate.isPending}
+            className="flex-1 py-2 text-sm font-semibold bg-sky-600 text-white rounded-xl hover:bg-sky-700 disabled:opacity-60 transition-colors"
+          >
+            {sendUpdate.isPending ? 'Enviando...' : 'Enviar actualización'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function MilestoneStep({
-  milestone, index, total, contractId, isCompany,
-}: { milestone: Milestone; index: number; total: number; contractId: string; isCompany: boolean }) {
-  const propose = useProposeAction(contractId);
+  milestone, index, total, contractId, isCompany, locked,
+}: { milestone: Milestone; index: number; total: number; contractId: string; isCompany: boolean; locked: boolean }) {
   const [modal, setModal] = useState<'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | null>(null);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const readyForTesting = useMarkReadyForTesting(contractId);
+
   const colors = STEP_COLORS[milestone.status];
-  const isActive = milestone.status === 'IN_PROGRESS' || milestone.status === 'SUBMITTED' || milestone.status === 'REVISION_REQUESTED';
   const isDone = milestone.status === 'APPROVED' || milestone.status === 'PAID';
+  const isActive = ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED'].includes(milestone.status);
+
+  // Actions available to developer based on status
+  const devActions: { label: string; icon: React.ReactNode; onClick: () => void; style: string }[] = [];
+  if (!isCompany && !locked) {
+    if (milestone.status === 'PENDING') {
+      devActions.push({
+        label: 'Proponer inicio',
+        icon: <Rocket size={12} />,
+        onClick: () => setModal('PROPOSE_START'),
+        style: 'bg-blue-600 text-white hover:bg-blue-700',
+      });
+    }
+    if (milestone.status === 'IN_PROGRESS' || milestone.status === 'REVISION_REQUESTED') {
+      devActions.push(
+        {
+          label: 'Enviar actualización',
+          icon: <Activity size={12} />,
+          onClick: () => setShowProgressModal(true),
+          style: 'bg-sky-100 text-sky-700 hover:bg-sky-200',
+        },
+        {
+          label: 'Listo para testing',
+          icon: <Eye size={12} />,
+          onClick: () => readyForTesting.mutate(milestone.id),
+          style: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
+        },
+        {
+          label: milestone.status === 'REVISION_REQUESTED' ? 'Proponer re-entrega' : 'Proponer entrega',
+          icon: <Send size={12} />,
+          onClick: () => setModal('PROPOSE_SUBMIT'),
+          style: 'bg-primary-600 text-white hover:bg-primary-700',
+        },
+      );
+    }
+  }
+
+  // Actions available to company
+  const companyActions: { label: string; icon: React.ReactNode; onClick: () => void; style: string }[] = [];
+  if (isCompany && milestone.status === 'SUBMITTED') {
+    companyActions.push(
+      {
+        label: 'Proponer aprobación',
+        icon: <ThumbsUp size={12} />,
+        onClick: () => setModal('PROPOSE_APPROVE'),
+        style: 'bg-green-600 text-white hover:bg-green-700',
+      },
+      {
+        label: 'Pedir revisión',
+        icon: <RotateCcw size={12} />,
+        onClick: () => setModal('PROPOSE_REVISION'),
+        style: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
+      },
+    );
+  }
+
+  const allActions = isCompany ? companyActions : devActions;
 
   return (
     <>
-      <div className="flex gap-4">
-        {/* Left: connector line + dot */}
-        <div className="flex flex-col items-center shrink-0 w-8">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 z-10 ${
+      <div className="flex gap-3">
+        {/* Left: number bubble + connector */}
+        <div className="flex flex-col items-center shrink-0" style={{ width: 32 }}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 z-10 shrink-0 ${
             isDone
               ? 'bg-emerald-500 border-emerald-500 text-white'
               : isActive
-              ? 'bg-white border-primary-500 text-primary-600'
-              : 'bg-white border-gray-300 text-gray-400'
+              ? 'bg-white border-primary-500 text-primary-700 shadow-sm shadow-primary-100'
+              : locked
+              ? 'bg-gray-100 border-gray-200 text-gray-400'
+              : 'bg-white border-gray-300 text-gray-500'
           }`}>
-            {isDone ? <CheckCircle size={16} /> : <span>{index + 1}</span>}
+            {isDone ? <CheckCircle size={15} /> : locked ? <Lock size={11} /> : <span>{index + 1}</span>}
           </div>
           {index < total - 1 && (
-            <div className={`w-0.5 flex-1 mt-1 min-h-[24px] ${isDone ? 'bg-emerald-300' : 'bg-gray-200'}`} />
+            <div className={`w-0.5 flex-1 my-1 min-h-[16px] rounded-full ${isDone ? 'bg-emerald-300' : isActive ? 'bg-primary-200' : 'bg-gray-200'}`} />
           )}
         </div>
 
         {/* Right: card */}
-        <motion.div layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.05 }}
-          className={`flex-1 mb-4 rounded-xl border-l-4 border border-gray-100 p-4 ${colors.bg} ${
-            isActive ? `border-l-4 ${colors.border}` : 'border-l-gray-200'
-          }`}>
+        <motion.div layout initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.06 }}
+          className={`flex-1 mb-3 rounded-xl border border-gray-100 border-l-4 p-4 ${colors.bg} ${colors.leftBorder} ${locked ? 'opacity-60' : ''}`}>
 
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div>
-              <p className={`font-semibold text-sm ${isDone ? 'text-gray-700 line-through' : 'text-gray-900'}`}>
-                {milestone.title}
-              </p>
-              {milestone.description && (
-                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{milestone.description}</p>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className={`font-semibold text-sm ${isDone ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+              {milestone.title}
+            </p>
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[milestone.status]}`}>
                 {STATUS_LABELS[milestone.status]}
               </span>
-              <span className="text-xs font-bold text-gray-700">S/ {Number(milestone.amount).toLocaleString()}</span>
+              <span className="text-xs font-bold text-gray-600">S/ {Number(milestone.amount).toLocaleString()}</span>
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="flex flex-wrap gap-3 text-[11px] text-gray-400 mb-3">
-            {milestone.dueDate && (
-              <span>Límite: {new Date(milestone.dueDate).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>
-            )}
-            {milestone.startedAt && (
-              <span>Iniciado: {new Date(milestone.startedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>
-            )}
-            {milestone.submittedAt && (
-              <span>Entregado: {new Date(milestone.submittedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>
-            )}
-          </div>
+          {/* Description */}
+          {milestone.description && (
+            <p className="text-xs text-gray-500 mb-2 leading-relaxed">{milestone.description}</p>
+          )}
+
+          {/* Dates row */}
+          {(milestone.dueDate || milestone.startedAt || milestone.submittedAt) && (
+            <div className="flex flex-wrap gap-3 text-[11px] text-gray-400 mb-2">
+              {milestone.dueDate && <span>Límite: {new Date(milestone.dueDate).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>}
+              {milestone.startedAt && <span className="text-blue-500">Iniciado: {new Date(milestone.startedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>}
+              {milestone.submittedAt && <span className="text-yellow-600">Entregado: {new Date(milestone.submittedAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</span>}
+            </div>
+          )}
 
           {/* Delivery info */}
           {['SUBMITTED', 'REVISION_REQUESTED', 'APPROVED', 'PAID'].includes(milestone.status) &&
             (milestone.deliveryNote || milestone.deliveryLink) && (
-              <div className="bg-white/70 rounded-lg p-3 mb-3 text-xs border border-white">
+              <div className="bg-white/80 rounded-lg p-3 mb-3 text-xs border border-white/60">
                 {milestone.deliveryNote && (
                   <p className="text-gray-700 mb-1"><span className="font-medium">Nota de entrega:</span> {milestone.deliveryNote}</p>
                 )}
@@ -623,40 +720,23 @@ function MilestoneStep({
               </div>
             )}
 
-          {/* Developer actions */}
-          {!isCompany && (
-            <div className="flex gap-2 flex-wrap">
-              {milestone.status === 'PENDING' && (
-                <button onClick={() => setModal('PROPOSE_START')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  <Rocket size={12} />Proponer inicio
-                </button>
-              )}
-              {(milestone.status === 'IN_PROGRESS' || milestone.status === 'REVISION_REQUESTED') && (
-                <button onClick={() => setModal('PROPOSE_SUBMIT')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                  <Send size={12} />
-                  {milestone.status === 'REVISION_REQUESTED' ? 'Proponer re-entrega' : 'Proponer entrega'}
-                </button>
-              )}
-            </div>
+          {/* Locked message */}
+          {locked && !isCompany && (
+            <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+              <Lock size={10} />Completa el milestone anterior para desbloquear
+            </p>
           )}
 
-          {/* Company actions */}
-          {isCompany && (
-            <div className="flex gap-2 flex-wrap">
-              {milestone.status === 'SUBMITTED' && (
-                <>
-                  <button onClick={() => setModal('PROPOSE_APPROVE')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                    <ThumbsUp size={12} />Proponer aprobación
-                  </button>
-                  <button onClick={() => setModal('PROPOSE_REVISION')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors">
-                    <RotateCcw size={12} />Pedir revisión
-                  </button>
-                </>
-              )}
+          {/* Actions */}
+          {allActions.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {allActions.map((a) => (
+                <button key={a.label} onClick={a.onClick}
+                  disabled={readyForTesting.isPending}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-60 ${a.style}`}>
+                  {a.icon}{a.label}
+                </button>
+              ))}
             </div>
           )}
         </motion.div>
@@ -665,6 +745,9 @@ function MilestoneStep({
       <AnimatePresence>
         {modal && (
           <ProposeModal milestone={milestone} contractId={contractId} action={modal} onClose={() => setModal(null)} />
+        )}
+        {showProgressModal && (
+          <ProgressUpdateModal milestone={milestone} contractId={contractId} onClose={() => setShowProgressModal(false)} />
         )}
       </AnimatePresence>
     </>
@@ -675,25 +758,35 @@ function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Mile
   const done = milestones.filter((m) => m.status === 'PAID').length;
   const pct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
 
+  // Determine which milestones are "locked" for dev
+  // A milestone is locked if any previous milestone is not PAID
+  const isLocked = (index: number) => {
+    if (isCompany) return false; // company sees everything
+    for (let i = 0; i < index; i++) {
+      if (milestones[i].status !== 'PAID') return true;
+    }
+    return false;
+  };
+
   return (
     <div className="space-y-3">
-      {/* Progress bar summary */}
+      {/* Progress summary */}
       {milestones.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="font-medium text-gray-700">Progreso del proyecto</span>
-            <span className="text-xs text-gray-500">{done}/{milestones.length} completados</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-gray-700">Ruta del proyecto</span>
+            <span className="text-xs text-gray-400">{done}/{milestones.length} completados · {pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <motion.div
               className="bg-gradient-to-r from-primary-400 to-emerald-500 h-2 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
+              initial={{ width: 0 }} animate={{ width: `${pct}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             />
           </div>
-          <div className="flex gap-3 mt-2 flex-wrap">
-            {(['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED', 'PAID'] as MilestoneStatus[]).map((s) => {
+          {/* Status chips */}
+          <div className="flex gap-2 flex-wrap mt-2">
+            {(['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'PAID'] as MilestoneStatus[]).map((s) => {
               const count = milestones.filter((m) => m.status === s).length;
               if (!count) return null;
               return (
@@ -706,15 +799,17 @@ function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Mile
         </div>
       )}
 
-      {/* Empty state */}
       {milestones.length === 0 && (
         <div className="text-center py-10 bg-white rounded-xl border border-gray-100">
           <p className="text-sm text-gray-400">Este contrato no tiene milestones definidos.</p>
         </div>
       )}
 
-      {/* Roadmap steps */}
+      {/* Roadmap */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4 flex items-center gap-1.5">
+          <Zap size={12} />Tareas del proyecto
+        </p>
         {milestones.map((m, i) => (
           <MilestoneStep
             key={m.id}
@@ -723,6 +818,7 @@ function MilestonesTab({ milestones, contractId, isCompany }: { milestones: Mile
             total={milestones.length}
             contractId={contractId}
             isCompany={isCompany}
+            locked={isLocked(i)}
           />
         ))}
       </div>

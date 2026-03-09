@@ -184,3 +184,35 @@ export function useRespondToProposal(contractId: string) {
     },
   });
 }
+
+export function useSendProgressUpdate(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ milestoneId, note }: { milestoneId: string; note: string }) =>
+      api.post(`/contracts/${contractId}/milestones/${milestoneId}/progress`, { note }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      toast.success('Actualización enviada');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al enviar la actualización');
+    },
+  });
+}
+
+export function useMarkReadyForTesting(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (milestoneId: string) =>
+      api.post(`/contracts/${contractId}/milestones/${milestoneId}/testing`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      toast.success('¡Listo para testing! La empresa fue notificada');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error');
+    },
+  });
+}

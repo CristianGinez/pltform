@@ -143,8 +143,8 @@ function ProposalDetailDrawer({
           {/* Cover letter */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1.5">Carta de presentación</p>
-            <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{proposal.coverLetter}</p>
+            <div className="bg-gray-50 rounded-xl p-4 overflow-hidden">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">{proposal.coverLetter}</p>
             </div>
           </div>
 
