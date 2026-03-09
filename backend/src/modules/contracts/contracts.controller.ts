@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 import { ContractsService } from './contracts.service';
@@ -53,5 +53,19 @@ export class ContractsController {
     @CurrentUser() user: User,
   ) {
     return this.contractsService.approveMilestone(id, milestoneId, user.id);
+  }
+
+  @Get(':id/messages')
+  getMessages(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.contractsService.getMessages(id, user.id);
+  }
+
+  @Post(':id/messages')
+  sendMessage(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: { content: string },
+  ) {
+    return this.contractsService.sendMessage(id, user.id, body.content);
   }
 }

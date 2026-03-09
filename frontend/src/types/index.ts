@@ -109,6 +109,19 @@ export interface Contract {
   createdAt: string;
 }
 
+export interface ContractMessage {
+  id: string;
+  contractId: string;
+  content: string;
+  createdAt: string;
+  sender: {
+    id: string;
+    role: Role;
+    company?: { name: string } | null;
+    developer?: { name: string } | null;
+  };
+}
+
 export type NotificationType =
   | 'PROPOSAL_RECEIVED'
   | 'PROPOSAL_ACCEPTED'

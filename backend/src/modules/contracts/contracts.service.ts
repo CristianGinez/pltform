@@ -168,6 +168,66 @@ export class ContractsService {
     return updated;
   }
 
+  async getMessages(contractId: string, userId: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { project: { include: { company: true } } },
+    });
+    if (!contract) throw new NotFoundException();
+
+    const isCompany = contract.project.company.userId === userId;
+    const isDeveloper = await this.prisma.proposal.findFirst({
+      where: { projectId: contract.projectId, status: 'ACCEPTED', developer: { userId } },
+    });
+    if (!isCompany && !isDeveloper) throw new ForbiddenException();
+
+    return this.prisma.contractMessage.findMany({
+      where: { contractId },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            role: true,
+            company: { select: { name: true } },
+            developer: { select: { name: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async sendMessage(contractId: string, userId: string, content: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { project: { include: { company: true } } },
+    });
+    if (!contract) throw new NotFoundException();
+
+    const isCompany = contract.project.company.userId === userId;
+    const isDeveloper = await this.prisma.proposal.findFirst({
+      where: { projectId: contract.projectId, status: 'ACCEPTED', developer: { userId } },
+    });
+    if (!isCompany && !isDeveloper) throw new ForbiddenException();
+
+    if (!content?.trim()) throw new BadRequestException('El mensaje no puede estar vacío');
+
+    return this.prisma.contractMessage.create({
+      data: { contractId, senderId: userId, content: content.trim() },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            role: true,
+            company: { select: { name: true } },
+            developer: { select: { name: true } },
+          },
+        },
+      },
+    });
+  }
+
   async approveMilestone(contractId: string, milestoneId: string, userId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },

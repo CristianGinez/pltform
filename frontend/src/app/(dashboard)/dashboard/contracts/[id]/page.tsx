@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   ArrowLeft,
   CheckCircle,
@@ -12,13 +11,12 @@ import {
   ExternalLink,
   Play,
   Send,
-  RotateCcw,
   ThumbsUp,
   MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { useContract, useStartMilestone, useSubmitMilestone, useApproveMilestone, useRequestRevision } from '@/hooks/use-contracts';
-import type { Milestone, MilestoneStatus } from '@/types';
+import { useContract, useStartMilestone, useSubmitMilestone, useApproveMilestone, useRequestRevision, useContractMessages, useSendMessage } from '@/hooks/use-contracts';
+import type { Milestone, MilestoneStatus, ContractMessage } from '@/types';
 
 // ─── Status helpers ────────────────────────────────────────────────────────────
 
@@ -302,6 +300,111 @@ function MilestoneCard({
   );
 }
 
+// ─── Contract Chat ─────────────────────────────────────────────────────────────
+
+function ContractChat({ contractId }: { contractId: string }) {
+  const { user } = useAuthStore();
+  const { data: messages = [], isLoading } = useContractMessages(contractId);
+  const sendMessage = useSendMessage(contractId);
+  const [text, setText] = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = () => {
+    if (!text.trim() || sendMessage.isPending) return;
+    sendMessage.mutate(text, { onSuccess: () => setText('') });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const getSenderName = (msg: ContractMessage) =>
+    msg.sender.company?.name ?? msg.sender.developer?.name ?? 'Usuario';
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Mensajes</h2>
+      <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden">
+        {/* Messages area */}
+        <div className="flex flex-col gap-3 p-4 h-72 overflow-y-auto">
+          {isLoading && (
+            <>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+                  <div className="h-12 w-48 bg-gray-100 rounded-2xl animate-pulse" />
+                </div>
+              ))}
+            </>
+          )}
+
+          {!isLoading && messages.length === 0 && (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-sm text-gray-400">No hay mensajes aún. ¡Inicia la conversación!</p>
+            </div>
+          )}
+
+          {messages.map((msg) => {
+            const isOwn = msg.sender.id === user?.id;
+            return (
+              <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
+                  <div className="flex items-center gap-1.5 px-1">
+                    {!isOwn && (
+                      <span className="text-xs font-medium text-gray-500">{getSenderName(msg)}</span>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {isOwn && (
+                      <span className="text-xs font-medium text-gray-500">{getSenderName(msg)}</span>
+                    )}
+                  </div>
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                      isOwn
+                        ? 'bg-primary-600 text-white rounded-tr-sm'
+                        : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input area */}
+        <div className="border-t border-gray-100 p-3 flex gap-2 items-end">
+          <textarea
+            className="flex-1 resize-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[40px] max-h-32"
+            rows={1}
+            placeholder="Escribe un mensaje..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() || sendMessage.isPending}
+            className="flex-shrink-0 p-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ContractDetailPage() {
@@ -421,6 +524,8 @@ export default function ContractDetailPage() {
           <p className="text-sm text-gray-400">Este contrato no tiene milestones definidos.</p>
         </div>
       )}
+
+      <ContractChat contractId={contract.id} />
     </div>
   );
 }

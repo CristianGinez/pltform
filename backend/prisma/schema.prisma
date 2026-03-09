@@ -63,15 +63,16 @@ enum NotificationType {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  passwordHash  String?
-  role          Role
-  company       Company?
-  developer     Developer?
-  notifications Notification[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id               String            @id @default(cuid())
+  email            String            @unique
+  passwordHash     String?
+  role             Role
+  company          Company?
+  developer        Developer?
+  notifications    Notification[]
+  contractMessages ContractMessage[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([email])
 }
@@ -168,14 +169,15 @@ model Proposal {
 }
 
 model Contract {
-  id          String         @id @default(cuid())
-  projectId   String         @unique
-  project     Project        @relation(fields: [projectId], references: [id])
+  id          String            @id @default(cuid())
+  projectId   String            @unique
+  project     Project           @relation(fields: [projectId], references: [id])
   milestones  Milestone[]
-  status      ContractStatus @default(ACTIVE)
-  platformFee Decimal        @default(10) @db.Decimal(5, 2)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  messages    ContractMessage[]
+  status      ContractStatus    @default(ACTIVE)
+  platformFee Decimal           @default(10) @db.Decimal(5, 2)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 model Milestone {
@@ -196,6 +198,18 @@ model Milestone {
   updatedAt    DateTime        @updatedAt
 
   @@index([contractId])
+}
+
+model ContractMessage {
+  id         String   @id @default(cuid())
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation(fields: [senderId], references: [id])
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([contractId, createdAt])
 }
 
 model Notification {

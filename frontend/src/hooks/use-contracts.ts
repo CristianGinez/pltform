@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
-import type { Contract } from '@/types';
+import type { Contract, ContractMessage } from '@/types';
 
 export function useContract(id: string) {
   return useQuery<Contract>({
@@ -94,5 +94,26 @@ export function useRequestRevision() {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg ?? 'Error al solicitar revisión');
     },
+  });
+}
+
+export function useContractMessages(contractId: string) {
+  return useQuery<ContractMessage[]>({
+    queryKey: ['contract-messages', contractId],
+    queryFn: () => api.get(`/contracts/${contractId}/messages`).then((r) => r.data),
+    enabled: !!contractId,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useSendMessage(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      api.post(`/contracts/${contractId}/messages`, { content }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+    },
+    onError: () => toast.error('Error al enviar el mensaje'),
   });
 }

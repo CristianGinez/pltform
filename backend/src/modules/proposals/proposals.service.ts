@@ -48,8 +48,8 @@ export class ProposalsService {
       type: 'PROPOSAL_RECEIVED',
       title: 'Nueva propuesta recibida',
       body: `${developer.name} postuló a tu proyecto ${project.title}`,
-      entityId: proposal.id,
-      entityType: 'proposal',
+      entityId: projectId,
+      entityType: 'project',
     });
 
     return proposal;
@@ -102,7 +102,7 @@ export class ProposalsService {
     });
 
     // Create contract with a default milestone
-    await this.prisma.contract.create({
+    const contract = await this.prisma.contract.create({
       data: {
         projectId: proposal.projectId,
         milestones: {
@@ -117,17 +117,17 @@ export class ProposalsService {
       },
     });
 
-    // Notify accepted developer
+    // Notify accepted developer → link directly to the new contract
     await this.notifications.create({
       userId: proposal.developer.userId,
       type: 'PROPOSAL_ACCEPTED',
       title: '¡Propuesta aceptada!',
       body: `Tu propuesta para ${proposal.project.title} fue aceptada`,
-      entityId: proposal.id,
-      entityType: 'proposal',
+      entityId: contract.id,
+      entityType: 'contract',
     });
 
-    // Notify rejected developers
+    // Notify rejected developers → link to the project so they can see what happened
     await Promise.all(
       otherProposals.map((p: Proposal & { developer: Developer }) =>
         this.notifications.create({
@@ -135,8 +135,8 @@ export class ProposalsService {
           type: 'PROPOSAL_REJECTED',
           title: 'Propuesta no seleccionada',
           body: `Tu propuesta para ${proposal.project.title} no fue seleccionada`,
-          entityId: p.id,
-          entityType: 'proposal',
+          entityId: proposal.projectId,
+          entityType: 'project',
         }),
       ),
     );
@@ -165,8 +165,8 @@ export class ProposalsService {
       type: 'PROPOSAL_WITHDRAWN',
       title: 'Propuesta retirada',
       body: `${developer.name} retiró su propuesta de ${proposal.project.title}`,
-      entityId: proposal.id,
-      entityType: 'proposal',
+      entityId: proposal.projectId,
+      entityType: 'project',
     });
 
     return result;

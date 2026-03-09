@@ -32,22 +32,30 @@ const typeIcon: Record<NotificationType, React.ReactNode> = {
   CONTRACT_COMPLETED: <CheckCircle size={15} className="text-green-700" />,
 };
 
+function getNotificationUrl(n: Notification): string | null {
+  if (!n.entityId) return null;
+  if (n.entityType === 'contract') return `/dashboard/contracts/${n.entityId}`;
+  if (n.entityType === 'project') return `/dashboard/projects/${n.entityId}`;
+  return null;
+}
+
 function NotificationItem({ n, onRead }: { n: Notification; onRead: (id: string) => void }) {
   const router = useRouter();
 
   const handleClick = () => {
     if (!n.read) onRead(n.id);
-    if (n.entityId && n.entityType === 'contract') {
-      router.push(`/dashboard/contracts/${n.entityId}`);
-    }
+    const url = getNotificationUrl(n);
+    if (url) router.push(url);
   };
+
+  const url = getNotificationUrl(n);
 
   return (
     <button
       onClick={handleClick}
       className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
         !n.read ? 'bg-blue-50/60' : ''
-      }`}
+      } ${url ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <span className="mt-0.5 shrink-0">{typeIcon[n.type]}</span>
       <div className="min-w-0 flex-1">
