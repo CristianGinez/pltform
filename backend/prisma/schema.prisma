@@ -49,6 +49,7 @@ enum MilestoneStatus {
 enum MessageType {
   TEXT
   EVENT
+  PROPOSAL
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────

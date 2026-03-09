@@ -68,4 +68,24 @@ export class ContractsController {
   ) {
     return this.contractsService.sendMessage(id, user.id, body.content);
   }
+
+  @Post(':id/milestones/:milestoneId/propose')
+  proposeAction(
+    @Param('id') id: string,
+    @Param('milestoneId') milestoneId: string,
+    @CurrentUser() user: User,
+    @Body() body: { action: string; deliveryNote?: string; deliveryLink?: string; reason?: string },
+  ) {
+    return this.contractsService.proposeAction(id, milestoneId, user.id, body as any);
+  }
+
+  @Post(':id/proposals/:messageId/respond')
+  respondToProposal(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: User,
+    @Body() body: { response: 'accept' | 'reject' | 'counter'; counter?: string },
+  ) {
+    return this.contractsService.respondToProposal(id, messageId, user.id, body);
+  }
 }

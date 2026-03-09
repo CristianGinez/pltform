@@ -110,7 +110,8 @@ export interface Contract {
   createdAt: string;
 }
 
-export type MessageType = 'TEXT' | 'EVENT';
+export type MessageType = 'TEXT' | 'EVENT' | 'PROPOSAL';
+export type MessageProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED';
 
 export interface ContractMessage {
   id: string;
@@ -119,6 +120,7 @@ export interface ContractMessage {
   type: MessageType;
   metadata?: {
     action?: string;
+    proposalStatus?: MessageProposalStatus;
     milestoneId?: string;
     milestoneTitle?: string;
     deliveryNote?: string;

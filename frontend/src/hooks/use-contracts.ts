@@ -117,3 +117,51 @@ export function useSendMessage(contractId: string) {
     onError: () => toast.error('Error al enviar el mensaje'),
   });
 }
+
+export function useProposeAction(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: {
+      milestoneId: string;
+      action: string;
+      deliveryNote?: string;
+      deliveryLink?: string;
+      reason?: string;
+    }) =>
+      api
+        .post(`/contracts/${contractId}/milestones/${dto.milestoneId}/propose`, dto)
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al enviar la propuesta');
+    },
+  });
+}
+
+export function useRespondToProposal(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: {
+      messageId: string;
+      response: 'accept' | 'reject' | 'counter';
+      counter?: string;
+    }) =>
+      api
+        .post(`/contracts/${contractId}/proposals/${dto.messageId}/respond`, {
+          response: dto.response,
+          counter: dto.counter,
+        })
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al responder la propuesta');
+    },
+  });
+}
