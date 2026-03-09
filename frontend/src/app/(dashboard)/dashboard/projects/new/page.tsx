@@ -245,7 +245,7 @@ export default function NewProjectPage() {
                     key={pkg.id}
                     type="button"
                     onClick={() => applyPackage(pkg)}
-                    className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-all ${
+                    className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       active
                         ? `${pkg.bg} ${pkg.color} border-current shadow-sm`
                         : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-white'
@@ -348,7 +348,7 @@ export default function NewProjectPage() {
                   <button
                     type="button"
                     onClick={() => setNoTech(!noTech)}
-                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                    className={`text-xs px-2 py-1 rounded-full border transition-colors cursor-pointer ${
                       noTech
                         ? 'bg-amber-50 text-amber-700 border-amber-300'
                         : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
@@ -377,7 +377,7 @@ export default function NewProjectPage() {
                       />
                       <button
                         type="button" onClick={addSkill}
-                        className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
                       >
                         <Plus size={13} /> Agregar
                       </button>
@@ -409,13 +409,13 @@ export default function NewProjectPage() {
             <div className="flex gap-3">
               <button
                 type="button" onClick={() => router.back()}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit" disabled={mutation.isPending}
-                className="flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {mutation.isPending ? (
                   <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creando...</>

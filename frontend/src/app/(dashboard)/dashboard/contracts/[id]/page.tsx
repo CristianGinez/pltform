@@ -255,7 +255,7 @@ function ProposeModal({
             <button
               onClick={handleSend}
               disabled={propose.isPending}
-              className="flex-1 px-4 py-2.5 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 font-medium"
+              className="flex-1 px-4 py-2.5 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 font-medium cursor-pointer"
             >
               {propose.isPending ? 'Enviando...' : confirmLabels[action]}
             </button>
@@ -298,7 +298,7 @@ function CounterModal({
           <button
             onClick={() => respond.mutate({ messageId, response: 'counter', counter }, { onSuccess: onClose })}
             disabled={!counter.trim() || respond.isPending}
-            className="flex-1 px-4 py-2.5 text-sm bg-orange-600 text-white rounded-xl hover:bg-orange-700 disabled:opacity-60 font-medium"
+            className="flex-1 px-4 py-2.5 text-sm bg-orange-600 text-white rounded-xl hover:bg-orange-700 disabled:opacity-60 font-medium cursor-pointer"
           >
             {respond.isPending ? 'Enviando...' : 'Enviar contraoferta'}
           </button>
@@ -352,7 +352,7 @@ function ProposalCard({
               <p className="text-sm font-medium text-gray-800">{meta?.milestoneTitle}</p>
               {onGoToMilestones && (
                 <button onClick={onGoToMilestones}
-                  className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 ml-2">
+                  className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 ml-2 cursor-pointer">
                   Ver milestone <ChevronRight size={11} />
                 </button>
               )}
@@ -381,20 +381,20 @@ function ProposalCard({
               <button
                 onClick={() => respond.mutate({ messageId: msg.id, response: 'accept' })}
                 disabled={respond.isPending}
-                className="flex-1 py-2 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
+                className="flex-1 py-2 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
               >
                 Aceptar
               </button>
               <button
                 onClick={() => setShowCounter(true)}
-                className="flex-1 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
+                className="flex-1 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors cursor-pointer"
               >
                 <Edit3 size={11} className="inline mr-1" />Contraoferta
               </button>
               <button
                 onClick={() => respond.mutate({ messageId: msg.id, response: 'reject' })}
                 disabled={respond.isPending}
-                className="flex-1 py-2 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                className="flex-1 py-2 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
               >
                 Rechazar
               </button>
@@ -524,13 +524,13 @@ function DisputeModal({ contractId, onClose }: { contractId: string; onClose: ()
         <p className="text-[10px] text-gray-400 mb-4">{reason.length} / 10 mínimo</p>
         <div className="flex gap-2">
           <button onClick={onClose}
-            className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+            className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
             Cancelar
           </button>
           <button
             onClick={() => openDispute.mutate(reason, { onSuccess: onClose })}
             disabled={reason.trim().length < 10 || openDispute.isPending}
-            className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60">
+            className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60 cursor-pointer">
             {openDispute.isPending ? 'Enviando...' : 'Abrir disputa'}
           </button>
         </div>
@@ -591,7 +591,7 @@ function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: 
         />
         <button
           onClick={handleSend} disabled={!text.trim() || sendMessage.isPending}
-          className="shrink-0 p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
+          className="shrink-0 p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
         >
           <Send size={16} />
         </button>
@@ -639,7 +639,7 @@ function ProgressUpdateModal({
           <button
             onClick={() => sendUpdate.mutate({ milestoneId: milestone.id, note }, { onSuccess: onClose })}
             disabled={!note.trim() || sendUpdate.isPending}
-            className="flex-1 py-2 text-sm font-semibold bg-sky-600 text-white rounded-xl hover:bg-sky-700 disabled:opacity-60 transition-colors"
+            className="flex-1 py-2 text-sm font-semibold bg-sky-600 text-white rounded-xl hover:bg-sky-700 disabled:opacity-60 transition-colors cursor-pointer"
           >
             {sendUpdate.isPending ? 'Enviando...' : 'Enviar actualización'}
           </button>
@@ -810,7 +810,7 @@ function MilestoneStep({
               {allActions.map((a) => (
                 <button key={a.label} onClick={a.onClick}
                   disabled={readyForTesting.isPending}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-60 ${a.style}`}>
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-60 cursor-pointer ${a.style}`}>
                   {a.icon}{a.label}
                 </button>
               ))}
@@ -822,7 +822,7 @@ function MilestoneStep({
             <div className="mt-3 pt-3 border-t border-orange-100">
               <button
                 onClick={() => setConfirmForceApprove(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors cursor-pointer">
                 <AlertCircle size={12} />Aprobación automática disponible (7 días sin respuesta)
               </button>
             </div>
@@ -853,13 +853,13 @@ function MilestoneStep({
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setConfirmTesting(false)}
-                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
                   Cancelar
                 </button>
                 <button
                   onClick={() => { readyForTesting.mutate(milestone.id, { onSuccess: () => setConfirmTesting(false) }); }}
                   disabled={readyForTesting.isPending}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-60">
+                  className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-60 cursor-pointer">
                   {readyForTesting.isPending ? 'Enviando...' : 'Confirmar'}
                 </button>
               </div>
@@ -877,7 +877,7 @@ function MilestoneStep({
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setConfirmForceApprove(false)}
-                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
                   Cancelar
                 </button>
                 <button
@@ -886,7 +886,7 @@ function MilestoneStep({
                     { onSuccess: () => setConfirmForceApprove(false) },
                   )}
                   disabled={forceApprove.isPending}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-orange-600 text-white rounded-xl hover:bg-orange-700 disabled:opacity-60">
+                  className="flex-1 py-2.5 text-sm font-semibold bg-orange-600 text-white rounded-xl hover:bg-orange-700 disabled:opacity-60 cursor-pointer">
                   {forceApprove.isPending ? 'Procesando...' : 'Confirmar'}
                 </button>
               </div>
@@ -1068,7 +1068,7 @@ function ResumenTab({
           </div>
         ) : (
           <button onClick={onRate}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors text-sm font-medium">
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors text-sm font-medium cursor-pointer">
             <Star size={16} className="fill-yellow-400 text-yellow-400" />
             Califica a {otherName ?? 'la otra parte'}
           </button>
@@ -1204,11 +1204,11 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed, skipAnima
                     setDismissed(true);
                     onClose?.();
                   }}
-                    className="flex-1 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+                    className="flex-1 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
                     Después
                   </button>
                   <button onClick={handleSubmitReview} disabled={!rating || createReview.isPending}
-                    className="flex-1 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60">
+                    className="flex-1 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 cursor-pointer">
                     {createReview.isPending ? 'Enviando...' : 'Enviar calificación'}
                   </button>
                 </div>
@@ -1324,24 +1324,24 @@ export default function ContractDetailPage() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors hidden sm:block">
+              className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors hidden sm:block cursor-pointer">
               Proponer cancelación
             </button>
             <button
               onClick={() => setShowCancelConfirm(true)}
               title="Proponer cancelación"
-              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors sm:hidden">
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors sm:hidden cursor-pointer">
               <Ban size={14} />
             </button>
             <button
               onClick={() => setShowDisputeModal(true)}
-              className="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors items-center gap-1 hidden sm:flex">
+              className="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors items-center gap-1 hidden sm:flex cursor-pointer">
               <ShieldAlert size={12} />Abrir disputa
             </button>
             <button
               onClick={() => setShowDisputeModal(true)}
               title="Abrir disputa"
-              className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors sm:hidden">
+              className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors sm:hidden cursor-pointer">
               <ShieldAlert size={14} />
             </button>
           </div>
@@ -1393,13 +1393,13 @@ export default function ContractDetailPage() {
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setShowCancelConfirm(false)}
-                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
+                  className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
                   Cancelar
                 </button>
                 <button
                   onClick={() => proposeCancel.mutate(undefined, { onSuccess: () => setShowCancelConfirm(false) })}
                   disabled={proposeCancel.isPending}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-gray-700 text-white rounded-xl hover:bg-gray-800 disabled:opacity-60">
+                  className="flex-1 py-2.5 text-sm font-semibold bg-gray-700 text-white rounded-xl hover:bg-gray-800 disabled:opacity-60 cursor-pointer">
                   {proposeCancel.isPending ? 'Enviando...' : 'Proponer cancelación'}
                 </button>
               </div>
@@ -1434,7 +1434,7 @@ export default function ContractDetailPage() {
               const badge = t.id === 'chat' ? chatBadge : t.id === 'milestones' ? milestoneBadge : 0;
               return (
                 <button key={t.id} onClick={() => switchTab(t.id)}
-                  className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                     tab === t.id ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'
                   }`}>
                   {tab === t.id && (

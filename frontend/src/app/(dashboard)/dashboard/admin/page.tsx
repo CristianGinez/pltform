@@ -113,7 +113,7 @@ export default function AdminPage() {
         <p className="text-sm text-gray-400">Esta sección es solo para administradores.</p>
         <button
           onClick={() => router.push('/dashboard')}
-          className="text-sm text-primary-600 hover:underline"
+          className="text-sm text-primary-600 hover:underline cursor-pointer"
         >
           Volver al dashboard
         </button>

@@ -122,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="px-3 py-4 border-t border-gray-100">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
           >
             <LogOut size={16} />
             Cerrar sesión

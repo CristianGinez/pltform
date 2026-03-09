@@ -209,7 +209,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
                   />
                   <button
                     onClick={() => { setSeed(Math.random().toString(36).slice(2, 8)); }}
-                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500"
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 cursor-pointer"
                     title="Aleatoria"
                   >
                     <RefreshCw size={14} />
@@ -259,7 +259,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
 
               <button
                 onClick={handleSelectGenerated}
-                className="w-full text-xs text-primary-600 hover:underline text-center"
+                className="w-full text-xs text-primary-600 hover:underline text-center cursor-pointer"
               >
                 Aplicar avatar generado actual al preview ↑
               </button>
@@ -271,14 +271,14 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
         <div className="flex gap-2 px-5 pb-5">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
           >
             Cancelar
           </button>
           <button
             onClick={() => { onConfirm(preview); onClose(); }}
             disabled={uploading || !preview}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
           >
             <Check size={15} /> Usar esta foto
           </button>

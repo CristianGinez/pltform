@@ -339,13 +339,13 @@ function AutocompleteTagInput({
           <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
             {filtered.map((s) => (
               <button key={s} type="button" onMouseDown={(e) => { e.preventDefault(); add(s); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors cursor-pointer">
                 {s}
               </button>
             ))}
             {showAddCustom && (
               <button type="button" onMouseDown={(e) => { e.preventDefault(); add(input); }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 border-t border-gray-100">
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 border-t border-gray-100 cursor-pointer">
                 + Agregar «{input.trim()}»
               </button>
             )}
@@ -404,7 +404,7 @@ function AutocompleteField({
                   {filtered.map((s) => (
                     <button key={s} type="button"
                       onMouseDown={(e) => { e.preventDefault(); setOpen(false); onSelect(s); }}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors cursor-pointer">
                       {s}
                     </button>
                   ))}
@@ -666,7 +666,7 @@ export default function ProfilePage() {
           <button
             onClick={save}
             disabled={mutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-60 shadow-sm whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-60 shadow-sm whitespace-nowrap cursor-pointer"
           >
             <Check size={14} />
             {mutation.isPending ? 'Guardando…' : `Guardar ${Object.keys(pending).length} cambio${Object.keys(pending).length !== 1 ? 's' : ''}`}
@@ -773,7 +773,7 @@ export default function ProfilePage() {
                     )}
                     <button
                       onClick={() => setShowAvatarPicker(true)}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
                     >
                       Cambiar foto
                     </button>
@@ -861,7 +861,7 @@ export default function ProfilePage() {
               <button
                 onClick={save}
                 disabled={mutation.isPending}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 disabled:opacity-60 shadow-lg text-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 disabled:opacity-60 shadow-lg text-sm cursor-pointer"
               >
                 <Check size={15} />
                 {mutation.isPending ? 'Guardando…' : `Guardar ${Object.keys(pending).length} cambio${Object.keys(pending).length !== 1 ? 's' : ''}`}

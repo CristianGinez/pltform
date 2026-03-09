@@ -60,7 +60,7 @@ export default function ProjectsPage() {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                 category === cat
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
@@ -159,7 +159,7 @@ export default function ProjectsPage() {
 
               <button
                 onClick={() => handleApply(project.id)}
-                className="w-full rounded-lg bg-primary-600 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+                className="w-full rounded-lg bg-primary-600 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer"
               >
                 {user?.role === 'COMPANY' ? 'Ver detalle' : 'Postular'}
               </button>

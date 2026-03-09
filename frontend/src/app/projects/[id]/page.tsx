@@ -81,7 +81,7 @@ export default function PublicProjectDetailPage() {
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-10">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors cursor-pointer"
         >
           <ArrowLeft size={15} /> Volver a proyectos
         </button>
@@ -168,7 +168,7 @@ export default function PublicProjectDetailPage() {
                     </div>
                     <button
                       onClick={() => setShowForm(true)}
-                      className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+                      className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer"
                     >
                       <Send size={14} /> Postular
                     </button>
@@ -215,7 +215,7 @@ export default function PublicProjectDetailPage() {
                       )}
 
                       <button type="submit" disabled={isSubmitting}
-                        className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                        className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer">
                         {isSubmitting
                           ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enviando...</>
                           : <><Send size={14} /> Enviar propuesta</>}

@@ -136,7 +136,7 @@ export default function NotificationBell() {
       <button
         ref={btnRef}
         onClick={handleToggle}
-        className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+        className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
         aria-label="Notificaciones"
       >
         <Bell size={18} />

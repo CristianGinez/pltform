@@ -98,7 +98,7 @@ export default function DeveloperProfilePage() {
         {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="absolute top-4 left-4 sm:left-6 flex items-center gap-1.5 text-sm text-white/80 hover:text-white transition-colors"
+          className="absolute top-4 left-4 sm:left-6 flex items-center gap-1.5 text-sm text-white/80 hover:text-white transition-colors cursor-pointer"
         >
           <ArrowLeft size={15} /> Volver
         </button>

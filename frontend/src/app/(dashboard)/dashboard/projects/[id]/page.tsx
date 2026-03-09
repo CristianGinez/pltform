@@ -52,7 +52,7 @@ function ProposalDetailDrawer({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-base font-semibold text-gray-900">Detalle de propuesta</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
             <X size={16} className="text-gray-500" />
           </button>
         </div>
@@ -88,13 +88,13 @@ function ProposalDetailDrawer({
                 <div className="flex gap-2 mt-1.5">
                   {dev.githubUrl && (
                     <a href={dev.githubUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
                       <Github size={12} /> GitHub
                     </a>
                   )}
                   {dev.portfolioUrl && (
                     <a href={dev.portfolioUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
                       <Globe size={12} /> Portafolio
                     </a>
                   )}
@@ -159,14 +159,14 @@ function ProposalDetailDrawer({
           <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 flex gap-3 rounded-b-2xl">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Cerrar
             </button>
             <button
               onClick={handleAccept}
               disabled={acceptProposal.isPending}
-              className="flex-1 py-2.5 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <CheckCircle size={15} />
               {acceptProposal.isPending ? 'Aceptando...' : 'Aceptar propuesta'}
@@ -279,7 +279,7 @@ export default function ProjectDetailPage() {
     <div className="max-w-4xl">
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors cursor-pointer"
       >
         <ArrowLeft size={15} /> Volver
       </button>
@@ -358,13 +358,13 @@ export default function ProjectDetailPage() {
                 <button
                   onClick={() => publishProject.mutate()}
                   disabled={publishProject.isPending}
-                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {publishProject.isPending ? 'Publicando...' : 'Publicar proyecto'}
                 </button>
                 <button
                   onClick={openEdit}
-                  className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <Pencil size={13} /> Editar borrador
                 </button>
@@ -436,7 +436,7 @@ export default function ProjectDetailPage() {
                       className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
                     />
                     <button type="button" onClick={addEditSkill}
-                      className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+                      className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
                       <Plus size={13} /> Agregar
                     </button>
                   </div>
@@ -444,11 +444,11 @@ export default function ProjectDetailPage() {
 
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={updateProject.isPending}
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer">
                     {updateProject.isPending ? 'Guardando...' : 'Guardar cambios'}
                   </button>
                   <button type="button" onClick={() => setEditMode(false)}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
                     Cancelar
                   </button>
                 </div>
@@ -591,7 +591,7 @@ export default function ProjectDetailPage() {
                 )}
 
                 <button type="submit" disabled={isSubmitting}
-                  className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                  className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer">
                   {isSubmitting ? 'Enviando...' : 'Enviar propuesta'}
                 </button>
               </form>
