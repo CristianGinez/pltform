@@ -350,6 +350,7 @@ export class ContractsService {
 
     // Validate milestone state
     const validStates: Record<Exclude<ProposalAction, 'PROPOSE_CANCEL'>, string[]> = {
+      PROPOSE_MILESTONE_PLAN: ['PENDING'],
       PROPOSE_START: ['PENDING'],
       PROPOSE_SUBMIT: ['IN_PROGRESS', 'REVISION_REQUESTED'],
       PROPOSE_REVISION: ['SUBMITTED'],
@@ -359,6 +360,7 @@ export class ContractsService {
       throw new BadRequestException(`El milestone no está en un estado válido para esta acción`);
 
     const labels: Record<Exclude<ProposalAction, 'PROPOSE_CANCEL'>, string> = {
+      PROPOSE_MILESTONE_PLAN: `Propone plan de milestones`,
       PROPOSE_START:    `Propone iniciar "${milestone.title}"`,
       PROPOSE_SUBMIT:   `Propone entregar "${milestone.title}"`,
       PROPOSE_REVISION: `Propone revisión de "${milestone.title}"${dto.reason ? `: ${dto.reason}` : ''}`,
