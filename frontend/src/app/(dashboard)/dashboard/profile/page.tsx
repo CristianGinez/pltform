@@ -1102,7 +1102,7 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-sm font-semibold text-red-800">Disputas perdidas</p>
                     <p className="text-sm text-red-700 mt-0.5">
-                      Tienes {user.developer.disputeLosses} disputa{user.developer.disputeLosses !== 1 ? 's' : ''} resuelta{user.developer.disputeLosses !== 1 ? 's' : ''} en tu contra. Esto puede afectar la confianza de las empresas al revisar tu perfil. Asegúrate de cumplir con tus compromisos.
+                      Tienes {user?.developer?.disputeLosses} disputa{user?.developer?.disputeLosses !== 1 ? 's' : ''} resuelta{user?.developer?.disputeLosses !== 1 ? 's' : ''} en tu contra. Esto puede afectar la confianza de las empresas al revisar tu perfil. Asegúrate de cumplir con tus compromisos.
                     </p>
                   </div>
                 </div>
