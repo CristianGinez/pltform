@@ -1,10 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@/lib/zod-resolver';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
   Building2, Globe, Calendar, Tag, Send, Star,
@@ -13,7 +10,6 @@ import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
 import { useProject } from '@/hooks/use-projects';
 import { useSubmitProposal } from '@/hooks/use-proposals';
-import { proposalSchema, type ProposalFormData } from '@/schemas/proposal.schema';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -24,28 +20,9 @@ export default function PublicProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
-  const [showForm, setShowForm] = useState(false);
 
   const { data: project, isLoading } = useProject(id);
-  const submitProposal = useSubmitProposal(id);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setError,
-    reset,
-  } = useForm<ProposalFormData>({ resolver: zodResolver(proposalSchema) });
-
-  const handleApply = (data: ProposalFormData) =>
-    submitProposal.mutateAsync(data)
-      .then(() => reset())
-      .catch((err: unknown) => {
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          'Error al enviar la propuesta';
-        setError('root', { message: msg });
-      });
+  const submitProposal = useSubmitProposal(id); // Para verificar si ya envió propuesta (isSuccess)
 
   if (isLoading) {
     return (
@@ -91,7 +68,6 @@ export default function PublicProjectDetailPage() {
           {/* ── LEFT: Project detail ── */}
           <div className="flex-1 min-w-0 space-y-5">
 
-            {/* Header card */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0">
@@ -112,7 +88,6 @@ export default function PublicProjectDetailPage() {
                 </span>
               </div>
 
-              {/* Meta */}
               <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-5">
                 <span className="flex items-center gap-1.5 font-semibold text-gray-800">
                   <DollarSign size={15} className="text-gray-400" />
@@ -130,7 +105,6 @@ export default function PublicProjectDetailPage() {
                 </span>
               </div>
 
-              {/* Skills */}
               {project.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-5">
                   {project.skills.map((s) => (
@@ -141,14 +115,13 @@ export default function PublicProjectDetailPage() {
                 </div>
               )}
 
-              {/* Description */}
               <div>
                 <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción del proyecto</h2>
                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{project.description}</p>
               </div>
             </div>
 
-            {/* Apply section */}
+            {/* --- SECCIÓN PARA POSTULAR (LIMPIA) --- */}
             {isOpen && isDeveloper && (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {submitProposal.isSuccess ? (
@@ -160,68 +133,19 @@ export default function PublicProjectDetailPage() {
                       Ver mis propuestas →
                     </Link>
                   </div>
-                ) : !showForm ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">¿Te interesa este proyecto?</p>
-                      <p className="text-sm text-gray-500 mt-0.5">Envía tu propuesta directamente a la empresa.</p>
-                    </div>
-                    <button
-                      onClick={() => setShowForm(true)}
-                      className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer"
-                    >
-                      <Send size={14} /> Postular
-                    </button>
-                  </div>
                 ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-5">
-                      <h2 className="font-semibold text-gray-900">Enviar propuesta</h2>
-                      <button onClick={() => setShowForm(false)} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Cancelar</button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-lg">¿Te interesa este proyecto?</p>
+                      <p className="text-sm text-gray-500 mt-1">Crea una propuesta detallada, define tus tiempos y elabora un plan de hitos personalizados para la empresa.</p>
                     </div>
-                    <form onSubmit={handleSubmit(handleApply)} className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Carta de presentación <span className="text-gray-400 font-normal">(mín. 100 caracteres)</span>
-                        </label>
-                        <textarea
-                          {...register('coverLetter')}
-                          rows={5}
-                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                          placeholder="Describe tu experiencia relevante, cómo abordarías el proyecto y por qué eres el candidato ideal..."
-                        />
-                        {errors.coverLetter && <p className="mt-1 text-xs text-red-500">{errors.coverLetter.message}</p>}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto (USD)</label>
-                          <input {...register('budget')} type="number" min="1"
-                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                            placeholder="4500" />
-                          {errors.budget && <p className="mt-1 text-xs text-red-500">{errors.budget.message}</p>}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo estimado (días)</label>
-                          <input {...register('timeline')} type="number" min="1"
-                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                            placeholder="30" />
-                          {errors.timeline && <p className="mt-1 text-xs text-red-500">{errors.timeline.message}</p>}
-                        </div>
-                      </div>
-
-                      {errors.root && (
-                        <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{errors.root.message}</p>
-                      )}
-
-                      <button type="submit" disabled={isSubmitting}
-                        className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                        {isSubmitting
-                          ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enviando...</>
-                          : <><Send size={14} /> Enviar propuesta</>}
-                      </button>
-                    </form>
-                  </>
+                    <Link
+                      href={`/dashboard/projects/${project.id}/apply`}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
+                    >
+                      <Send size={16} /> Armar Propuesta Oficial
+                    </Link>
+                  </div>
                 )}
               </div>
             )}
@@ -317,7 +241,6 @@ export default function PublicProjectDetailPage() {
                 )}
               </div>
 
-              {/* Posted date */}
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <p className="text-xs text-gray-400 flex items-center gap-1.5">
                   <Clock size={11} />
@@ -326,7 +249,6 @@ export default function PublicProjectDetailPage() {
               </div>
             </div>
 
-            {/* Stats */}
             <div className="mt-3 bg-white rounded-xl border border-gray-100 p-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500 flex items-center gap-1.5"><Users size={13} /> Postulantes</span>
