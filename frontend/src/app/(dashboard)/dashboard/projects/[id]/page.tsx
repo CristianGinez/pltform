@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle
 } from 'lucide-react';
-import { useProject } from '@/hooks/use-projects';
+import { useProject, usePublishProject } from '@/hooks/use-projects';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -17,6 +17,7 @@ export default function DashboardProjectDetailPage() {
   const router = useRouter();
   
   const { data: project, isLoading } = useProject(id);
+  const publishMutation = usePublishProject(id); // <-- Hook conectado correctamente
 
   if (isLoading) {
     return (
@@ -36,6 +37,13 @@ export default function DashboardProjectDetailPage() {
       </div>
     );
   }
+
+  // Función para manejar el botón de "Publicar"
+  const handlePublish = () => {
+    if (confirm('¿Estás seguro de publicar este proyecto? Una vez publicado, los developers podrán enviar sus propuestas.')) {
+      publishMutation.mutate();
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
@@ -99,7 +107,7 @@ export default function DashboardProjectDetailPage() {
           </div>
         </div>
 
-        {/* ── DERECHA: Acciones y Estadísticas ── */}
+        {/* ── DERECHA: Acciones (Editar/Publicar) y Estadísticas ── */}
         <div className="w-full lg:w-72 shrink-0 space-y-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Acciones del Proyecto</h3>
@@ -107,8 +115,17 @@ export default function DashboardProjectDetailPage() {
             <div className="space-y-3">
               {project.status === 'DRAFT' && (
                 <>
-                  <button className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer">
-                    <Send size={15} /> Publicar Proyecto
+                  <button 
+                    onClick={handlePublish}
+                    disabled={publishMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {publishMutation.isPending ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send size={15} />
+                    )}
+                    Publicar Proyecto
                   </button>
                   <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                     <Edit size={15} /> Editar Borrador
