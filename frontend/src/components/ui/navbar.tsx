@@ -98,9 +98,9 @@ export function Navbar() {
                     <img
                       src={avatarUrl && !avatarUrl.startsWith('gradient:') ? avatarUrl : defaultAvatar(profileName)}
                       alt="perfil"
-                      className="w-6 h-6 rounded-full object-cover bg-gray-100 flex-shrink-0"
+                      className="w-6 h-6 rounded-full object-cover bg-gray-100 shrink-0"
                     />
-                    <span className="hidden sm:block max-w-[120px] truncate font-medium">{profileName}</span>
+                    <span className="hidden sm:block max-w-30 truncate font-medium">{profileName}</span>
                     <ChevronDown size={13} className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 

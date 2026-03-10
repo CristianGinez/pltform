@@ -44,7 +44,7 @@ export function Tip({ text, children }: { text: string; children: React.ReactNod
       {children}
       {show && typeof window !== 'undefined' && createPortal(
         <span
-          className="pointer-events-none fixed z-[9999] w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white text-center shadow-xl -translate-y-full"
+          className="pointer-events-none fixed z-9999 w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white text-center shadow-xl -translate-y-full"
           style={{ top: pos.top, left: pos.left }}
         >
           {text}
@@ -99,12 +99,12 @@ export function DevCard({ d }: { d: DevCardData }) {
     <>
       {/* top */}
       <div className="flex items-start gap-4">
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0">
           {d.avatarUrl?.startsWith('gradient:') ? (
             (() => {
               const [, from, to] = d.avatarUrl.split(':');
               return (
-                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-2xl font-bold border-2 border-gray-100`}>
+                <div className={`w-16 h-16 rounded-full bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-2xl font-bold border-2 border-gray-100`}>
                   {initial}
                 </div>
               );
@@ -126,7 +126,7 @@ export function DevCard({ d }: { d: DevCardData }) {
             <span className="font-bold text-gray-900 text-base leading-tight truncate">{d.name || '—'}</span>
             {d.verified && (
               <Tip text="Identidad verificada por la plataforma">
-                <CheckCircle size={15} className="text-blue-500 flex-shrink-0" fill="currentColor" />
+                <CheckCircle size={15} className="text-blue-500 shrink-0" fill="currentColor" />
               </Tip>
             )}
           </div>

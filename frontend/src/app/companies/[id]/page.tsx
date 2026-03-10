@@ -78,14 +78,14 @@ export default function CompanyProfilePage() {
         </button>
 
         {/* Hero banner */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden">
+        <div className="bg-linear-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden">
           {/* decorative circles */}
           <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
           <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full bg-white/5" />
 
           <div className="relative z-10 flex items-start gap-5">
             {/* Logo */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 shadow-lg overflow-hidden">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-white text-2xl font-bold shrink-0 shadow-lg overflow-hidden">
               {company.logoUrl ? (
                 <img src={company.logoUrl} alt={company.name} className="w-full h-full object-cover" />
               ) : (
@@ -215,7 +215,7 @@ export default function CompanyProfilePage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-1 text-xs text-gray-400 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-1 text-xs text-gray-400 shrink-0">
                           <span className="flex items-center gap-1 font-semibold text-gray-700"><DollarSign size={11} />S/ {Number(p.budget).toLocaleString()}</span>
                           <span className="flex items-center gap-1"><Users size={10} />{p._count.proposals} propuestas</span>
                           <ExternalLink size={12} className="mt-1 text-gray-300 group-hover:text-blue-400 transition-colors" />
@@ -248,7 +248,7 @@ export default function CompanyProfilePage() {
                     const avatar = r.reviewer?.developer?.avatarUrl;
                     return (
                       <div key={r.id} className="flex gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
-                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-sm font-semibold flex-shrink-0 overflow-hidden">
+                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-sm font-semibold shrink-0 overflow-hidden">
                           {avatar ? (
                             <img src={avatar} alt={devName} className="w-full h-full object-cover" />
                           ) : (
@@ -274,7 +274,7 @@ export default function CompanyProfilePage() {
           </div>
 
           {/* Right sidebar */}
-          <div className="w-full lg:w-64 flex-shrink-0 space-y-4">
+          <div className="w-full lg:w-64 shrink-0 space-y-4">
             {/* Rating card */}
             {company.clientRating > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-center">
@@ -292,7 +292,7 @@ export default function CompanyProfilePage() {
               {company.industry && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">Industria</span>
-                  <span className="font-medium text-gray-800 text-right max-w-[140px] text-xs">{company.industry}</span>
+                  <span className="font-medium text-gray-800 text-right max-w-35 text-xs">{company.industry}</span>
                 </div>
               )}
               {company.size && (
@@ -304,7 +304,7 @@ export default function CompanyProfilePage() {
               {company.location && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 flex items-center gap-1.5"><MapPin size={13} /> Ubicación</span>
-                  <span className="font-medium text-gray-800 text-right text-xs max-w-[120px]">{company.location}</span>
+                  <span className="font-medium text-gray-800 text-right text-xs max-w-30">{company.location}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-sm">
@@ -319,13 +319,13 @@ export default function CompanyProfilePage() {
                   className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors pt-1">
                   <Globe size={13} />
                   <span className="truncate">Sitio web</span>
-                  <ExternalLink size={11} className="ml-auto flex-shrink-0" />
+                  <ExternalLink size={11} className="ml-auto shrink-0" />
                 </a>
               )}
             </div>
 
             {/* Completed count */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-sm">
+            <div className="bg-linear-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-blue-200 uppercase tracking-wider">Proyectos completados</h3>
                 <TrendingUp size={16} className="text-blue-300" />

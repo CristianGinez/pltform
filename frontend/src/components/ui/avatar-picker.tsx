@@ -113,13 +113,13 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
               (() => {
                 const [, from, to] = preview.split(':');
                 return (
-                  <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg`}>
+                  <div className={`w-24 h-24 rounded-full bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg`}>
                     {initial}
                   </div>
                 );
               })()
             ) : (
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg">
+              <div className="w-24 h-24 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg">
                 {initial}
               </div>
             )}
@@ -247,7 +247,7 @@ export function AvatarPicker({ current, name, onConfirm, onClose }: AvatarPicker
                     <button
                       key={i}
                       onClick={() => handleSelectGradient(g)}
-                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${g[0]} ${g[1]} flex items-center justify-center text-white font-bold text-sm border-2 transition-all cursor-pointer ${
+                      className={`w-10 h-10 rounded-full bg-linear-to-br ${g[0]} ${g[1]} flex items-center justify-center text-white font-bold text-sm border-2 transition-all cursor-pointer ${
                         preview === `gradient:${g[0]}:${g[1]}` ? 'border-primary-500 scale-110 shadow' : 'border-transparent hover:scale-105'
                       }`}
                     >

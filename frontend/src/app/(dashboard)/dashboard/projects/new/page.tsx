@@ -124,7 +124,7 @@ function ProjectPreview({
     <div className="rounded-2xl border-2 border-gray-200 bg-white p-5 shadow-md select-none">
       {/* company header */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
+        <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold shrink-0">
           {companyName.charAt(0).toUpperCase()}
         </div>
         <span className="text-xs text-gray-500 truncate">{companyName}</span>
@@ -301,7 +301,7 @@ export default function NewProjectPage() {
               {/* Budget + Deadline */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                     <DollarSign size={13} className="text-gray-400" /> Presupuesto (USD)
                   </label>
                   <input
@@ -313,7 +313,7 @@ export default function NewProjectPage() {
                   {errors.budget && <p className="mt-1 text-xs text-red-500">{errors.budget.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                     <Clock size={13} className="text-gray-400" /> Fecha límite
                     <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
@@ -360,7 +360,7 @@ export default function NewProjectPage() {
 
                 {noTech ? (
                   <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <AlertCircle size={14} className="text-amber-600 flex-shrink-0" />
+                    <AlertCircle size={14} className="text-amber-600 shrink-0" />
                     <p className="text-xs text-amber-700">
                       Los developers verán tu proyecto y te sugerirán la tecnología más adecuada.
                     </p>
@@ -428,7 +428,7 @@ export default function NewProjectPage() {
         </div>
 
         {/* ── Live preview (comes second on mobile, left on desktop) ── */}
-        <div className="w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-6 lg:order-1">
+        <div className="w-full lg:w-72 shrink-0 lg:sticky lg:top-6 lg:order-1">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Vista previa</p>
           <ProjectPreview
             title={watched.title ?? ''}

@@ -146,7 +146,7 @@ export default function ContractsPage() {
                         {' · '} {proposal.timeline} días
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">
                         Aceptada
                       </span>
@@ -162,7 +162,7 @@ export default function ContractsPage() {
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-gradient-to-r from-primary-400 to-emerald-500 h-1.5 rounded-full transition-all"
+                          className="bg-linear-to-r from-primary-400 to-emerald-500 h-1.5 rounded-full transition-all"
                           style={{ width: `${Math.max(project.contract.milestones.filter(m => m.status === 'PAID').length / project.contract.milestones.length * 100, project.contract.milestones.some(m => ['IN_PROGRESS','SUBMITTED','REVISION_REQUESTED','APPROVED'].includes(m.status)) ? 5 : 0)}%` }}
                         />
                       </div>

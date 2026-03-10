@@ -2,721 +2,451 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import Link from 'next/link';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
 import {
-  ArrowLeft, Clock, DollarSign, Users, CheckCircle, Pencil, X, Plus,
-  Star, Github, Globe, MapPin, ChevronRight, ScrollText, ListChecks,
+  ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
+  Building2, Globe, Calendar, Tag, Send, Star, Plus, Trash2,
 } from 'lucide-react';
-import Link from 'next/link';
+import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
-import { useProject, usePublishProject, useAcceptProposal, useUpdateProject } from '@/hooks/use-projects';
+import { useProject } from '@/hooks/use-projects';
 import { useSubmitProposal } from '@/hooks/use-proposals';
 import { proposalSchema, type ProposalFormData } from '@/schemas/proposal.schema';
-import { projectSchema, type ProjectFormData } from '@/schemas/project.schema';
-import type { Proposal } from '@/types';
-
-const CATEGORIES = ['Web', 'Mobile', 'E-commerce', 'SaaS', 'API / Backend', 'Data / Analytics', 'Automatización', 'Diseño UI/UX', 'Otro'];
-
-// ─── Proposal detail drawer ───────────────────────────────────────────────────
-
-type MilestonePlanItem = { title: string; description?: string; amount: number; order: number };
-
-type ProposalWithDev = Proposal & {
-  milestonePlan?: MilestonePlanItem[] | null;
-  developer?: {
-    name: string; avatarUrl?: string | null; bio?: string | null; skills: string[];
-    rating: number; reviewCount: number; hourlyRate?: number | null;
-    githubUrl?: string | null; portfolioUrl?: string | null; location?: string | null;
-    university?: string | null; trustPoints: number;
-  };
-};
-
-function ProposalDetailDrawer({
-  proposal, projectId, projectStatus, onClose,
-}: {
-  proposal: ProposalWithDev;
-  projectId: string;
-  projectStatus: string;
-  onClose: () => void;
-}) {
-  const drawerRouter = useRouter();
-  const acceptProposal = useAcceptProposal(projectId, (contractId) => drawerRouter.push(`/dashboard/contracts/${contractId}`));
-  const dev = proposal.developer;
-
-  const handleAccept = () => {
-    acceptProposal.mutate(proposal.id, { onSuccess: onClose });
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-base font-semibold text-gray-900">Detalle de propuesta</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-            <X size={16} className="text-gray-500" />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-5">
-          {/* Developer profile */}
-          {dev && (
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-full bg-violet-100 flex items-center justify-center shrink-0 overflow-hidden">
-                {dev.avatarUrl
-                  ? <img src={dev.avatarUrl} alt={dev.name} className="w-full h-full object-cover" />
-                  : <span className="text-violet-700 font-bold text-lg">{dev.name.charAt(0)}</span>
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{dev.name}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                  {dev.rating > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                      {dev.rating.toFixed(1)} ({dev.reviewCount} reseñas)
-                    </span>
-                  )}
-                  {dev.location && (
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <MapPin size={11} /> {dev.location}
-                    </span>
-                  )}
-                  {dev.university && (
-                    <span className="text-xs text-gray-400">{dev.university}</span>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-1.5">
-                  {dev.githubUrl && (
-                    <a href={dev.githubUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-                      <Github size={12} /> GitHub
-                    </a>
-                  )}
-                  {dev.portfolioUrl && (
-                    <a href={dev.portfolioUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-                      <Globe size={12} /> Portafolio
-                    </a>
-                  )}
-                </div>
-              </div>
-              {dev.trustPoints > 0 && (
-                <div className="text-center shrink-0">
-                  <p className="text-lg font-bold text-primary-600">{dev.trustPoints}</p>
-                  <p className="text-[10px] text-gray-400 leading-tight">Trust<br/>Points</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Skills */}
-          {dev && dev.skills.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 mb-1.5">Habilidades</p>
-              <div className="flex flex-wrap gap-1.5">
-                {dev.skills.map((s) => (
-                  <span key={s} className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">{s}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Bio */}
-          {dev?.bio && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 mb-1">Sobre el developer</p>
-              <p className="text-sm text-gray-600 leading-relaxed">{dev.bio}</p>
-            </div>
-          )}
-
-          {/* Propuesta económica */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">S/ {Number(proposal.budget).toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Presupuesto propuesto</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">{proposal.timeline} días</p>
-              <p className="text-xs text-gray-400 mt-0.5">Tiempo estimado</p>
-            </div>
-          </div>
-
-          {/* Cover letter */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5">Carta de presentación</p>
-            <div className="bg-gray-50 rounded-xl p-4 overflow-hidden">
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">{proposal.coverLetter}</p>
-            </div>
-          </div>
-
-          {/* Milestone plan */}
-          {proposal.milestonePlan && Array.isArray(proposal.milestonePlan) && proposal.milestonePlan.length > 0 && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <ListChecks size={14} className="text-primary-600" />
-                <p className="text-xs font-medium text-gray-700">Plan de milestones propuesto</p>
-              </div>
-              <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 space-y-2">
-                {(proposal.milestonePlan as MilestonePlanItem[]).map((m, i) => (
-                  <div key={i} className="flex items-start justify-between gap-3 text-sm">
-                    <div className="flex-1 min-w-0">
-                      <span className="text-gray-400 text-xs mr-1">{i + 1}.</span>
-                      <span className="font-medium text-gray-800">{m.title}</span>
-                      {m.description && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{m.description}</p>}
-                    </div>
-                    <span className="text-sm font-semibold text-primary-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between items-center pt-2 border-t border-primary-100 mt-1">
-                  <span className="text-xs text-gray-500">Total propuesto</span>
-                  <span className="text-sm font-bold text-primary-700">
-                    S/ {(proposal.milestonePlan as MilestonePlanItem[]).reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-1.5">Si aceptas la propuesta, el contrato usará este plan de milestones.</p>
-            </div>
-          )}
-
-          <p className="text-xs text-gray-400">
-            Enviada el {new Date(proposal.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
-
-        {/* Footer actions */}
-        {proposal.status === 'PENDING' && projectStatus === 'OPEN' && (
-          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 flex gap-3 rounded-b-2xl">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Cerrar
-            </button>
-            <button
-              onClick={handleAccept}
-              disabled={acceptProposal.isPending}
-              className="flex-1 py-2.5 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <CheckCircle size={15} />
-              {acceptProposal.isPending ? 'Aceptando...' : 'Aceptar propuesta'}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
   COMPLETED: 'Completado', CANCELLED: 'Cancelado',
-};
-const PROPOSAL_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-50 text-yellow-700',
-  ACCEPTED: 'bg-green-50 text-green-700',
-  REJECTED: 'bg-red-50 text-red-600',
-  WITHDRAWN: 'bg-gray-100 text-gray-500',
 };
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [selectedProposal, setSelectedProposal] = useState<ProposalWithDev | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   const { data: project, isLoading } = useProject(id);
-  const publishProject = usePublishProject(id);
-  const updateProject = useUpdateProject(id);
-  const acceptProposal = useAcceptProposal(id, (contractId) => router.push(`/dashboard/contracts/${contractId}`));
-  const [editMode, setEditMode] = useState(false);
-  const [editSkills, setEditSkills] = useState<string[]>([]);
-  const [skillInput, setSkillInput] = useState('');
-  const [editSaved, setEditSaved] = useState(false);
+  const submitProposal = useSubmitProposal(id);
+
+  // 1. Definimos los valores por defecto con tipo 'any' para evitar el error de TS en el reset
+  const defaultValues: any = {
+    coverLetter: '',
+    budget: '' as unknown as number,
+    timeline: '' as unknown as number,
+    milestonePlan: [{ title: '', description: '', amount: 0, order: 1 }]
+  };
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
     reset,
-  } = useForm<ProposalFormData>({ resolver: zodResolver(proposalSchema) });
+  } = useForm<ProposalFormData>({ 
+    resolver: zodResolver(proposalSchema),
+    defaultValues
+  });
 
-  const submitProposal = useSubmitProposal(id);
-  const [showMilestonePlan, setShowMilestonePlan] = useState(true);
-  const [planMilestones, setPlanMilestones] = useState<MilestonePlanItem[]>([
-    { title: '', description: '', amount: 0, order: 1 },
-  ]);
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "milestonePlan",
+  });
 
-  const {
-    register: regEdit,
-    handleSubmit: handleEditSubmit,
-    formState: { errors: editErrors },
-    reset: resetEdit,
-  } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
+  const handleApply = (data: ProposalFormData) => {
+    // Aseguramos que el plan sea un array válido antes de mapearlo
+    const plan = data.milestonePlan || [];
 
-  const openEdit = () => {
-    if (!project) return;
-    resetEdit({
-      title:       project.title,
-      description: project.description,
-      budget:      project.budget,
-      deadline:    project.deadline ? project.deadline.slice(0, 10) : '',
-      category:    project.category ?? '',
-    });
-    setEditSkills([...project.skills]);
-    setEditSaved(false);
-    setEditMode(true);
-  };
-
-  const handleSaveEdit = (data: ProjectFormData) =>
-    updateProject.mutateAsync({ ...data, skills: editSkills })
-      .then(() => { setEditMode(false); setEditSaved(true); setTimeout(() => setEditSaved(false), 3000); });
-
-  const addEditSkill = () => {
-    const s = skillInput.trim();
-    if (s && !editSkills.includes(s)) setEditSkills((p) => [...p, s]);
-    setSkillInput('');
-  };
-
-  const handleSubmitProposal = (data: ProposalFormData) => {
-    const validPlan = showMilestonePlan
-      ? planMilestones.filter((m) => m.title.trim() && m.amount > 0).map((m, i) => ({ ...m, order: i + 1 }))
-      : undefined;
-    return submitProposal.mutateAsync({
+    const formattedData = {
       ...data,
-      milestonePlan: validPlan && validPlan.length > 0 ? validPlan : undefined,
-    }).then(() => reset()).catch((err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Error al enviar la propuesta';
-      setError('root', { message: msg });
-    });
+      milestonePlan: plan.map((milestone, index) => ({
+        ...milestone,
+        order: index + 1
+      }))
+    };
+
+    submitProposal.mutateAsync(formattedData)
+      .then(() => {
+        // 2. Obligamos a TypeScript a ignorar la intersección pasando defaultValues
+        reset(defaultValues); 
+      })
+      .catch((err: unknown) => {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          'Error al enviar la propuesta';
+        setError('root', { message: msg });
+      });
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center py-32">
+          <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="text-center py-20 text-gray-400">
-        Proyecto no encontrado.{' '}
-        <Link href="/dashboard/projects" className="text-primary-600 hover:underline">
-          Volver
-        </Link>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="text-center py-32 text-gray-400">
+          Proyecto no encontrado.{' '}
+          <Link href="/projects" className="text-primary-600 hover:underline">Volver</Link>
+        </div>
       </div>
     );
   }
 
-  const projectAccepted = project.status === 'IN_PROGRESS' || project.status === 'COMPLETED';
+  const isOpen = project.status === 'OPEN';
+  const isDeveloper = user?.role === 'DEVELOPER';
+  const isCompany = user?.role === 'COMPANY';
 
   return (
-    <div className="max-w-4xl">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors cursor-pointer"
-      >
-        <ArrowLeft size={15} /> Volver
-      </button>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
-                {project.company.name.charAt(0)}
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-10">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={15} /> Volver a proyectos
+        </button>
+
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* ── LEFT: Project detail ── */}
+          <div className="flex-1 min-w-0 space-y-5">
+
+            {/* Header card */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  {project.category && (
+                    <span className="inline-flex items-center gap-1 text-xs text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full mb-2">
+                      <Tag size={10} /> {project.category}
+                    </span>
+                  )}
+                  <h1 className="text-2xl font-bold text-gray-900 leading-snug">{project.title}</h1>
+                </div>
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${
+                  project.status === 'OPEN' ? 'bg-green-50 text-green-700' :
+                  project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
+                  project.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
+                  'bg-gray-100 text-gray-500'
+                }`}>
+                  {STATUS_LABELS[project.status]}
+                </span>
               </div>
-              <span className="text-sm text-gray-500">{project.company.name}</span>
-              {project.company.verified && (
-                <span className="text-xs text-green-600">✓ Verificada</span>
+
+              {/* Meta */}
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-5">
+                <span className="flex items-center gap-1.5 font-semibold text-gray-800">
+                  <DollarSign size={15} className="text-gray-400" />
+                  ${Number(project.budget).toLocaleString()}
+                </span>
+                {project.deadline && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={14} />
+                    Fecha límite: {new Date(project.deadline).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <Users size={14} />
+                  {project._count?.proposals ?? 0} propuesta{(project._count?.proposals ?? 0) !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Skills */}
+              {project.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {project.skills.map((s) => (
+                    <span key={s} className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full font-medium">
+                      {s}
+                    </span>
+                  ))}
+                </div>
               )}
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
-          </div>
-          <span
-            className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${
-              project.status === 'OPEN' ? 'bg-green-50 text-green-700' :
-              project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
-              project.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
-              'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {STATUS_LABELS[project.status]}
-          </span>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500">
-          <span className="flex items-center gap-1.5">
-            <DollarSign size={14} /> ${Number(project.budget).toLocaleString()}
-          </span>
-          {project.deadline && (
-            <span className="flex items-center gap-1.5">
-              <Clock size={14} />
-              Fecha límite: {new Date(project.deadline).toLocaleDateString('es')}
-            </span>
-          )}
-          {project._count && (
-            <span className="flex items-center gap-1.5">
-              <Users size={14} /> {project._count.proposals} propuesta{project._count.proposals !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        {project.skills.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {project.skills.map((s) => (
-              <span key={s} className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full">
-                {s}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción</h2>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-            {project.description}
-          </p>
-        </div>
-
-        {user?.role === 'COMPANY' && project.status === 'DRAFT' && (
-          <div className="mt-6 pt-4 border-t border-gray-100 space-y-4">
-            {editSaved && (
-              <p className="text-sm text-green-600 flex items-center gap-1.5">
-                <CheckCircle size={14} /> Cambios guardados correctamente.
-              </p>
-            )}
-
-            {!editMode ? (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => publishProject.mutate()}
-                  disabled={publishProject.isPending}
-                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {publishProject.isPending ? 'Publicando...' : 'Publicar proyecto'}
-                </button>
-                <button
-                  onClick={openEdit}
-                  className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <Pencil size={13} /> Editar borrador
-                </button>
+              {/* Description */}
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción del proyecto</h2>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{project.description}</p>
               </div>
-            ) : (
-              <form onSubmit={handleEditSubmit(handleSaveEdit)} className="space-y-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-semibold text-gray-700">Editar proyecto</p>
-                  <button type="button" onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                    <X size={16} />
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Título</label>
-                  <input {...regEdit('title')}
-                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" />
-                  {editErrors.title && <p className="mt-1 text-xs text-red-500">{editErrors.title.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
-                  <textarea {...regEdit('description')} rows={4}
-                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" />
-                  {editErrors.description && <p className="mt-1 text-xs text-red-500">{editErrors.description.message}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Presupuesto (USD)</label>
-                    <input {...regEdit('budget')} type="number" min="1"
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" />
-                    {editErrors.budget && <p className="mt-1 text-xs text-red-500">{editErrors.budget.message}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Fecha límite</label>
-                    <input {...regEdit('deadline')} type="date"
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
-                  <select {...regEdit('category')}
-                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
-                    <option value="">Sin categoría</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Tecnologías</label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {editSkills.map((s) => (
-                      <span key={s} className="flex items-center gap-1 text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">
-                        {s}
-                        <button type="button" onClick={() => setEditSkills(editSkills.filter((x) => x !== s))}>
-                          <X size={10} className="hover:text-primary-900" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEditSkill())}
-                      placeholder="Agregar tecnología…"
-                      className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                    />
-                    <button type="button" onClick={addEditSkill}
-                      className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
-                      <Plus size={13} /> Agregar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <button type="submit" disabled={updateProject.isPending}
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer">
-                    {updateProject.isPending ? 'Guardando...' : 'Guardar cambios'}
-                  </button>
-                  <button type="button" onClick={() => setEditMode(false)}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* COMPANY: propuestas */}
-      {user?.role === 'COMPANY' && (
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">
-            Propuestas recibidas ({project.proposals?.length ?? 0})
-          </h2>
-
-          {(!project.proposals || project.proposals.length === 0) && (
-            <p className="text-sm text-gray-400 py-4 text-center">
-              Aún no hay propuestas. Cuando el proyecto esté abierto los developers podrán postular.
-            </p>
-          )}
-
-          <div className="space-y-3">
-            {project.proposals?.map((proposal) => {
-              const dev = proposal.developer as ProposalWithDev['developer'];
-              return (
-                <button
-                  key={proposal.id}
-                  onClick={() => setSelectedProposal(proposal as ProposalWithDev)}
-                  className="w-full text-left border border-gray-100 rounded-xl p-4 hover:border-primary-200 hover:bg-primary-50/30 transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0 overflow-hidden">
-                      {dev?.avatarUrl
-                        ? <img src={dev.avatarUrl} alt={dev.name} className="w-full h-full object-cover" />
-                        : <span className="text-violet-700 font-semibold text-sm">{(dev?.name ?? 'D').charAt(0)}</span>
-                      }
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-gray-900">{dev?.name ?? 'Developer'}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROPOSAL_COLORS[proposal.status]}`}>
-                          {proposal.status === 'PENDING' ? 'Pendiente' : proposal.status === 'ACCEPTED' ? 'Aceptada' : proposal.status === 'REJECTED' ? 'Rechazada' : 'Retirada'}
-                        </span>
-                        {dev && dev.rating > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs text-gray-400">
-                            <Star size={10} className="text-yellow-400 fill-yellow-400" />
-                            {dev.rating.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{proposal.coverLetter}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                        <span>S/ {Number(proposal.budget).toLocaleString()}</span>
-                        <span>{proposal.timeline} días</span>
-                        {dev?.skills?.slice(0, 2).map((s) => (
-                          <span key={s} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{s}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <ChevronRight size={16} className="text-gray-300 group-hover:text-primary-400 transition-colors shrink-0" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Proposal detail drawer */}
-      {selectedProposal && (
-        <ProposalDetailDrawer
-          proposal={selectedProposal}
-          projectId={id}
-          projectStatus={project.status}
-          onClose={() => setSelectedProposal(null)}
-        />
-      )}
-
-      {/* DEVELOPER: contract link banner */}
-      {user?.role === 'DEVELOPER' && project?.contract?.id && (
-        <div className="mb-4">
-          <Link
-            href={`/dashboard/contracts/${project.contract.id}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
-          >
-            <ScrollText size={15} />
-            Ver contrato activo
-          </Link>
-        </div>
-      )}
-
-      {/* DEVELOPER: formulario */}
-      {user?.role === 'DEVELOPER' && (
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          {projectAccepted ? (
-            <div className="text-center py-6 text-gray-400 text-sm">
-              Este proyecto ya no acepta propuestas.
             </div>
-          ) : project.status !== 'OPEN' ? (
-            <div className="text-center py-6 text-gray-400 text-sm">
-              Este proyecto no está abierto para propuestas aún.
-            </div>
-          ) : submitProposal.isSuccess ? (
-            <div className="text-center py-8">
-              <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
-              <p className="font-semibold text-gray-900">¡Propuesta enviada!</p>
-              <p className="text-sm text-gray-500 mt-1">La empresa revisará tu propuesta y te notificará.</p>
-              <Link href="/dashboard/proposals" className="mt-4 inline-block text-sm text-primary-600 hover:underline">
-                Ver mis propuestas →
-              </Link>
-            </div>
-          ) : (
-            <>
-              <h2 className="font-semibold text-gray-900 mb-5">Enviar propuesta</h2>
-              <form onSubmit={handleSubmit(handleSubmitProposal)} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Carta de presentación <span className="text-gray-400 font-normal">(mín. 100 caracteres)</span>
-                  </label>
-                  <textarea
-                    {...register('coverLetter')}
-                    rows={5}
-                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                    placeholder="Describe tu experiencia relevante, cómo abordarías el proyecto y por qué eres el candidato ideal..."
-                  />
-                  {errors.coverLetter && <p className="mt-1 text-xs text-red-500">{errors.coverLetter.message}</p>}
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto (USD)</label>
-                    <input {...register('budget')} type="number" min="1"
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                      placeholder="4500" />
-                    {errors.budget && <p className="mt-1 text-xs text-red-500">{errors.budget.message}</p>}
+            {/* Apply section */}
+            {isOpen && isDeveloper && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                {submitProposal.isSuccess ? (
+                  <div className="text-center py-6">
+                    <CheckCircle size={44} className="text-green-500 mx-auto mb-3" />
+                    <p className="font-semibold text-gray-900 text-lg">¡Propuesta enviada!</p>
+                    <p className="text-sm text-gray-500 mt-1">La empresa revisará tu propuesta pronto.</p>
+                    <Link href="/dashboard/proposals" className="mt-4 inline-block text-sm text-primary-600 hover:underline">
+                      Ver mis propuestas →
+                    </Link>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo estimado (días)</label>
-                    <input {...register('timeline')} type="number" min="1"
-                      className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                      placeholder="30" />
-                    {errors.timeline && <p className="mt-1 text-xs text-red-500">{errors.timeline.message}</p>}
-                  </div>
-                </div>
-
-                {/* Milestone plan — shown by default */}
-                <div className="border border-primary-200 bg-primary-50/40 rounded-xl p-4 space-y-3">
+                ) : !showForm ? (
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ListChecks size={15} className="text-primary-600" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">Plan de milestones</p>
-                        <p className="text-xs text-gray-500">Define cómo vas a dividir el trabajo y cuánto cobra cada etapa</p>
-                      </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">¿Te interesa este proyecto?</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Envía tu propuesta directamente a la empresa.</p>
                     </div>
                     <button
-                      type="button"
-                      onClick={() => setShowMilestonePlan(!showMilestonePlan)}
-                      className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer underline"
+                      onClick={() => setShowForm(true)}
+                      className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer"
                     >
-                      {showMilestonePlan ? 'Ocultar' : 'Mostrar'}
+                      <Send size={14} /> Postular
                     </button>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-5">
+                      <h2 className="font-semibold text-gray-900">Enviar propuesta</h2>
+                      <button onClick={() => setShowForm(false)} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Cancelar</button>
+                    </div>
+                    <form onSubmit={handleSubmit(handleApply)} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Carta de presentación <span className="text-gray-400 font-normal">(mín. 100 caracteres)</span>
+                        </label>
+                        <textarea
+                          {...register('coverLetter')}
+                          rows={5}
+                          className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                          placeholder="Describe tu experiencia relevante, cómo abordarías el proyecto y por qué eres el candidato ideal..."
+                        />
+                        {errors.coverLetter && <p className="mt-1 text-xs text-red-500">{errors.coverLetter.message}</p>}
+                      </div>
 
-                  {showMilestonePlan && (
-                    <>
-                      {planMilestones.map((m, i) => (
-                        <div key={i} className="border border-gray-200 bg-white rounded-xl p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500">Etapa {i + 1}</span>
-                            {planMilestones.length > 1 && (
-                              <button type="button" onClick={() => setPlanMilestones(planMilestones.filter((_, idx) => idx !== i))}
-                                className="text-red-400 hover:text-red-600 cursor-pointer"><X size={13} /></button>
-                            )}
-                          </div>
-                          <input type="text" placeholder="Título de la etapa *" value={m.title}
-                            onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-                          />
-                          <input type="text" placeholder="¿Qué incluye esta etapa? (opcional)" value={m.description}
-                            onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-                          />
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500 shrink-0">S/</span>
-                            <input type="number" min="1" placeholder="Monto de esta etapa *" value={m.amount || ''}
-                              onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, amount: Number(e.target.value) } : x))}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-                            />
-                          </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto (USD)</label>
+                          <input {...register('budget')} type="number" min="1"
+                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                            placeholder="4500" />
+                          {errors.budget && <p className="mt-1 text-xs text-red-500">{errors.budget.message}</p>}
                         </div>
-                      ))}
-                      <button type="button"
-                        onClick={() => setPlanMilestones([...planMilestones, { title: '', description: '', amount: 0, order: planMilestones.length + 1 }])}
-                        className="w-full py-2 border-2 border-dashed border-primary-200 rounded-xl text-sm text-primary-500 hover:border-primary-400 hover:bg-primary-50 flex items-center justify-center gap-1 cursor-pointer transition-colors">
-                        <Plus size={13} />Agregar etapa
-                      </button>
-                      {planMilestones.some((m) => m.amount > 0) && (
-                        <div className="flex justify-between items-center text-sm font-semibold text-gray-800 pt-1 border-t border-primary-100">
-                          <span>Total propuesto</span>
-                          <span className="text-primary-700">S/ {planMilestones.reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}</span>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo estimado (días)</label>
+                          <input {...register('timeline')} type="number" min="1"
+                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                            placeholder="30" />
+                          {errors.timeline && <p className="mt-1 text-xs text-red-500">{errors.timeline.message}</p>}
                         </div>
+                      </div>
+
+                      {/* --- Plan de Hitos Dinámico --- */}
+                      <div className="mt-6 pt-6 border-t border-gray-100">
+                        <div className="mb-4">
+                          <h3 className="text-sm font-semibold text-gray-900">Plan de Hitos (Milestones)</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Define las tareas y cuánto cobrarás por cada una. Este plan se usará para el contrato si la empresa acepta.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          {fields.map((field, index) => (
+                            <div key={field.id} className="flex gap-3 items-start p-4 bg-gray-50 border border-gray-200 rounded-xl relative group">
+                              <div className="flex-1 space-y-3">
+                                <div>
+                                  <input 
+                                    {...register(`milestonePlan.${index}.title` as const)} 
+                                    placeholder="Ej: Diseño de interfaz (UI/UX)" 
+                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" 
+                                  />
+                                  {errors.milestonePlan?.[index]?.title && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.milestonePlan[index]?.title?.message}</p>
+                                  )}
+                                </div>
+                                <div>
+                                  <input 
+                                    {...register(`milestonePlan.${index}.description` as const)} 
+                                    placeholder="Descripción breve de lo que entregarás..." 
+                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm text-gray-600" 
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="w-32">
+                                <div className="relative">
+                                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm">$</span>
+                                  <input 
+                                    type="number" 
+                                    {...register(`milestonePlan.${index}.amount` as const)} 
+                                    placeholder="Monto" 
+                                    className="block w-full pl-7 rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm" 
+                                  />
+                                </div>
+                                {errors.milestonePlan?.[index]?.amount && (
+                                  <p className="mt-1 text-xs text-red-500">{errors.milestonePlan[index]?.amount?.message}</p>
+                                )}
+                              </div>
+
+                              {fields.length > 1 && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => remove(index)} 
+                                  className="text-gray-400 hover:text-red-500 transition-colors mt-2"
+                                  title="Eliminar hito"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {errors.milestonePlan && !Array.isArray(errors.milestonePlan) && (
+                          <p className="mt-2 text-xs text-red-500">{errors.milestonePlan.message}</p>
+                        )}
+
+                        <button 
+                          type="button" 
+                          onClick={() => append({ title: '', description: '', amount: 0, order: fields.length + 1 })} 
+                          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors cursor-pointer"
+                        >
+                          <Plus size={16} /> Añadir otra tarea
+                        </button>
+                      </div>
+                      {/* --- Fin de Plan de Hitos --- */}
+
+                      {errors.root && (
+                        <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{errors.root.message}</p>
                       )}
-                    </>
+
+                      <button type="submit" disabled={isSubmitting}
+                        className="w-full rounded-xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer mt-4">
+                        {isSubmitting
+                          ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enviando...</>
+                          : <><Send size={14} /> Enviar propuesta</>}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            )}
+
+            {isOpen && !user && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm text-center">
+                <p className="text-gray-700 font-medium mb-3">¿Eres developer y te interesa este proyecto?</p>
+                <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors">
+                  Inicia sesión para postular
+                </Link>
+              </div>
+            )}
+
+            {isOpen && isCompany && (
+              <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-center text-sm text-gray-400">
+                Las empresas no pueden postular a proyectos.
+              </div>
+            )}
+
+            {!isOpen && project.status !== 'DRAFT' && (
+              <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-center text-sm text-gray-400">
+                Este proyecto ya no está abierto para nuevas propuestas.
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: Company card ── */}
+          <div className="w-full lg:w-72 shrink-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Publicado por</p>
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                {(project.company as { logoUrl?: string }).logoUrl ? (
+                  <img
+                    src={(project.company as { logoUrl?: string }).logoUrl}
+                    alt={project.company.name}
+                    className="w-12 h-12 rounded-xl object-cover border border-gray-100"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                    {project.company.name.charAt(0)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Link href={`/companies/${project.companyId}`} className="font-bold text-gray-900 text-sm truncate hover:text-blue-700 transition-colors">
+                      {project.company.name}
+                    </Link>
+                    {project.company.verified && (
+                      <CheckCircle size={14} className="text-blue-500 shrink-0" fill="currentColor" />
+                    )}
+                  </div>
+                  {(project.company as { industry?: string }).industry && (
+                    <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                      {(project.company as { industry?: string }).industry}
+                    </span>
+                  )}
+                  {((project.company as { clientRating?: number; clientReviewCount?: number }).clientRating ?? 0) > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star size={11} className="fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs text-yellow-600 font-medium">
+                        {(project.company as { clientRating?: number }).clientRating?.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        ({(project.company as { clientReviewCount?: number }).clientReviewCount} reseña{(project.company as { clientReviewCount?: number }).clientReviewCount !== 1 ? 's' : ''})
+                      </span>
+                    </div>
                   )}
                 </div>
+              </div>
 
-                {errors.root && (
-                  <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{errors.root.message}</p>
+              {(project.company as { description?: string }).description && (
+                <p className="text-xs text-gray-500 mb-3 line-clamp-3">
+                  {(project.company as { description?: string }).description}
+                </p>
+              )}
+
+              <div className="space-y-1.5 text-xs text-gray-500">
+                {project.company.location && (
+                  <div className="flex items-center gap-1.5"><MapPin size={11} />{project.company.location}</div>
                 )}
+                {(project.company as { website?: string }).website && (
+                  <a
+                    href={(project.company as { website?: string }).website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-primary-600 hover:underline"
+                  >
+                    <Globe size={11} /> Sitio web
+                  </a>
+                )}
+                {(project.company as { size?: string }).size && (
+                  <div className="flex items-center gap-1.5"><Building2 size={11} />{(project.company as { size?: string }).size} empleados</div>
+                )}
+              </div>
 
-                <button type="submit" disabled={isSubmitting}
-                  className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer">
-                  {isSubmitting ? 'Enviando...' : 'Enviar propuesta'}
-                </button>
-              </form>
-            </>
-          )}
+              {/* Posted date */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                  <Clock size={11} />
+                  Publicado {new Date(project.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long' })}
+                </p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="mt-3 bg-white rounded-xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500 flex items-center gap-1.5"><Users size={13} /> Postulantes</span>
+                <span className="font-bold text-gray-900">{project._count?.proposals ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mt-2">
+                <span className="text-gray-500 flex items-center gap-1.5"><DollarSign size={13} /> Presupuesto</span>
+                <span className="font-bold text-gray-900">${Number(project.budget).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

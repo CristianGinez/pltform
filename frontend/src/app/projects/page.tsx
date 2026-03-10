@@ -94,7 +94,7 @@ export default function ProjectsPage() {
             >
               {/* Company */}
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold shrink-0">
                   {project.company.name.charAt(0)}
                 </div>
                 <div className="min-w-0">

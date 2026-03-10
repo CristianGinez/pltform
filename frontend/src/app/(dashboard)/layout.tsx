@@ -72,7 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="bg-gray-50 min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       {/* ── Sidebar (desktop only) ── */}
-      <aside className="hidden lg:flex w-60 bg-white border-r border-gray-100 flex-col flex-shrink-0 h-full">
+      <aside className="hidden lg:flex w-60 bg-white border-r border-gray-100 flex-col shrink-0 h-full">
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <Link href="/" className="text-lg font-bold text-primary-700">
@@ -111,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Icon size={16} />
                 <span className="flex-1">{label}</span>
                 {badge > 0 && (
-                  <span className="min-w-[18px] h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                  <span className="min-w-4.5 h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
                     {badge > 9 ? '9+' : badge}
                   </span>
                 )}
@@ -155,7 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span className="relative">
                 <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
                 {mobileBadge > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
                     {mobileBadge > 9 ? '9+' : mobileBadge}
                   </span>
                 )}
@@ -174,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="relative">
             <Bell size={20} strokeWidth={pathname === '/dashboard/notifications' ? 2.5 : 1.8} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}

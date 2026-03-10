@@ -136,7 +136,7 @@ function AdminMessage({ msg }: { msg: ContractMessage }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-gray-400 px-1">{name}</span>
-      <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${bubbleColor}`}>
+      <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap wrap-break-word ${bubbleColor}`}>
         {msg.content}
       </div>
       <span className="text-[10px] text-gray-400 px-1">
@@ -239,7 +239,7 @@ export default function AdminDisputeDetailPage() {
               <span className="text-sm font-semibold text-gray-700">Historial del chat</span>
               <span className="text-xs text-gray-400">({messages.length} mensajes)</span>
             </div>
-            <div className="flex flex-col gap-3 p-4 max-h-[500px] overflow-y-auto">
+            <div className="flex flex-col gap-3 p-4 max-h-125 overflow-y-auto">
               {isLoadingMessages && (
                 <div className="text-center py-8">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin mx-auto" />

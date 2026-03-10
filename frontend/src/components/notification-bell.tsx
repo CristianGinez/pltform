@@ -154,7 +154,7 @@ export default function NotificationBell() {
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+          <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -165,7 +165,7 @@ export default function NotificationBell() {
           <div
             ref={dropdownRef}
             style={{ top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width }}
-            className="fixed bg-white rounded-xl shadow-xl border border-gray-100 z-[9999] overflow-hidden"
+            className="fixed bg-white rounded-xl shadow-xl border border-gray-100 z-9999 overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <span className="text-sm font-semibold text-gray-900">Notificaciones</span>

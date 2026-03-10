@@ -73,7 +73,7 @@ export default function ProjectsPage() {
                 </div>
                 <h3 className="font-semibold text-gray-900 truncate">{p.title}</h3>
               </div>
-              <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 text-sm text-gray-500">
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <DollarSign size={13} />${Number(p.budget).toLocaleString()}
                 </span>

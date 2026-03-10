@@ -102,7 +102,7 @@ export default function PublicProjectDetailPage() {
                   )}
                   <h1 className="text-2xl font-bold text-gray-900 leading-snug">{project.title}</h1>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0 ${
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${
                   project.status === 'OPEN' ? 'bg-green-50 text-green-700' :
                   project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
                   project.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
@@ -249,7 +249,7 @@ export default function PublicProjectDetailPage() {
           </div>
 
           {/* ── RIGHT: Company card ── */}
-          <div className="w-full lg:w-72 flex-shrink-0">
+          <div className="w-full lg:w-72 shrink-0">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Publicado por</p>
             <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-md">
               <div className="flex items-center gap-3 mb-3">
@@ -260,7 +260,7 @@ export default function PublicProjectDetailPage() {
                     className="w-12 h-12 rounded-xl object-cover border border-gray-100"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold shrink-0">
                     {project.company.name.charAt(0)}
                   </div>
                 )}
@@ -270,7 +270,7 @@ export default function PublicProjectDetailPage() {
                       {project.company.name}
                     </Link>
                     {project.company.verified && (
-                      <CheckCircle size={14} className="text-blue-500 flex-shrink-0" fill="currentColor" />
+                      <CheckCircle size={14} className="text-blue-500 shrink-0" fill="currentColor" />
                     )}
                   </div>
                   {(project.company as { industry?: string }).industry && (

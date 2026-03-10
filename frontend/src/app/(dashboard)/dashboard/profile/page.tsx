@@ -121,11 +121,11 @@ function CompanyCard({ c, email }: { c: ReturnType<typeof buildCompanyData>; ema
     <div className="relative rounded-2xl border-2 border-gray-200 bg-white p-5 shadow-md select-none overflow-hidden">
       {/* top */}
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           {c.logoUrl ? (
             <img src={c.logoUrl} alt={c.name} className="w-16 h-16 rounded-xl object-cover border border-gray-100" />
           ) : (
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+            <div className="w-16 h-16 rounded-xl bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
               {initial}
             </div>
           )}
@@ -135,7 +135,7 @@ function CompanyCard({ c, email }: { c: ReturnType<typeof buildCompanyData>; ema
             <span className="font-bold text-gray-900 text-base leading-tight truncate">{c.name || '—'}</span>
             {c.verified && (
               <Tip text="Empresa verificada por la plataforma">
-                <CheckCircle size={15} className="text-blue-500 flex-shrink-0" fill="currentColor" />
+                <CheckCircle size={15} className="text-blue-500 shrink-0" fill="currentColor" />
               </Tip>
             )}
           </div>
@@ -202,8 +202,8 @@ function EditableField({
 
   return (
     <div className="group flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
-      <div className="w-24 sm:w-36 flex-shrink-0 flex items-center gap-1.5 pt-0.5">
-        {Icon && <Icon size={13} className="text-gray-400 flex-shrink-0" />}
+      <div className="w-24 sm:w-36 shrink-0 flex items-center gap-1.5 pt-0.5">
+        {Icon && <Icon size={13} className="text-gray-400 shrink-0" />}
         <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
 
@@ -230,19 +230,19 @@ function EditableField({
                 className="flex-1 text-sm border border-primary-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             )}
-            <button onClick={onConfirm} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0 cursor-pointer">
+            <button onClick={onConfirm} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 shrink-0 cursor-pointer">
               <Check size={14} />
             </button>
-            <button onClick={onCancel} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0 cursor-pointer">
+            <button onClick={onCancel} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 shrink-0 cursor-pointer">
               <X size={14} />
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 min-h-[28px]">
+          <div className="flex items-center gap-2 min-h-7">
             <span className="text-sm text-gray-800 break-all">{displayVal}</span>
             <button
               onClick={onStartEdit}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0 cursor-pointer"
+              className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity shrink-0 cursor-pointer"
             >
               <Pencil size={12} />
             </button>
@@ -267,7 +267,7 @@ function ToggleField({ label, value, onChange, icon: Icon }: {
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${value ? 'bg-primary-600' : 'bg-gray-200'}`}
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${value ? 'bg-primary-600' : 'bg-gray-200'}`}
       >
         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </button>
@@ -383,8 +383,8 @@ function AutocompleteField({
 
   return (
     <div className="group flex items-start gap-3 py-3 border-b border-gray-50 last:border-0" ref={containerRef}>
-      <div className="w-24 sm:w-36 flex-shrink-0 flex items-center gap-1.5 pt-0.5">
-        {Icon && <Icon size={13} className="text-gray-400 flex-shrink-0" />}
+      <div className="w-24 sm:w-36 shrink-0 flex items-center gap-1.5 pt-0.5">
+        {Icon && <Icon size={13} className="text-gray-400 shrink-0" />}
         <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
       <div className="flex-1 min-w-0">
@@ -414,13 +414,13 @@ function AutocompleteField({
                 </div>
               )}
             </div>
-            <button onClick={() => { setOpen(false); onConfirm(); }} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex-shrink-0 cursor-pointer"><Check size={14} /></button>
-            <button onClick={() => { setOpen(false); onCancel(); }} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0 cursor-pointer"><X size={14} /></button>
+            <button onClick={() => { setOpen(false); onConfirm(); }} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 shrink-0 cursor-pointer"><Check size={14} /></button>
+            <button onClick={() => { setOpen(false); onCancel(); }} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 shrink-0 cursor-pointer"><X size={14} /></button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 min-h-[28px]">
+          <div className="flex items-center gap-2 min-h-7">
             <span className="text-sm text-gray-800">{value || <span className="text-gray-300 italic">Sin completar</span>}</span>
-            <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity flex-shrink-0 cursor-pointer">
+            <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-opacity shrink-0 cursor-pointer">
               <Pencil size={12} />
             </button>
           </div>
@@ -454,7 +454,7 @@ function BadgeSelector({ selected, onChange }: { selected: string[]; onChange: (
                   active ? `${b.bg} ${b.color} border-current font-medium` : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <Icon size={13} className="flex-shrink-0" />
+                <Icon size={13} className="shrink-0" />
                 <span className="text-left leading-tight">{b.label}</span>
               </button>
             </Tip>
@@ -912,7 +912,7 @@ export default function ProfilePage() {
       <div className="flex flex-col lg:flex-row gap-6 items-start">
 
         {/* ── LEFT: Preview card ── */}
-        <div className="w-full lg:w-72 lg:sticky lg:top-6 flex-shrink-0">
+        <div className="w-full lg:w-72 lg:sticky lg:top-6 shrink-0">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Vista previa</p>
           {isCompany
             ? <CompanyCard c={companyData} email={user?.email ?? ''} />
@@ -988,7 +988,7 @@ export default function ProfilePage() {
               <Section title="Presentación">
                 {/* Avatar visual picker */}
                 <div className="flex items-center gap-4 py-3 border-b border-gray-50">
-                  <div className="w-24 sm:w-36 flex-shrink-0 flex items-center gap-1.5">
+                  <div className="w-24 sm:w-36 shrink-0 flex items-center gap-1.5">
                     <Camera size={13} className="text-gray-400" />
                     <span className="text-xs font-medium text-gray-500">Foto de perfil</span>
                   </div>
@@ -997,7 +997,7 @@ export default function ProfilePage() {
                       (() => {
                         const [, from, to] = devData.avatarUrl.split(':');
                         return (
-                          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white font-bold text-sm border border-gray-200`}>
+                          <div className={`w-10 h-10 rounded-full bg-linear-to-br ${from} ${to} flex items-center justify-center text-white font-bold text-sm border border-gray-200`}>
                             {devData.name?.charAt(0)?.toUpperCase() ?? '?'}
                           </div>
                         );

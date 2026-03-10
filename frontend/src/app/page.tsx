@@ -28,7 +28,7 @@ function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-primary-50 to-white">
+      <section className="bg-linear-to-b from-primary-50 to-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 pt-16 sm:pt-24 lg:pt-32 pb-16 sm:pb-20 text-center">
           <span className="inline-block rounded-full bg-primary-100 px-4 py-1.5 text-xs font-semibold text-primary-700 uppercase tracking-wide mb-6">
             Marketplace B2B · Latinoamérica
@@ -266,7 +266,7 @@ function AuthenticatedHome() {
             <img
               src={avatarUrl && !avatarUrl.startsWith('gradient:') ? avatarUrl : defaultAvatar(name)}
               alt="avatar"
-              className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm flex-shrink-0"
+              className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
             />
             <div>
               <p className="text-sm text-gray-500">Bienvenido de vuelta</p>
@@ -307,7 +307,7 @@ function AuthenticatedHome() {
             </div>
             <Link
               href={isCompany ? '/dashboard/projects/new' : '/projects'}
-              className="flex-shrink-0 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold transition-colors"
+              className="shrink-0 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold transition-colors"
               style={{ color: isCompany ? '#2563eb' : '#7c3aed' }}
             >
               {isCompany ? 'Publicar proyecto' : 'Ver proyectos'}

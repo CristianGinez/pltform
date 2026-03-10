@@ -661,7 +661,7 @@ function AdminPageInner() {
               {tab.icon}
               {tab.label}
               {badge > 0 && (
-                <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center leading-none ${
+                <span className={`min-w-4.5 h-4.5 px-1 rounded-full text-[10px] font-bold flex items-center justify-center leading-none ${
                   tab.id === 'disputas' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
                 }`}>
                   {badge}

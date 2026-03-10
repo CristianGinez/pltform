@@ -170,7 +170,7 @@ function ProfileCard({
 
 function EmptyProfileCard({ label }: { label: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]">
+    <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 min-h-30">
       <User size={20} className="text-gray-300" />
       <p className="text-[11px] text-gray-400">{label}</p>
     </div>
@@ -740,7 +740,7 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
           </span>
           {isOwn && <span className="text-xs font-medium text-gray-500">{name}</span>}
         </div>
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap wrap-break-word ${
           isOwn ? 'bg-primary-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'
         }`}>
           {msg.content}
@@ -845,7 +845,7 @@ function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones, lo
       ) : (
         <div className="border-t border-gray-100 p-3 flex gap-2 items-end bg-white">
           <textarea
-            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[40px] max-h-24"
+            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-10 max-h-24"
             rows={1} placeholder="Escribe un mensaje... (Enter para enviar)"
             value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
@@ -1007,7 +1007,7 @@ function MilestoneStep({
             {isDone ? <CheckCircle size={15} /> : locked ? <Lock size={11} /> : <span>{index + 1}</span>}
           </div>
           {index < total - 1 && (
-            <div className={`w-0.5 flex-1 my-1 min-h-[16px] rounded-full ${isDone ? 'bg-emerald-300' : isActive ? 'bg-primary-200' : 'bg-gray-200'}`} />
+            <div className={`w-0.5 flex-1 my-1 min-h-4 rounded-full ${isDone ? 'bg-emerald-300' : isActive ? 'bg-primary-200' : 'bg-gray-200'}`} />
           )}
         </div>
 
@@ -1188,7 +1188,7 @@ function MilestonesTab({ milestones, contractId, isCompany, onProposed }: { mile
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <motion.div
-              className="bg-gradient-to-r from-primary-400 to-emerald-500 h-2 rounded-full"
+              className="bg-linear-to-r from-primary-400 to-emerald-500 h-2 rounded-full"
               initial={{ width: 0 }} animate={{ width: `${pct}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             />
@@ -1275,7 +1275,7 @@ function ResumenTab({
           <span className="font-semibold text-gray-800">S/ {paid.toLocaleString()} / S/ {total.toLocaleString()}</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-          <motion.div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-2.5 rounded-full"
+          <motion.div className="bg-linear-to-r from-emerald-400 to-emerald-600 h-2.5 rounded-full"
             initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
         </div>
         <p className="text-xs text-gray-400 mt-2">
@@ -1422,7 +1422,7 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed, skipAnima
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -1436,7 +1436,7 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed, skipAnima
                 <motion.div
                   initial={{ scale: 0 }} animate={{ scale: 1, rotate: [0, -10, 10, 0] }}
                   transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                  className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  className="w-20 h-20 bg-linear-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <Trophy size={36} className="text-white" />
                 </motion.div>
                 <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
@@ -1445,7 +1445,7 @@ function CompletionOverlay({ contract, currentUserId, alreadyReviewed, skipAnima
                   className="text-gray-500 text-sm mb-6">Todos los milestones han sido pagados exitosamente.</motion.p>
                 <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                   <motion.div
-                    className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full"
+                    className="bg-linear-to-r from-emerald-400 to-emerald-600 h-3 rounded-full"
                     initial={{ width: '80%' }} animate={{ width: '100%' }}
                     transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
                   />
@@ -1762,7 +1762,7 @@ export default function ContractDetailPage() {
                     {t.icon}
                     {t.label}
                     {badge > 0 && (
-                      <span className="ml-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                      <span className="ml-0.5 min-w-4 h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
                         {badge > 9 ? '9+' : badge}
                       </span>
                     )}

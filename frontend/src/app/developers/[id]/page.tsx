@@ -28,7 +28,7 @@ function StatCard({ icon: Icon, label, value, color = 'text-gray-700' }: {
   icon: React.ElementType; label: string; value: string | number; color?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-sm flex-1 min-w-[80px]">
+    <div className="flex flex-col items-center gap-1 bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-sm flex-1 min-w-20">
       <Icon size={16} className={`${color}`} />
       <span className={`text-lg font-bold ${color}`}>{value}</span>
       <span className="text-xs text-gray-400 text-center leading-tight">{label}</span>
@@ -93,7 +93,7 @@ export default function DeveloperProfilePage() {
       {/* ── Cover + Header ── */}
       <div className="relative">
         {/* Cover gradient */}
-        <div className="h-40 bg-gradient-to-br from-primary-600 via-primary-500 to-cyan-400" />
+        <div className="h-40 bg-linear-to-br from-primary-600 via-primary-500 to-cyan-400" />
 
         {/* Back button */}
         <button
@@ -126,12 +126,12 @@ export default function DeveloperProfilePage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 pb-5">
             {/* Avatar */}
-            <div className="relative flex-shrink-0">
+            <div className="relative shrink-0">
               {dev.avatarUrl?.startsWith('gradient:') ? (
                 (() => {
                   const [, from, to] = dev.avatarUrl.split(':');
                   return (
-                    <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg`}>
+                    <div className={`w-24 h-24 rounded-2xl bg-linear-to-br ${from} ${to} flex items-center justify-center text-white text-4xl font-bold border-4 border-white shadow-lg`}>
                       {initial}
                     </div>
                   );
@@ -227,7 +227,7 @@ export default function DeveloperProfilePage() {
                     const Icon = b.icon;
                     return (
                       <div key={key} className={`flex items-start gap-3 rounded-xl border p-3 ${b.bg}`}>
-                        <span className={`flex items-center justify-center w-9 h-9 rounded-full ${b.bg} ${b.color} flex-shrink-0 border`}>
+                        <span className={`flex items-center justify-center w-9 h-9 rounded-full ${b.bg} ${b.color} shrink-0 border`}>
                           <Icon size={16} />
                         </span>
                         <div>
@@ -281,7 +281,7 @@ export default function DeveloperProfilePage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs text-gray-400">
+                        <div className="flex flex-col items-end gap-1 shrink-0 text-xs text-gray-400">
                           <span className="flex items-center gap-1"><DollarSign size={10} />${Number(w.budget).toLocaleString()}</span>
                           <span className="flex items-center gap-1"><Clock size={10} />{w.timeline}d</span>
                           <ExternalLink size={12} className="mt-1 text-gray-300 group-hover:text-primary-400 transition-colors" />
@@ -295,7 +295,7 @@ export default function DeveloperProfilePage() {
           </div>
 
           {/* ── RIGHT sidebar ── */}
-          <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+          <div className="w-full lg:w-72 shrink-0 space-y-4">
 
             {/* Rating card */}
             {dev.rating > 0 && (
@@ -326,7 +326,7 @@ export default function DeveloperProfilePage() {
               {dev.university && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 flex items-center gap-1.5"><GraduationCap size={13} /> Universidad</span>
-                  <span className="font-semibold text-gray-900 text-right max-w-[140px] text-xs leading-snug">{dev.university}</span>
+                  <span className="font-semibold text-gray-900 text-right max-w-35 text-xs leading-snug">{dev.university}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-sm">
@@ -348,11 +348,11 @@ export default function DeveloperProfilePage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-primary-600 transition-colors group"
                   >
-                    <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-100 transition-colors">
+                    <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 group-hover:bg-primary-100 transition-colors">
                       <Globe size={14} className="text-primary-600" />
                     </span>
                     <span className="truncate">Portfolio</span>
-                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-primary-400 flex-shrink-0" />
+                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-primary-400 shrink-0" />
                   </a>
                 )}
                 {dev.githubUrl && (
@@ -362,11 +362,11 @@ export default function DeveloperProfilePage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-gray-900 transition-colors group"
                   >
-                    <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                    <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 group-hover:bg-gray-200 transition-colors">
                       <Github size={14} className="text-gray-700" />
                     </span>
                     <span className="truncate">GitHub</span>
-                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-gray-500 flex-shrink-0" />
+                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-gray-500 shrink-0" />
                   </a>
                 )}
                 {dev.linkedinUrl && (
@@ -376,18 +376,18 @@ export default function DeveloperProfilePage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
                   >
-                    <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                    <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
                       <Linkedin size={14} className="text-blue-600" />
                     </span>
                     <span className="truncate">LinkedIn</span>
-                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-blue-400 flex-shrink-0" />
+                    <ExternalLink size={11} className="ml-auto text-gray-300 group-hover:text-blue-400 shrink-0" />
                   </a>
                 )}
               </div>
             )}
 
             {/* Trust points */}
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-5 text-white shadow-sm">
+            <div className="bg-linear-to-br from-primary-600 to-primary-700 rounded-2xl p-5 text-white shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-primary-200 uppercase tracking-wider">Trust Points</h3>
                 <Shield size={16} className="text-primary-300" />
