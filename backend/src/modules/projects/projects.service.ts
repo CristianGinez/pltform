@@ -112,4 +112,15 @@ export class ProjectsService {
       data: { status: 'CANCELLED' },
     });
   }
+
+  async republish(id: string, userId: string) {
+    const project = await this.prisma.project.findUnique({ where: { id }, include: { company: true } });
+    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    if (project.company.userId !== userId) throw new ForbiddenException();
+    if (project.status !== 'CANCELLED') throw new BadRequestException('Solo se pueden republicar proyectos cancelados');
+    return this.prisma.project.update({
+      where: { id },
+      data: { status: 'OPEN' },
+    });
+  }
 }

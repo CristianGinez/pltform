@@ -81,54 +81,48 @@ export default function ContractsPage() {
       {isCompany && (
         <div className="space-y-4">
           {companyProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-xl border border-gray-100 p-6">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <p className="font-semibold text-gray-900">{project.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Presupuesto: S/ {Number(project.budget).toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                    }`}
-                  >
-                    {project.status === 'IN_PROGRESS' ? 'En progreso' : 'Completado'}
-                  </span>
-                  {project.contract && (
-                    <Link
-                      href={`/dashboard/contracts/${project.contract.id}`}
-                      className="text-xs text-primary-600 hover:underline whitespace-nowrap"
+            <Link key={project.id} href={project.contract ? `/dashboard/contracts/${project.contract.id}` : '#'} className="block">
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">{project.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Presupuesto: S/ {Number(project.budget).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                      }`}
                     >
-                      Ver contrato →
-                    </Link>
-                  )}
-                </div>
-              </div>
-
-              {project.contract?.milestones && project.contract.milestones.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Milestones</p>
-                  <div className="space-y-1.5">
-                    {project.contract.milestones.map((m) => (
-                      <div key={m.id} className="flex items-center gap-2 text-sm">
-                        {MILESTONE_ICONS[m.status] ?? <Circle size={14} />}
-                        <span className="flex-1 text-gray-700">{m.title}</span>
-                        <span className="text-gray-400 text-xs">S/ {Number(m.amount).toLocaleString()}</span>
-                      </div>
-                    ))}
+                      {project.status === 'IN_PROGRESS' ? 'En progreso' : 'Completado'}
+                    </span>
                   </div>
                 </div>
-              )}
 
-              {!project.contract && (
-                <p className="text-xs text-gray-400 mt-2">
-                  El contrato se generará cuando aceptes una propuesta.
-                </p>
-              )}
-            </div>
+                {project.contract?.milestones && project.contract.milestones.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-2">Milestones</p>
+                    <div className="space-y-1.5">
+                      {project.contract.milestones.map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 text-sm">
+                          {MILESTONE_ICONS[m.status] ?? <Circle size={14} />}
+                          <span className="flex-1 text-gray-700">{m.title}</span>
+                          <span className="text-gray-400 text-xs">S/ {Number(m.amount).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!project.contract && (
+                  <p className="text-xs text-gray-400 mt-2">
+                    El contrato se generará cuando aceptes una propuesta.
+                  </p>
+                )}
+              </div>
+            </Link>
           ))}
         </div>
       )}
@@ -139,33 +133,54 @@ export default function ContractsPage() {
           {devProposals.map((proposal) => {
             const project = proposal.project as ProjectWithContract | undefined;
             return (
-              <div key={proposal.id} className="bg-white rounded-xl border border-gray-100 p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">{project?.title ?? 'Proyecto'}</p>
-                    {project?.company && (
-                      <p className="text-xs text-gray-400 mt-0.5">{project.company.name}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Acordado: <span className="font-medium">S/ {Number(proposal.budget).toLocaleString()}</span>
-                      {' · '} {proposal.timeline} días
-                    </p>
+              <Link key={proposal.id} href={project?.contract ? `/dashboard/contracts/${project.contract.id}` : '#'} className="block">
+                <div className="bg-white rounded-xl border border-gray-100 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">{project?.title ?? 'Proyecto'}</p>
+                      {project?.company && (
+                        <p className="text-xs text-gray-400 mt-0.5">{project.company.name}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Acordado: <span className="font-medium">S/ {Number(proposal.budget).toLocaleString()}</span>
+                        {' · '} {proposal.timeline} días
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">
+                        Aceptada
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">
-                      Aceptada
-                    </span>
-                    {project?.contract && (
-                      <Link
-                        href={`/dashboard/contracts/${project.contract.id}`}
-                        className="text-xs text-primary-600 hover:underline whitespace-nowrap"
-                      >
-                        Ver contrato →
-                      </Link>
-                    )}
-                  </div>
+                  {project?.contract?.milestones && project.contract.milestones.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-gray-500">Progreso</p>
+                        <p className="text-xs text-gray-400">
+                          {project.contract.milestones.filter(m => m.status === 'PAID').length}/{project.contract.milestones.length}
+                        </p>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-primary-400 to-emerald-500 h-1.5 rounded-full transition-all"
+                          style={{ width: `${Math.max(project.contract.milestones.filter(m => m.status === 'PAID').length / project.contract.milestones.length * 100, project.contract.milestones.some(m => ['IN_PROGRESS','SUBMITTED','REVISION_REQUESTED','APPROVED'].includes(m.status)) ? 5 : 0)}%` }}
+                        />
+                      </div>
+                      <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                        {project.contract.milestones.map((m) => (
+                          <span key={m.id} className={`w-2 h-2 rounded-full ${
+                            m.status === 'PAID' ? 'bg-emerald-500' :
+                            m.status === 'IN_PROGRESS' ? 'bg-blue-400' :
+                            m.status === 'SUBMITTED' ? 'bg-yellow-400' :
+                            m.status === 'REVISION_REQUESTED' ? 'bg-orange-400' :
+                            'bg-gray-200'
+                          }`} title={m.title} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

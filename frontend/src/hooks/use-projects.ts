@@ -74,6 +74,22 @@ export function usePublishProject(id: string) {
   });
 }
 
+export function useRepublishProject(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post(`/projects/${projectId}/republish`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-projects'] });
+      qc.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success('¡Proyecto republicado exitosamente!');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al republicar el proyecto');
+    },
+  });
+}
+
 export function useAcceptProposal(projectId: string, onAccepted?: (contractId: string) => void) {
   const qc = useQueryClient();
   return useMutation({

@@ -237,8 +237,8 @@ export function useOpenDispute(contractId: string) {
 export function useResolveDispute(contractId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (outcome: 'dev_wins' | 'company_wins' | 'mutual') =>
-      api.patch(`/contracts/${contractId}/resolve`, { outcome }).then((r) => r.data),
+    mutationFn: ({ outcome, adminComment }: { outcome: 'dev_wins' | 'company_wins' | 'mutual'; adminComment?: string }) =>
+      api.patch(`/contracts/${contractId}/resolve`, { outcome, adminComment }).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['contract', contractId] });
       qc.invalidateQueries({ queryKey: ['disputed-contracts'] });
@@ -280,6 +280,23 @@ export function useProposeCancel(contractId: string) {
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg ?? 'Error al proponer cancelación');
+    },
+  });
+}
+
+export function useProposeMilestonePlan(contractId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (milestones: Array<{ title: string; description?: string; amount: number; order: number }>) =>
+      api.post(`/contracts/${contractId}/milestone-plan`, { milestones }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
+      qc.invalidateQueries({ queryKey: ['contract', contractId] });
+      toast.success('Plan de milestones enviado. Esperando aprobación de la empresa.');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al enviar el plan');
     },
   });
 }

@@ -140,9 +140,18 @@ export class ContractsController {
   resolveDispute(
     @Param('id') id: string,
     @CurrentUser() user: User,
-    @Body() body: { outcome: 'dev_wins' | 'company_wins' | 'mutual' },
+    @Body() body: { outcome: 'dev_wins' | 'company_wins' | 'mutual'; adminComment?: string },
   ) {
-    return this.contractsService.resolveDispute(id, user.id, body.outcome);
+    return this.contractsService.resolveDispute(id, user.id, body.outcome, body.adminComment);
+  }
+
+  @Post(':id/milestone-plan')
+  proposeMilestonePlan(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+    @Body() body: { milestones: Array<{ title: string; description?: string; amount: number; order: number }> },
+  ) {
+    return this.contractsService.proposeMilestonePlan(id, user.id, body.milestones);
   }
 
   @Post(':id/milestones/:milestoneId/force-approve')

@@ -64,4 +64,10 @@ export class ProjectsController {
   cancel(@Param('id') id: string, @CurrentUser() user: User) {
     return this.projectsService.cancel(id, user.id);
   }
+
+  @Post(':id/republish')
+  @UseGuards(JwtAuthGuard)
+  republish(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.projectsService.republish(id, user.id);
+  }
 }

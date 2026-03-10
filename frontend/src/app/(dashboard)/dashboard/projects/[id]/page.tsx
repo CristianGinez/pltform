@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, Pencil, X, Plus,
-  Star, Github, Globe, MapPin, ChevronRight,
+  Star, Github, Globe, MapPin, ChevronRight, ScrollText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
@@ -530,6 +530,19 @@ export default function ProjectDetailPage() {
           projectStatus={project.status}
           onClose={() => setSelectedProposal(null)}
         />
+      )}
+
+      {/* DEVELOPER: contract link banner */}
+      {user?.role === 'DEVELOPER' && project?.contract?.id && (
+        <div className="mb-4">
+          <Link
+            href={`/dashboard/contracts/${project.contract.id}`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
+          >
+            <ScrollText size={15} />
+            Ver contrato activo
+          </Link>
+        </div>
       )}
 
       {/* DEVELOPER: formulario */}

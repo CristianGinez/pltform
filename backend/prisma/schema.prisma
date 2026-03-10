@@ -72,6 +72,7 @@ enum NotificationType {
   VERIFICATION_SUBMITTED
   VERIFICATION_APPROVED
   VERIFICATION_REJECTED
+  PROPOSE_MILESTONE_PLAN
 }
 
 enum VerificationStatus {
@@ -146,6 +147,7 @@ model Developer {
   cycle           String?
   specialtyBadges String[]
   trustPoints     Int        @default(0)
+  disputeLosses   Int        @default(0)
   verified              Boolean            @default(false)
   verificationStatus    VerificationStatus @default(NONE)
   verificationDocUrl    String?
@@ -205,8 +207,9 @@ model Contract {
   reviews     Review[]
   status            ContractStatus    @default(ACTIVE)
   platformFee       Decimal           @default(10) @db.Decimal(5, 2)
-  disputeReason     String?
-  disputeOpenedById String?
+  disputeReason            String?
+  disputeOpenedById        String?
+  disputeResolvedComment   String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }

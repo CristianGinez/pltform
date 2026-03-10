@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, CheckCircle, MapPin, Globe, Github, Linkedin,
   DollarSign, Shield, GraduationCap, Star, Briefcase,
-  ExternalLink, Tag, Building2, Clock, Pencil,
+  ExternalLink, Tag, Building2, Clock, Pencil, AlertTriangle,
 } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { Tip, Stars, BADGES } from '@/components/ui/dev-card';
@@ -397,6 +397,19 @@ export default function DeveloperProfilePage() {
                 Basado en puntualidad, comunicación y calidad de entrega.
               </p>
             </div>
+
+            {/* Dispute warning */}
+            {(dev.disputeLosses ?? 0) > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+                <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-red-700">Disputas perdidas</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    {dev.disputeLosses} disputa{dev.disputeLosses !== 1 ? 's' : ''} resuelta{dev.disputeLosses !== 1 ? 's' : ''} en contra por incumplimiento.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

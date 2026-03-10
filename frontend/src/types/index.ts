@@ -55,6 +55,7 @@ export interface Developer {
   cycle?: string;
   specialtyBadges: string[];
   trustPoints: number;
+  disputeLosses?: number;
   verified: boolean;
   verificationStatus?: VerificationStatus;
   verificationDocUrl?: string;
@@ -117,6 +118,7 @@ export interface Contract {
   platformFee: number;
   disputeReason?: string;
   disputeOpenedById?: string;
+  disputeResolvedComment?: string;
   createdAt: string;
 }
 
@@ -139,6 +141,7 @@ export interface ContractMessage {
     amount?: string;
     isCounter?: boolean;
     replyTo?: string;
+    milestones?: Array<{ title: string; description?: string; amount: number; order: number }>;
   } | null;
   createdAt: string;
   sender: {

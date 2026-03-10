@@ -3,12 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import {
   ArrowLeft, CheckCircle, Circle, Clock, AlertCircle, ExternalLink,
   Send, ThumbsUp, MessageSquare, ListChecks, LayoutDashboard,
   Rocket, RotateCcw, DollarSign, PartyPopper, Building2, User,
   Star, ChevronRight, X, Edit3, Activity, Eye, Lock, Zap, RefreshCw,
-  Trophy, Award, ShieldAlert, Ban,
+  Trophy, Award, ShieldAlert, Ban, Plus,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import {
@@ -16,8 +17,10 @@ import {
   useProposeAction, useRespondToProposal,
   useSendProgressUpdate, useMarkReadyForTesting, useCreateReview,
   useOpenDispute, useProposeCancel, useForceApprove,
+  useProposeMilestonePlan,
 } from '@/hooks/use-contracts';
-import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus } from '@/types';
+import { useRepublishProject } from '@/hooks/use-projects';
+import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus, Contract } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,21 +87,20 @@ const PROPOSAL_LABELS: Record<string, { icon: React.ReactNode; label: string; co
   PROPOSE_REVISION: { icon: <RotateCcw size={14} />, label: 'Pide revisión',     color: 'text-orange-700' },
   PROPOSE_APPROVE:  { icon: <ThumbsUp size={14} />,  label: 'Propone aprobar',   color: 'text-green-700' },
   PROPOSE_CANCEL:   { icon: <Ban size={14} />,        label: 'Propone cancelar',  color: 'text-gray-600' },
+  PROPOSE_MILESTONE_PLAN: { icon: <ListChecks size={14} />, label: 'Plan de milestones', color: 'text-primary-700' },
 };
 
 // ─── Profile card (side column, vertical) ────────────────────────────────────
 
 function ProfileCard({
-  name, role, logoUrl, avatarUrl, rating, extra, skills, isCurrentUser,
+  name, role, logoUrl, avatarUrl, rating, extra, skills, isCurrentUser, profileHref,
 }: {
   name: string; role: 'company' | 'developer'; logoUrl?: string | null; avatarUrl?: string | null;
-  rating?: number; extra?: string | null; skills?: string[]; isCurrentUser?: boolean;
+  rating?: number; extra?: string | null; skills?: string[]; isCurrentUser?: boolean; profileHref?: string;
 }) {
   const img = logoUrl ?? avatarUrl;
-  return (
-    <div className={`bg-white rounded-2xl border p-4 flex flex-col items-center text-center gap-2 ${
-      isCurrentUser ? 'border-primary-200 ring-1 ring-primary-100' : 'border-gray-100'
-    }`}>
+  const inner = (
+    <>
       {/* Avatar */}
       <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
         role === 'company' ? 'bg-blue-100' : 'bg-violet-100'
@@ -144,6 +146,24 @@ function ProfileCard({
           ))}
         </div>
       )}
+    </>
+  );
+
+  const baseClass = `bg-white rounded-2xl border p-4 flex flex-col items-center text-center gap-2 ${
+    isCurrentUser ? 'border-primary-200 ring-1 ring-primary-100' : 'border-gray-100'
+  }`;
+
+  if (profileHref && !isCurrentUser) {
+    return (
+      <Link href={profileHref} className={`${baseClass} block hover:ring-2 hover:ring-primary-200 transition-all cursor-pointer`}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={baseClass}>
+      {inner}
     </div>
   );
 }
@@ -153,6 +173,148 @@ function EmptyProfileCard({ label }: { label: string }) {
     <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]">
       <User size={20} className="text-gray-300" />
       <p className="text-[11px] text-gray-400">{label}</p>
+    </div>
+  );
+}
+
+// ─── Republish button ─────────────────────────────────────────────────────────
+
+function RepublishButton({ projectId }: { projectId: string }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const republish = useRepublishProject(projectId);
+  if (!confirmed) {
+    return (
+      <button
+        onClick={() => setConfirmed(true)}
+        className="text-xs px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer"
+      >
+        Republicar proyecto
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500">¿Confirmar republicación?</span>
+      <button
+        onClick={() => republish.mutate()}
+        disabled={republish.isPending}
+        className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 cursor-pointer"
+      >
+        {republish.isPending ? 'Publicando...' : 'Sí, publicar'}
+      </button>
+      <button
+        onClick={() => setConfirmed(false)}
+        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 cursor-pointer"
+      >
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
+// ─── Milestone plan modal ─────────────────────────────────────────────────────
+
+function MilestonePlanModal({ contractId, onClose }: { contractId: string; onClose: () => void }) {
+  const propose = useProposeMilestonePlan(contractId);
+  const [milestones, setMilestones] = useState([
+    { title: '', description: '', amount: 0, order: 1 },
+  ]);
+
+  const addMilestone = () => {
+    setMilestones([...milestones, { title: '', description: '', amount: 0, order: milestones.length + 1 }]);
+  };
+
+  const removeMilestone = (i: number) => {
+    setMilestones(milestones.filter((_, idx) => idx !== i));
+  };
+
+  const update = (i: number, field: string, value: string | number) => {
+    setMilestones(milestones.map((m, idx) => idx === i ? { ...m, [field]: value } : m));
+  };
+
+  const isValid = milestones.every((m) => m.title.trim() && m.amount > 0);
+  const total = milestones.reduce((s, m) => s + Number(m.amount), 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Proponer plan de milestones</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Define las etapas y precios del proyecto</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          {milestones.map((m, i) => (
+            <div key={i} className="border border-gray-200 rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500">Milestone {i + 1}</span>
+                {milestones.length > 1 && (
+                  <button onClick={() => removeMilestone(i)} className="text-red-400 hover:text-red-600 cursor-pointer">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="Título del milestone *"
+                value={m.title}
+                onChange={(e) => update(i, 'title', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <textarea
+                placeholder="Descripción (opcional)"
+                value={m.description}
+                onChange={(e) => update(i, 'description', e.target.value)}
+                rows={2}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">S/</span>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Monto *"
+                  value={m.amount || ''}
+                  onChange={(e) => update(i, 'amount', Number(e.target.value))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={addMilestone}
+            className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors cursor-pointer flex items-center justify-center gap-1"
+          >
+            <Plus size={14} />Agregar milestone
+          </button>
+
+          <div className="bg-gray-50 rounded-xl p-3 flex justify-between items-center">
+            <span className="text-sm text-gray-500">Total propuesto</span>
+            <span className="text-sm font-bold text-gray-900">S/ {total.toLocaleString()}</span>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose}
+              className="flex-1 px-4 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              onClick={() => propose.mutate(milestones.map((m, i) => ({ ...m, order: i + 1 })), { onSuccess: onClose })}
+              disabled={!isValid || propose.isPending}
+              className="flex-1 px-4 py-2.5 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-60 font-medium cursor-pointer"
+            >
+              {propose.isPending ? 'Enviando...' : 'Enviar plan'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -369,6 +531,20 @@ function ProposalCard({
             {meta?.reason && (
               <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Motivo:</span> {meta.reason}</p>
             )}
+            {action === 'PROPOSE_MILESTONE_PLAN' && meta?.milestones && (
+              <div className="mt-2 space-y-1">
+                {(meta.milestones as Array<{title: string; amount: number; description?: string}>).map((m, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-gray-600 py-0.5">
+                    <span>{i+1}. {m.title}</span>
+                    <span className="font-medium text-gray-700">S/ {Number(m.amount).toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-xs font-semibold text-gray-800 pt-1 border-t border-gray-100 mt-1">
+                  <span>Total</span>
+                  <span>S/ {(meta.milestones as Array<{amount: number}>).reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
             <p className="text-[10px] text-gray-400 mt-2">
               {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
               {' · '}por {msg.sender.company?.name ?? msg.sender.developer?.name}
@@ -418,6 +594,74 @@ function ProposalCard({
   );
 }
 
+// ─── Counter-offer card ───────────────────────────────────────────────────────
+
+function CounterOfferCard({ msg, currentUserId, contractId }: { msg: ContractMessage; currentUserId?: string; contractId: string }) {
+  const [responded, setResponded] = useState<'accepted' | 'rejected' | null>(null);
+  const [showCounter, setShowCounter] = useState(false);
+  const send = useSendMessage(contractId);
+  const name = msg.sender.company?.name ?? msg.sender.developer?.name ?? 'Usuario';
+  const isOwn = msg.sender.id === currentUserId;
+
+  const handleAccept = () => {
+    send.mutate('✓ Contraoferta aceptada', { onSuccess: () => setResponded('accepted') });
+  };
+  const handleReject = () => {
+    send.mutate('✗ Contraoferta rechazada', { onSuccess: () => setResponded('rejected') });
+  };
+
+  return (
+    <>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
+        <div className="w-full max-w-sm bg-orange-50 border border-orange-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="px-4 py-2.5 bg-orange-100 border-b border-orange-200 flex items-center gap-2">
+            <Edit3 size={13} className="text-orange-600" />
+            <span className="text-xs font-semibold text-orange-700">Contraoferta</span>
+            {msg.metadata?.milestoneTitle && (
+              <span className="text-xs text-orange-500 truncate">· {msg.metadata.milestoneTitle}</span>
+            )}
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+            <p className="text-[10px] text-gray-400 mt-2">
+              {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+              {' · '}{name}
+            </p>
+          </div>
+          {!isOwn && !responded && (
+            <div className="px-4 pb-3 flex gap-2">
+              <button onClick={handleAccept} disabled={send.isPending}
+                className="flex-1 py-2 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 cursor-pointer">
+                Aceptar
+              </button>
+              <button onClick={() => setShowCounter(true)}
+                className="flex-1 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 cursor-pointer">
+                <Edit3 size={11} className="inline mr-1" />Contra
+              </button>
+              <button onClick={handleReject} disabled={send.isPending}
+                className="flex-1 py-2 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 cursor-pointer">
+                Rechazar
+              </button>
+            </div>
+          )}
+          {responded && (
+            <div className="px-4 pb-3">
+              <p className={`text-xs text-center font-medium ${responded === 'accepted' ? 'text-green-600' : 'text-red-500'}`}>
+                {responded === 'accepted' ? '✓ Contraoferta aceptada' : '✗ Contraoferta rechazada'}
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+      <AnimatePresence>
+        {showCounter && (
+          <CounterModal messageId={msg.id} contractId={contractId} onClose={() => setShowCounter(false)} />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 // ─── Chat message ─────────────────────────────────────────────────────────────
 
 function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg: ContractMessage; contractId: string; currentUserId?: string; onGoToMilestones?: () => void }) {
@@ -450,32 +694,14 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
   }
 
   const isOwn = msg.sender.id === currentUserId;
-  const name = msg.sender.company?.name ?? msg.sender.developer?.name ?? 'Usuario';
   const isCounter = msg.metadata?.isCounter === true;
 
-  // Counter-offer: styled card
+  // Counter-offer: delegate to CounterOfferCard
   if (isCounter) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-        <div className="w-full max-w-sm bg-orange-50 border border-orange-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-4 py-2.5 bg-orange-100 border-b border-orange-200 flex items-center gap-2">
-            <Edit3 size={13} className="text-orange-600" />
-            <span className="text-xs font-semibold text-orange-700">Contraoferta</span>
-            {msg.metadata?.milestoneTitle && (
-              <span className="text-xs text-orange-500 truncate">· {msg.metadata.milestoneTitle}</span>
-            )}
-          </div>
-          <div className="px-4 py-3">
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-            <p className="text-[10px] text-gray-400 mt-2">
-              {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
-              {' · '}{name}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    );
+    return <CounterOfferCard msg={msg} currentUserId={currentUserId} contractId={contractId} />;
   }
+
+  const name = msg.sender.company?.name ?? msg.sender.developer?.name ?? 'Usuario';
 
   return (
     <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -903,6 +1129,7 @@ function MilestonesTab({ milestones, contractId, isCompany, onProposed }: { mile
   const hasStarted = milestones.some((m) => ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED'].includes(m.status));
   const rawPct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
   const pct = hasStarted && rawPct < 5 ? 5 : rawPct;
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Determine which milestones are "locked" for dev
   // A milestone is locked if any previous milestone is not PAID
@@ -948,8 +1175,23 @@ function MilestonesTab({ milestones, contractId, isCompany, onProposed }: { mile
       {milestones.length === 0 && (
         <div className="text-center py-10 bg-white rounded-xl border border-gray-100">
           <p className="text-sm text-gray-400">Este contrato no tiene milestones definidos.</p>
+          {!isCompany && (
+            <button
+              onClick={() => setShowPlanModal(true)}
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors cursor-pointer"
+            >
+              <ListChecks size={15} />
+              Proponer plan de milestones
+            </button>
+          )}
         </div>
       )}
+
+      <AnimatePresence>
+        {showPlanModal && (
+          <MilestonePlanModal contractId={contractId} onClose={() => setShowPlanModal(false)} />
+        )}
+      </AnimatePresence>
 
       {/* Roadmap */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -1292,9 +1534,9 @@ export default function ContractDetailPage() {
   }
 
   const project = contract.project as typeof contract.project & {
-    company?: { name?: string; logoUrl?: string | null; industry?: string | null };
+    company?: { id?: string; name?: string; logoUrl?: string | null; industry?: string | null };
     proposals?: Array<{
-      developer?: { name: string; avatarUrl?: string | null; rating?: number; skills?: string[] };
+      developer?: { id?: string; name: string; avatarUrl?: string | null; rating?: number; skills?: string[] };
     }>;
   };
   const myReview = (contract as typeof contract & { reviews?: Array<{ id: string; rating: number; comment?: string }> }).reviews?.[0];
@@ -1365,12 +1607,26 @@ export default function ContractDetailPage() {
       )}
 
       {/* Cancelled banner */}
-      {contract.status === 'CANCELLED' && (
+      {contract.status === 'CANCELLED' && isCompany && contract.project?.id && (
+        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
+              <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado por mutuo acuerdo.</p>
+              <div className="flex gap-2 mt-3">
+                <RepublishButton projectId={contract.project.id} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {contract.status === 'CANCELLED' && !isCompany && (
         <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
           <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
-            <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado por mutuo acuerdo.</p>
           </div>
         </div>
       )}
@@ -1411,18 +1667,14 @@ export default function ContractDetailPage() {
       {/* 3-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-start">
 
-        {/* Left: Company card */}
+        {/* Left: "Your" card */}
         <div className="hidden lg:block sticky top-4">
-          {companyInfo ? (
-            <ProfileCard
-              name={companyInfo.name ?? 'Empresa'}
-              role="company"
-              logoUrl={companyInfo.logoUrl}
-              extra={companyInfo.industry}
-              isCurrentUser={isCompany}
-            />
+          {isCompany ? (
+            companyInfo ? <ProfileCard name={companyInfo.name ?? 'Empresa'} role="company" logoUrl={companyInfo.logoUrl} extra={companyInfo.industry} isCurrentUser profileHref={undefined} />
+            : <EmptyProfileCard label="Empresa" />
           ) : (
-            <EmptyProfileCard label="Empresa" />
+            devInfo ? <ProfileCard name={devInfo.name} role="developer" avatarUrl={devInfo.avatarUrl} rating={devInfo.rating} extra={devInfo.skills?.slice(0,2).join(', ')} isCurrentUser profileHref={undefined} />
+            : <EmptyProfileCard label="Developer" />
           )}
         </div>
 
@@ -1491,23 +1743,31 @@ export default function ContractDetailPage() {
           </AnimatePresence>
         </div>
 
-        {/* Right: Developer card */}
+        {/* Right: Other party's card */}
         <div className="hidden lg:block sticky top-4">
-          {devInfo ? (
-            <ProfileCard
-              name={devInfo.name}
-              role="developer"
-              avatarUrl={devInfo.avatarUrl}
-              rating={devInfo.rating}
-              extra={devInfo.skills?.slice(0, 2).join(', ')}
-              isCurrentUser={!isCompany}
-            />
+          {isCompany ? (
+            devInfo ? <ProfileCard name={devInfo.name} role="developer" avatarUrl={devInfo.avatarUrl} rating={devInfo.rating} extra={devInfo.skills?.slice(0,2).join(', ')} profileHref={(devInfo as { id?: string }).id ? `/developers/${(devInfo as { id?: string }).id}` : undefined} />
+            : <EmptyProfileCard label="Developer" />
           ) : (
-            <EmptyProfileCard label="Developer" />
+            companyInfo ? <ProfileCard name={companyInfo.name ?? 'Empresa'} role="company" logoUrl={companyInfo.logoUrl} extra={companyInfo.industry} profileHref={(companyInfo as { id?: string }).id ? `/companies/${(companyInfo as { id?: string }).id}` : undefined} />
+            : <EmptyProfileCard label="Empresa" />
           )}
         </div>
 
       </div>
+
+      {/* Dispute resolved banner */}
+      {(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment && contract.status === 'COMPLETED' && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+          <CheckCircle size={18} className="text-green-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-green-800">Disputa resuelta a tu favor</p>
+            <p className="text-xs text-green-700 mt-0.5">
+              El administrador resolvió la disputa: &ldquo;{(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}&rdquo;
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Completion overlay (auto on completion, or manual from Resumen tab) */}
       {contract.status === 'COMPLETED' && (

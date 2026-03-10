@@ -6,7 +6,7 @@ import {
   ShieldAlert, Filter, Gavel, ThumbsUp, ThumbsDown, Handshake,
   BadgeCheck, BadgeX, ClipboardList, ExternalLink, Building2,
   User as UserIcon, LayoutDashboard, Activity, Users, Briefcase,
-  FileText, AlertTriangle,
+  FileText, AlertTriangle, ChevronRight, X,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -80,113 +80,184 @@ function StatCard({ label, value, icon, color }: {
   );
 }
 
-// ─── Verification card ────────────────────────────────────────────────────────
+// ─── Verification detail modal ────────────────────────────────────────────────
 
-function VerificationCard({ entry }: {
+function VerificationDetailModal({ entry, onClose }: {
   entry: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-    logoUrl?: string;
-    verificationDocUrl?: string;
-    verificationDocType?: string;
-    verificationNotes?: string;
-    ruc?: string;
-    type: 'developer' | 'company';
+    id: string; name: string; avatarUrl?: string; logoUrl?: string;
+    verificationDocUrl?: string; verificationDocType?: string;
+    verificationNotes?: string; ruc?: string; type: 'developer' | 'company';
   };
+  onClose: () => void;
 }) {
   const approve = useApproveVerification();
   const reject = useRejectVerification();
-  const [rejecting, setRejecting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
   const [reason, setReason] = useState('');
-  const avatarSrc =
-    entry.type === 'developer'
-      ? entry.avatarUrl || defaultAvatar(entry.name)
-      : entry.logoUrl || defaultAvatar(entry.name);
+  const avatarSrc = entry.type === 'developer' ? (entry.avatarUrl || defaultAvatar(entry.name)) : (entry.logoUrl || defaultAvatar(entry.name));
+  const isImage = entry.verificationDocUrl && /\.(jpg|jpeg|png|webp)$/i.test(entry.verificationDocUrl);
+  const isPdf = entry.verificationDocUrl && /\.pdf$/i.test(entry.verificationDocUrl);
+
+  const handleApprove = () => {
+    approve.mutate({ type: entry.type, id: entry.id }, { onSuccess: onClose });
+  };
+  const handleReject = () => {
+    if (!reason.trim()) return;
+    reject.mutate({ type: entry.type, id: entry.id, reason }, { onSuccess: onClose });
+  };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <img
-          src={avatarSrc}
-          alt={entry.name}
-          className="w-10 h-10 rounded-full object-cover border border-blue-100 bg-gray-50"
-        />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-gray-900 truncate">{entry.name}</p>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            {entry.type === 'developer' ? <UserIcon size={11} /> : <Building2 size={11} />}
-            <span>{entry.type === 'developer' ? 'Developer' : 'Empresa'}</span>
-            {entry.ruc && <span className="ml-1">· RUC: {entry.ruc}</span>}
-          </div>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <h2 className="text-base font-semibold text-gray-900">Solicitud de verificación</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+            <X size={16} className="text-gray-500" />
+          </button>
         </div>
-        {entry.verificationDocType && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium shrink-0">
-            {entry.verificationDocType}
-          </span>
-        )}
+
+        <div className="p-5 space-y-5">
+          {/* Profile info */}
+          <div className="flex items-center gap-4">
+            <img src={avatarSrc} alt={entry.name} className="w-14 h-14 rounded-full object-cover border border-gray-100 bg-gray-50" />
+            <div>
+              <p className="font-semibold text-gray-900">{entry.name}</p>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                {entry.type === 'developer' ? <UserIcon size={11} /> : <Building2 size={11} />}
+                <span>{entry.type === 'developer' ? 'Developer' : 'Empresa'}</span>
+                {entry.ruc && <span>· RUC: {entry.ruc}</span>}
+                {entry.verificationDocType && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{entry.verificationDocType}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Document preview */}
+          {entry.verificationDocUrl && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-2">Documento adjunto</p>
+              {isImage && (
+                <img
+                  src={entry.verificationDocUrl}
+                  alt="Documento de verificación"
+                  className="w-full max-h-80 object-contain rounded-xl border border-gray-200"
+                />
+              )}
+              {isPdf && (
+                <iframe
+                  src={entry.verificationDocUrl}
+                  className="w-full h-80 rounded-xl border border-gray-200"
+                  title="Documento PDF"
+                />
+              )}
+              {!isImage && !isPdf && (
+                <a href={entry.verificationDocUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:underline cursor-pointer">
+                  <ExternalLink size={14} />Abrir documento
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Confirm action */}
+          {!confirmAction ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmAction('approve')}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+              >
+                <BadgeCheck size={15} />Aprobar
+              </button>
+              <button
+                onClick={() => setConfirmAction('reject')}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer"
+              >
+                <BadgeX size={15} />Rechazar
+              </button>
+            </div>
+          ) : confirmAction === 'approve' ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-green-800">¿Confirmar aprobación?</p>
+              <p className="text-xs text-green-700">Se notificará al usuario que su verificación fue aprobada.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmAction(null)} className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">Cancelar</button>
+                <button
+                  onClick={handleApprove}
+                  disabled={approve.isPending}
+                  className="flex-1 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 cursor-pointer"
+                >
+                  {approve.isPending ? 'Aprobando...' : 'Sí, aprobar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-red-800">Motivo del rechazo</p>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Explica por qué se rechaza la verificación..."
+                rows={3}
+                className="w-full text-sm border border-red-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none bg-white"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmAction(null)} className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">Cancelar</button>
+                <button
+                  onClick={handleReject}
+                  disabled={!reason.trim() || reject.isPending}
+                  className="flex-1 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 cursor-pointer"
+                >
+                  {reject.isPending ? 'Rechazando...' : 'Confirmar rechazo'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-
-      {entry.verificationDocUrl && (
-        <a
-          href={entry.verificationDocUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline mb-3 cursor-pointer"
-        >
-          <ExternalLink size={11} />Ver documento adjunto
-        </a>
-      )}
-
-      {rejecting ? (
-        <div className="space-y-2">
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Motivo del rechazo (obligatorio)…"
-            rows={2}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => setRejecting(false)}
-              className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => reject.mutate({ type: entry.type, id: entry.id, reason })}
-              disabled={!reason.trim() || reject.isPending}
-              className="flex-1 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 cursor-pointer"
-            >
-              {reject.isPending ? 'Rechazando…' : 'Confirmar rechazo'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <button
-            onClick={() => approve.mutate({ type: entry.type, id: entry.id })}
-            disabled={approve.isPending}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
-          >
-            <BadgeCheck size={13} />Aprobar
-          </button>
-          <button
-            onClick={() => setRejecting(true)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer"
-          >
-            <BadgeX size={13} />Rechazar
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-// ─── Dispute card ─────────────────────────────────────────────────────────────
+// ─── Verification card ────────────────────────────────────────────────────────
 
-function DisputeCard({ dispute }: {
+function VerificationCard({ entry }: { entry: { id: string; name: string; avatarUrl?: string; logoUrl?: string; verificationDocUrl?: string; verificationDocType?: string; verificationNotes?: string; ruc?: string; type: 'developer' | 'company' } }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const avatarSrc = entry.type === 'developer' ? (entry.avatarUrl || defaultAvatar(entry.name)) : (entry.logoUrl || defaultAvatar(entry.name));
+  return (
+    <>
+      <button
+        onClick={() => setShowDetail(true)}
+        className="w-full text-left bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100/50 hover:border-blue-300 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <img src={avatarSrc} alt={entry.name} className="w-10 h-10 rounded-full object-cover border border-blue-100 bg-gray-50 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-gray-900 truncate">{entry.name}</p>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              {entry.type === 'developer' ? <UserIcon size={11} /> : <Building2 size={11} />}
+              <span>{entry.type === 'developer' ? 'Developer' : 'Empresa'}</span>
+              {entry.ruc && <span>· RUC: {entry.ruc}</span>}
+            </div>
+          </div>
+          {entry.verificationDocType && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium shrink-0">{entry.verificationDocType}</span>
+          )}
+          <ChevronRight size={14} className="text-blue-400 shrink-0" />
+        </div>
+        {entry.verificationDocUrl && (
+          <p className="text-xs text-primary-600 mt-2 flex items-center gap-1"><ExternalLink size={10} />Documento adjunto</p>
+        )}
+      </button>
+      {showDetail && <VerificationDetailModal entry={entry} onClose={() => setShowDetail(false)} />}
+    </>
+  );
+}
+
+// ─── Dispute detail modal ─────────────────────────────────────────────────────
+
+function DisputeDetailModal({ dispute, onClose }: {
   dispute: {
     id: string;
     disputeReason?: string | null;
@@ -194,53 +265,145 @@ function DisputeCard({ dispute }: {
     project: { title: string; company: { name: string } };
     milestones: { status: string; amount: number }[];
   };
+  onClose: () => void;
 }) {
   const resolve = useResolveDispute(dispute.id);
+  const [confirmOutcome, setConfirmOutcome] = useState<'dev_wins' | 'company_wins' | 'mutual' | null>(null);
+  const [adminComment, setAdminComment] = useState('');
   const submittedCount = dispute.milestones.filter((m) => m.status === 'SUBMITTED').length;
 
+  const outcomeLabels = {
+    dev_wins: 'A favor del developer',
+    company_wins: 'A favor de la empresa',
+    mutual: 'Cancelación mutua',
+  };
+  const outcomeColors = {
+    dev_wins: 'bg-green-600 hover:bg-green-700',
+    company_wins: 'bg-red-600 hover:bg-red-700',
+    mutual: 'bg-gray-600 hover:bg-gray-700',
+  };
+
   return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div>
-          <p className="font-semibold text-sm text-gray-900">{dispute.project.title}</p>
-          <p className="text-xs text-gray-500">{dispute.project.company.name}</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <div className="flex items-center gap-2">
+            <Gavel size={18} className="text-red-500" />
+            <h2 className="text-base font-semibold text-gray-900">Disputa activa</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+            <X size={16} className="text-gray-500" />
+          </button>
         </div>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">
-          En disputa
-        </span>
-      </div>
-      {dispute.disputeReason && (
-        <p className="text-xs text-gray-700 mb-3 bg-white rounded-lg p-2 border border-red-100">
-          <span className="font-medium">Motivo:</span> {dispute.disputeReason}
-        </p>
-      )}
-      <p className="text-xs text-gray-500 mb-3">
-        {submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en estado SUBMITTED
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => resolve.mutate('dev_wins')}
-          disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
-        >
-          <ThumbsUp size={12} />A favor del developer
-        </button>
-        <button
-          onClick={() => resolve.mutate('company_wins')}
-          disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors cursor-pointer"
-        >
-          <ThumbsDown size={12} />A favor de la empresa
-        </button>
-        <button
-          onClick={() => resolve.mutate('mutual')}
-          disabled={resolve.isPending}
-          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-60 transition-colors cursor-pointer"
-        >
-          <Handshake size={12} />Cancelación mutua
-        </button>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="font-semibold text-gray-900">{dispute.project.title}</p>
+            <p className="text-sm text-gray-500">{dispute.project.company.name}</p>
+          </div>
+
+          {dispute.disputeReason && (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-red-700 mb-1">Motivo de la disputa</p>
+              <p className="text-sm text-gray-700">{dispute.disputeReason}</p>
+            </div>
+          )}
+
+          <div className="bg-gray-50 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-500 mb-2">Estado de milestones</p>
+            <div className="flex gap-2 flex-wrap">
+              {['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'APPROVED', 'PAID'].map((s) => {
+                const count = dispute.milestones.filter((m) => m.status === s).length;
+                if (!count) return null;
+                return (
+                  <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
+                    {count} {s.toLowerCase().replace('_', ' ')}
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">{submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en estado SUBMITTED</p>
+          </div>
+
+          {/* Decision */}
+          {!confirmOutcome ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500">Tomar decisión</p>
+              <button onClick={() => setConfirmOutcome('dev_wins')} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-green-600 text-white hover:bg-green-700 cursor-pointer">
+                <ThumbsUp size={14} />A favor del developer (milestones SUBMITTED se pagan)
+              </button>
+              <button onClick={() => setConfirmOutcome('company_wins')} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-red-600 text-white hover:bg-red-700 cursor-pointer">
+                <ThumbsDown size={14} />A favor de la empresa (dev pierde 30 trust points)
+              </button>
+              <button onClick={() => setConfirmOutcome('mutual')} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-600 text-white hover:bg-gray-700 cursor-pointer">
+                <Handshake size={14} />Cancelación mutua (sin penalización)
+              </button>
+            </div>
+          ) : (
+            <div className={`border rounded-xl p-4 space-y-3 ${
+              confirmOutcome === 'dev_wins' ? 'bg-green-50 border-green-200' :
+              confirmOutcome === 'company_wins' ? 'bg-red-50 border-red-200' :
+              'bg-gray-50 border-gray-200'
+            }`}>
+              <p className="text-sm font-semibold text-gray-800">
+                Confirmar: {outcomeLabels[confirmOutcome]}
+              </p>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Comentario para las partes (se mostrará en el contrato)</label>
+                <textarea
+                  value={adminComment}
+                  onChange={(e) => setAdminComment(e.target.value)}
+                  placeholder="Explica brevemente la decisión..."
+                  rows={3}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none bg-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmOutcome(null)} className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">Cancelar</button>
+                <button
+                  onClick={() => resolve.mutate({ outcome: confirmOutcome, adminComment: adminComment.trim() || undefined }, { onSuccess: onClose })}
+                  disabled={resolve.isPending}
+                  className={`flex-1 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-60 cursor-pointer ${outcomeColors[confirmOutcome]}`}
+                >
+                  {resolve.isPending ? 'Procesando...' : 'Confirmar resolución'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+// ─── Dispute card ─────────────────────────────────────────────────────────────
+
+function DisputeCard({ dispute }: { dispute: { id: string; disputeReason?: string | null; disputeOpenedById?: string | null; project: { title: string; company: { name: string } }; milestones: { status: string; amount: number }[] } }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const submittedCount = dispute.milestones.filter((m) => m.status === 'SUBMITTED').length;
+  return (
+    <>
+      <button
+        onClick={() => setShowDetail(true)}
+        className="w-full text-left bg-red-50 border border-red-200 rounded-xl p-4 hover:bg-red-100/50 hover:border-red-300 transition-colors cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <p className="font-semibold text-sm text-gray-900">{dispute.project.title}</p>
+            <p className="text-xs text-gray-500">{dispute.project.company.name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">En disputa</span>
+            <ChevronRight size={14} className="text-red-400" />
+          </div>
+        </div>
+        {dispute.disputeReason && (
+          <p className="text-xs text-gray-600 line-clamp-2">{dispute.disputeReason}</p>
+        )}
+        <p className="text-xs text-gray-400 mt-2">{submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en SUBMITTED</p>
+      </button>
+      {showDetail && <DisputeDetailModal dispute={dispute} onClose={() => setShowDetail(false)} />}
+    </>
   );
 }
 

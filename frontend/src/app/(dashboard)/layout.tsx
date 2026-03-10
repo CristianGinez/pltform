@@ -12,6 +12,7 @@ import {
   LogOut,
   Home,
   Bell,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
@@ -32,8 +33,8 @@ const navItems = {
     { href: '/dashboard/profile', label: 'Perfil', icon: User },
   ],
   ADMIN: [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/admin', label: 'Admin', icon: Bell },
+    { href: '/dashboard/admin', label: 'Panel', icon: ShieldAlert },
+    { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell },
   ],
 };
 

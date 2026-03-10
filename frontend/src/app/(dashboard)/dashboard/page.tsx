@@ -1,13 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useMyProjects } from '@/hooks/use-projects';
 import { useMyProposals } from '@/hooks/use-proposals';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user?.role === 'ADMIN') router.push('/dashboard/admin');
+  }, [user, router]);
+
+  if (user?.role === 'ADMIN') return null;
 
   const { data: projects } = useMyProjects();
   const { data: proposals } = useMyProposals();

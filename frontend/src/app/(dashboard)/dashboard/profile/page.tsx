@@ -761,6 +761,7 @@ function buildDevData(user: User | undefined, pending: Record<string, unknown>) 
     rating:           d?.rating       ?? 0,
     reviewCount:      d?.reviewCount  ?? 0,
     trustPoints:      d?.trustPoints  ?? 0,
+    disputeLosses:    d?.disputeLosses ?? 0,
     verified:         d?.verified     ?? false,
   };
 }
@@ -1094,6 +1095,18 @@ export default function ProfilePage() {
               <Section title="Verificación de identidad">
                 {user && <DeveloperVerificationSection user={user} />}
               </Section>
+
+              {(user?.developer?.disputeLosses ?? 0) > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircle size={18} className="text-red-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">Disputas perdidas</p>
+                    <p className="text-sm text-red-700 mt-0.5">
+                      Tienes {user.developer.disputeLosses} disputa{user.developer.disputeLosses !== 1 ? 's' : ''} resuelta{user.developer.disputeLosses !== 1 ? 's' : ''} en tu contra. Esto puede afectar la confianza de las empresas al revisar tu perfil. Asegúrate de cumplir con tus compromisos.
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
