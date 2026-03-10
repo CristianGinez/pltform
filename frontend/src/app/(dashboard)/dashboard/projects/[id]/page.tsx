@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, Eye, X
+  ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, Eye, X,
+  CheckCircle
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
 
@@ -76,7 +77,7 @@ export default function DashboardProjectDetailPage() {
                 )}
                 <h1 className="text-2xl font-bold text-gray-900 leading-snug">{project.title}</h1>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0 ${
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${
                 project.status === 'OPEN' ? 'bg-green-50 text-green-700' :
                 project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
                 project.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
@@ -151,7 +152,7 @@ export default function DashboardProjectDetailPage() {
         </div>
 
         {/* ── DERECHA: Acciones y Estadísticas ── */}
-        <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+        <div className="w-full lg:w-72 shrink-0 space-y-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Acciones del Proyecto</h3>
             
@@ -198,7 +199,7 @@ export default function DashboardProjectDetailPage() {
 
       {/* ── MODAL DE DETALLE DE PROPUESTA ── */}
       {selectedProposal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-gray-900/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6 bg-gray-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             
             {/* Cabecera Modal */}
