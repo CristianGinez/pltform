@@ -379,31 +379,28 @@ function DisputeDetailModal({ dispute, onClose }: {
 // ─── Dispute card ─────────────────────────────────────────────────────────────
 
 function DisputeCard({ dispute }: { dispute: { id: string; disputeReason?: string | null; disputeOpenedById?: string | null; project: { title: string; company: { name: string } }; milestones: { status: string; amount: number }[] } }) {
-  const [showDetail, setShowDetail] = useState(false);
+  const router = useRouter();
   const submittedCount = dispute.milestones.filter((m) => m.status === 'SUBMITTED').length;
   return (
-    <>
-      <button
-        onClick={() => setShowDetail(true)}
-        className="w-full text-left bg-red-50 border border-red-200 rounded-xl p-4 hover:bg-red-100/50 hover:border-red-300 transition-colors cursor-pointer"
-      >
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div>
-            <p className="font-semibold text-sm text-gray-900">{dispute.project.title}</p>
-            <p className="text-xs text-gray-500">{dispute.project.company.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">En disputa</span>
-            <ChevronRight size={14} className="text-red-400" />
-          </div>
+    <button
+      onClick={() => router.push(`/dashboard/admin/disputes/${dispute.id}`)}
+      className="w-full text-left bg-red-50 border border-red-200 rounded-xl p-4 hover:bg-red-100/50 hover:border-red-300 transition-colors cursor-pointer"
+    >
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <p className="font-semibold text-sm text-gray-900">{dispute.project.title}</p>
+          <p className="text-xs text-gray-500">{dispute.project.company.name}</p>
         </div>
-        {dispute.disputeReason && (
-          <p className="text-xs text-gray-600 line-clamp-2">{dispute.disputeReason}</p>
-        )}
-        <p className="text-xs text-gray-400 mt-2">{submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en SUBMITTED</p>
-      </button>
-      {showDetail && <DisputeDetailModal dispute={dispute} onClose={() => setShowDetail(false)} />}
-    </>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">En disputa</span>
+          <ChevronRight size={14} className="text-red-400" />
+        </div>
+      </div>
+      {dispute.disputeReason && (
+        <p className="text-xs text-gray-600 line-clamp-2">{dispute.disputeReason}</p>
+      )}
+      <p className="text-xs text-gray-400 mt-2">{submittedCount} milestone{submittedCount !== 1 ? 's' : ''} en SUBMITTED · Click para ver detalle</p>
+    </button>
   );
 }
 

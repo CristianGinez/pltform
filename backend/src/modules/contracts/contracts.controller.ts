@@ -21,6 +21,13 @@ export class ContractsController {
     return this.contractsService.getDisputedContracts();
   }
 
+  @Get(':id/messages/admin')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  getMessagesAdmin(@Param('id') id: string) {
+    return this.contractsService.getMessagesAdmin(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contractsService.findById(id, user.id);

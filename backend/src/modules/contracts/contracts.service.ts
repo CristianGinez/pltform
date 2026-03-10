@@ -779,9 +779,10 @@ export class ContractsService {
       await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
     }
 
-    await this.postEvent(contractId, adminId, `Disputa resuelta: ${outcome === 'dev_wins' ? 'a favor del developer' : outcome === 'company_wins' ? 'a favor de la empresa' : 'cancelación mutua'}`, {
+    await this.postEvent(contractId, adminId, `Disputa resuelta: ${outcome === 'dev_wins' ? 'a favor del developer' : outcome === 'company_wins' ? 'a favor de la empresa' : 'cancelación mutua'}${adminComment ? ` — "${adminComment}"` : ''}`, {
       action: 'DISPUTE_RESOLVED',
       outcome,
+      adminComment: adminComment ?? null,
     });
 
     // Notify both parties
@@ -892,6 +893,17 @@ export class ContractsService {
         milestones: { select: { status: true, amount: true } },
       },
       orderBy: { updatedAt: 'asc' },
+    });
+  }
+
+  async getMessagesAdmin(contractId: string) {
+    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
+    if (!contract) throw new NotFoundException('Contrato no encontrado');
+    return this.prisma.contractMessage.findMany({
+      where: { contractId },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+      include: { sender: { select: SENDER_SELECT } },
     });
   }
 

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, Pencil, X, Plus,
-  Star, Github, Globe, MapPin, ChevronRight, ScrollText,
+  Star, Github, Globe, MapPin, ChevronRight, ScrollText, ListChecks,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
@@ -20,7 +20,10 @@ const CATEGORIES = ['Web', 'Mobile', 'E-commerce', 'SaaS', 'API / Backend', 'Dat
 
 // ─── Proposal detail drawer ───────────────────────────────────────────────────
 
+type MilestonePlanItem = { title: string; description?: string; amount: number; order: number };
+
 type ProposalWithDev = Proposal & {
+  milestonePlan?: MilestonePlanItem[] | null;
   developer?: {
     name: string; avatarUrl?: string | null; bio?: string | null; skills: string[];
     rating: number; reviewCount: number; hourlyRate?: number | null;
@@ -149,6 +152,35 @@ function ProposalDetailDrawer({
             </div>
           </div>
 
+          {/* Milestone plan */}
+          {proposal.milestonePlan && Array.isArray(proposal.milestonePlan) && proposal.milestonePlan.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <ListChecks size={14} className="text-primary-600" />
+                <p className="text-xs font-medium text-gray-700">Plan de milestones propuesto</p>
+              </div>
+              <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 space-y-2">
+                {(proposal.milestonePlan as MilestonePlanItem[]).map((m, i) => (
+                  <div key={i} className="flex items-start justify-between gap-3 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-gray-400 text-xs mr-1">{i + 1}.</span>
+                      <span className="font-medium text-gray-800">{m.title}</span>
+                      {m.description && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{m.description}</p>}
+                    </div>
+                    <span className="text-sm font-semibold text-primary-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-2 border-t border-primary-100 mt-1">
+                  <span className="text-xs text-gray-500">Total propuesto</span>
+                  <span className="text-sm font-bold text-primary-700">
+                    S/ {(proposal.milestonePlan as MilestonePlanItem[]).reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">Si aceptas la propuesta, el contrato usará este plan de milestones.</p>
+            </div>
+          )}
+
           <p className="text-xs text-gray-400">
             Enviada el {new Date(proposal.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
@@ -214,6 +246,8 @@ export default function ProjectDetailPage() {
   } = useForm<ProposalFormData>({ resolver: zodResolver(proposalSchema) });
 
   const submitProposal = useSubmitProposal(id);
+  const [showMilestonePlan, setShowMilestonePlan] = useState(false);
+  const [planMilestones, setPlanMilestones] = useState<MilestonePlanItem[]>([{ title: '', description: '', amount: 0, order: 1 }]);
 
   const {
     register: regEdit,
@@ -246,13 +280,20 @@ export default function ProjectDetailPage() {
     setSkillInput('');
   };
 
-  const handleSubmitProposal = (data: ProposalFormData) =>
-    submitProposal.mutateAsync(data).then(() => reset()).catch((err: unknown) => {
+  const handleSubmitProposal = (data: ProposalFormData) => {
+    const validPlan = showMilestonePlan
+      ? planMilestones.filter((m) => m.title.trim() && m.amount > 0).map((m, i) => ({ ...m, order: i + 1 }))
+      : undefined;
+    return submitProposal.mutateAsync({
+      ...data,
+      milestonePlan: validPlan && validPlan.length > 0 ? validPlan : undefined,
+    }).then(() => reset()).catch((err: unknown) => {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'Error al enviar la propuesta';
       setError('root', { message: msg });
     });
+  };
 
   if (isLoading) {
     return (
@@ -597,6 +638,58 @@ export default function ProjectDetailPage() {
                       placeholder="30" />
                     {errors.timeline && <p className="mt-1 text-xs text-red-500">{errors.timeline.message}</p>}
                   </div>
+                </div>
+
+                {/* Optional: milestone plan */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowMilestonePlan(!showMilestonePlan)}
+                    className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+                  >
+                    <ListChecks size={14} />
+                    {showMilestonePlan ? 'Quitar plan de milestones' : '+ Proponer plan de milestones (opcional)'}
+                  </button>
+                  {showMilestonePlan && (
+                    <div className="mt-3 border border-primary-100 bg-primary-50/30 rounded-xl p-4 space-y-3">
+                      <p className="text-xs text-gray-500">Define las etapas y montos del proyecto. Si la empresa acepta, se usará este plan.</p>
+                      {planMilestones.map((m, i) => (
+                        <div key={i} className="border border-gray-200 bg-white rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-500">Milestone {i + 1}</span>
+                            {planMilestones.length > 1 && (
+                              <button type="button" onClick={() => setPlanMilestones(planMilestones.filter((_, idx) => idx !== i))}
+                                className="text-red-400 hover:text-red-600 cursor-pointer"><X size={13} /></button>
+                            )}
+                          </div>
+                          <input type="text" placeholder="Título *" value={m.title}
+                            onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <input type="text" placeholder="Descripción (opcional)" value={m.description}
+                            onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500 shrink-0">S/</span>
+                            <input type="number" min="1" placeholder="Monto *" value={m.amount || ''}
+                              onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, amount: Number(e.target.value) } : x))}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button"
+                        onClick={() => setPlanMilestones([...planMilestones, { title: '', description: '', amount: 0, order: planMilestones.length + 1 }])}
+                        className="w-full py-1.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-primary-300 hover:text-primary-500 flex items-center justify-center gap-1 cursor-pointer">
+                        <Plus size={13} />Agregar milestone
+                      </button>
+                      <div className="flex justify-between text-sm font-semibold text-gray-700 pt-1">
+                        <span>Total propuesto</span>
+                        <span>S/ {planMilestones.reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {errors.root && (

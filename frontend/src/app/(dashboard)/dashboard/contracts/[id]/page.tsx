@@ -402,12 +402,25 @@ function ProposeModal({
               />
             </div>
           )}
-          {(action === 'PROPOSE_START' || action === 'PROPOSE_APPROVE') && (
-            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
-              {action === 'PROPOSE_START'
-                ? 'Se enviará una propuesta para iniciar el desarrollo de este milestone. El cliente podrá aceptar, rechazar o hacer una contraoferta.'
-                : 'Se enviará una propuesta de aprobación al developer. Podrá confirmar o responder.'}
-            </p>
+          {action === 'PROPOSE_START' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">¿Cómo vas a abordar este milestone? <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <textarea
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+                rows={3} placeholder="Describe brevemente cómo lo vas a implementar, tecnologías, pasos..."
+                value={note} onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          )}
+          {action === 'PROPOSE_APPROVE' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Comentario para el developer <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <textarea
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+                rows={3} placeholder="¡Buen trabajo! Puedes añadir un comentario o feedback..."
+                value={note} onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
           )}
 
           <div className="flex gap-2 pt-1">
@@ -555,7 +568,16 @@ function ProposalCard({
           {!isOwn && status === 'PENDING' && (
             <div className="px-4 pb-3 flex gap-2">
               <button
-                onClick={() => respond.mutate({ messageId: msg.id, response: 'accept' })}
+                onClick={() => respond.mutate(
+                  { messageId: msg.id, response: 'accept' },
+                  {
+                    onSuccess: () => {
+                      if ((action === 'PROPOSE_SUBMIT' || action === 'PROPOSE_MILESTONE_PLAN') && onGoToMilestones) {
+                        onGoToMilestones();
+                      }
+                    },
+                  }
+                )}
                 disabled={respond.isPending}
                 className="flex-1 py-2 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors cursor-pointer"
               >
@@ -684,6 +706,11 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
                 <ExternalLink size={10} />Ver entregable
               </a>
             )}
+            {action === 'DISPUTE_RESOLVED' && (msg.metadata as { adminComment?: string })?.adminComment && (
+              <p className="mt-1 opacity-80">
+                Admin: &ldquo;{(msg.metadata as { adminComment?: string }).adminComment}&rdquo;
+              </p>
+            )}
             <p className="text-[10px] opacity-60 mt-0.5">
               {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -767,11 +794,12 @@ function DisputeModal({ contractId, onClose }: { contractId: string; onClose: ()
 
 // ─── Tab: Chat ────────────────────────────────────────────────────────────────
 
-function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: {
+function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones, locked }: {
   contractId: string;
   messages: ContractMessage[];
   isLoadingMessages: boolean;
   onGoToMilestones?: () => void;
+  locked?: boolean;
 }) {
   const { user } = useAuthStore();
   const sendMessage = useSendMessage(contractId);
@@ -784,7 +812,7 @@ function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: 
   }, [messages]);
 
   const handleSend = () => {
-    if (!text.trim() || sendMessage.isPending) return;
+    if (!text.trim() || sendMessage.isPending || locked) return;
     sendMessage.mutate(text, { onSuccess: () => setText('') });
   };
 
@@ -808,20 +836,28 @@ function ChatTab({ contractId, messages, isLoadingMessages, onGoToMilestones }: 
         ))}
         <div ref={bottomRef} />
       </div>
-      <div className="border-t border-gray-100 p-3 flex gap-2 items-end bg-white">
-        <textarea
-          className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[40px] max-h-24"
-          rows={1} placeholder="Escribe un mensaje... (Enter para enviar)"
-          value={text} onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-        />
-        <button
-          onClick={handleSend} disabled={!text.trim() || sendMessage.isPending}
-          className="shrink-0 p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
-        >
-          <Send size={16} />
-        </button>
-      </div>
+      {locked ? (
+        <div className="border-t border-gray-100 p-3 text-center">
+          <p className="text-xs text-gray-400 flex items-center justify-center gap-1.5">
+            <Lock size={12} />Chat bloqueado — el contrato ya no está activo
+          </p>
+        </div>
+      ) : (
+        <div className="border-t border-gray-100 p-3 flex gap-2 items-end bg-white">
+          <textarea
+            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[40px] max-h-24"
+            rows={1} placeholder="Escribe un mensaje... (Enter para enviar)"
+            value={text} onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          />
+          <button
+            onClick={handleSend} disabled={!text.trim() || sendMessage.isPending}
+            className="shrink-0 p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1613,9 +1649,15 @@ export default function ContractDetailPage() {
             <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
-              <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado por mutuo acuerdo.</p>
-              <div className="flex gap-2 mt-3">
+              <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado. Puedes republicar el proyecto o editarlo antes de publicar.</p>
+              <div className="flex flex-wrap gap-2 mt-3">
                 <RepublishButton projectId={contract.project.id} />
+                <Link
+                  href={`/dashboard/projects/${contract.project.id}`}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Editar proyecto
+                </Link>
               </div>
             </div>
           </div>
@@ -1626,7 +1668,30 @@ export default function ContractDetailPage() {
           <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
-            <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado por mutuo acuerdo.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Dispute resolved banner — show whenever there's a comment from admin */}
+      {(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment && (
+        <div className={`mb-4 rounded-xl p-4 flex items-start gap-3 ${contract.status === 'COMPLETED' ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+          <CheckCircle size={18} className={`mt-0.5 shrink-0 ${contract.status === 'COMPLETED' ? 'text-green-500' : 'text-blue-500'}`} />
+          <div className="flex-1">
+            <p className={`text-sm font-semibold ${contract.status === 'COMPLETED' ? 'text-green-800' : 'text-blue-800'}`}>
+              Disputa resuelta por el administrador
+            </p>
+            <p className={`text-xs mt-0.5 ${contract.status === 'COMPLETED' ? 'text-green-700' : 'text-blue-700'}`}>
+              &ldquo;{(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}&rdquo;
+            </p>
+            {contract.status === 'COMPLETED' && !myReview && (
+              <button
+                onClick={() => setShowRateOverlay(true)}
+                className="mt-2 text-xs text-green-700 underline hover:text-green-900 cursor-pointer"
+              >
+                Calificar a {otherName} →
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1720,6 +1785,7 @@ export default function ContractDetailPage() {
                   messages={messages}
                   isLoadingMessages={isLoadingMessages}
                   onGoToMilestones={() => switchTab('milestones')}
+                  locked={contract.status !== 'ACTIVE'}
                 />
               )}
               {tab === 'milestones' && (
@@ -1734,7 +1800,7 @@ export default function ContractDetailPage() {
                 <ResumenTab
                   contract={contract}
                   myReview={myReview}
-                  isCompleted={contract.status === 'COMPLETED'}
+                  isCompleted={contract.status === 'COMPLETED' || !!(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}
                   otherName={otherName}
                   onRate={() => setShowRateOverlay(true)}
                 />
@@ -1756,19 +1822,6 @@ export default function ContractDetailPage() {
 
       </div>
 
-      {/* Dispute resolved banner */}
-      {(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment && contract.status === 'COMPLETED' && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
-          <CheckCircle size={18} className="text-green-500 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-green-800">Disputa resuelta a tu favor</p>
-            <p className="text-xs text-green-700 mt-0.5">
-              El administrador resolvió la disputa: &ldquo;{(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}&rdquo;
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Completion overlay (auto on completion, or manual from Resumen tab) */}
       {contract.status === 'COMPLETED' && (
         <CompletionOverlay
@@ -1777,7 +1830,7 @@ export default function ContractDetailPage() {
           alreadyReviewed={!!myReview}
         />
       )}
-      {showRateOverlay && contract.status === 'COMPLETED' && !myReview && (
+      {showRateOverlay && (contract.status === 'COMPLETED' || !!(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment) && !myReview && (
         <CompletionOverlay
           key="manual-rate"
           contract={contract}

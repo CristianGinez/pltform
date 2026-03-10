@@ -33,15 +33,16 @@ export class ProposalsService {
       throw new ForbiddenException('El proyecto no está disponible para postulaciones');
     }
 
-    const proposal = await this.prisma.proposal.create({
-      data: {
-        coverLetter: dto.coverLetter,
-        budget: dto.budget,
-        timeline: dto.timeline,
-        projectId,
-        developerId: developer.id,
-      },
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const proposalData: any = {
+      coverLetter: dto.coverLetter,
+      budget: dto.budget,
+      timeline: dto.timeline,
+      projectId,
+      developerId: developer.id,
+      ...(dto.milestonePlan ? { milestonePlan: dto.milestonePlan } : {}),
+    };
+    const proposal = await this.prisma.proposal.create({ data: proposalData });
 
     await this.notifications.create({
       userId: project.company.userId,
@@ -106,24 +107,32 @@ export class ProposalsService {
       data: { status: 'IN_PROGRESS' },
     });
 
-    // Create contract with default milestone roadmap
+    // Create contract — use proposal's milestonePlan if provided, otherwise use default roadmap
     const b = Number(proposal.budget);
-    const m1 = Math.round(b * 0.15);
-    const m2 = Math.round(b * 0.20);
-    const m3 = Math.round(b * 0.30);
-    const m4 = Math.round(b * 0.20);
-    const m5 = b - m1 - m2 - m3 - m4;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const milestonePlan = (proposal as any).milestonePlan as Array<{ title: string; description?: string; amount: number; order: number }> | null;
+    let milestonesData: Array<{ title: string; description?: string; amount: number; order: number }>;
+    if (milestonePlan && Array.isArray(milestonePlan) && milestonePlan.length > 0) {
+      milestonesData = milestonePlan;
+    } else {
+      const m1 = Math.round(b * 0.15);
+      const m2 = Math.round(b * 0.20);
+      const m3 = Math.round(b * 0.30);
+      const m4 = Math.round(b * 0.20);
+      const m5 = b - m1 - m2 - m3 - m4;
+      milestonesData = [
+        { title: 'Planificación y diseño',  amount: m1, order: 1 },
+        { title: 'Desarrollo inicial',       amount: m2, order: 2 },
+        { title: 'Desarrollo principal',     amount: m3, order: 3 },
+        { title: 'Testing y correcciones',   amount: m4, order: 4 },
+        { title: 'Entrega final',            amount: m5, order: 5 },
+      ];
+    }
     const contract = await this.prisma.contract.create({
       data: {
         projectId: proposal.projectId,
         milestones: {
-          create: [
-            { title: 'Planificación y diseño',  amount: m1, order: 1 },
-            { title: 'Desarrollo inicial',       amount: m2, order: 2 },
-            { title: 'Desarrollo principal',     amount: m3, order: 3 },
-            { title: 'Testing y correcciones',   amount: m4, order: 4 },
-            { title: 'Entrega final',            amount: m5, order: 5 },
-          ],
+          create: milestonesData,
         },
       },
     });
