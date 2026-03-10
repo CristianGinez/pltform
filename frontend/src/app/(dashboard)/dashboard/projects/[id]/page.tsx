@@ -246,8 +246,10 @@ export default function ProjectDetailPage() {
   } = useForm<ProposalFormData>({ resolver: zodResolver(proposalSchema) });
 
   const submitProposal = useSubmitProposal(id);
-  const [showMilestonePlan, setShowMilestonePlan] = useState(false);
-  const [planMilestones, setPlanMilestones] = useState<MilestonePlanItem[]>([{ title: '', description: '', amount: 0, order: 1 }]);
+  const [showMilestonePlan, setShowMilestonePlan] = useState(true);
+  const [planMilestones, setPlanMilestones] = useState<MilestonePlanItem[]>([
+    { title: '', description: '', amount: 0, order: 1 },
+  ]);
 
   const {
     register: regEdit,
@@ -640,39 +642,47 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
 
-                {/* Optional: milestone plan */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setShowMilestonePlan(!showMilestonePlan)}
-                    className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
-                  >
-                    <ListChecks size={14} />
-                    {showMilestonePlan ? 'Quitar plan de milestones' : '+ Proponer plan de milestones (opcional)'}
-                  </button>
+                {/* Milestone plan — shown by default */}
+                <div className="border border-primary-200 bg-primary-50/40 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ListChecks size={15} className="text-primary-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Plan de milestones</p>
+                        <p className="text-xs text-gray-500">Define cómo vas a dividir el trabajo y cuánto cobra cada etapa</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMilestonePlan(!showMilestonePlan)}
+                      className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer underline"
+                    >
+                      {showMilestonePlan ? 'Ocultar' : 'Mostrar'}
+                    </button>
+                  </div>
+
                   {showMilestonePlan && (
-                    <div className="mt-3 border border-primary-100 bg-primary-50/30 rounded-xl p-4 space-y-3">
-                      <p className="text-xs text-gray-500">Define las etapas y montos del proyecto. Si la empresa acepta, se usará este plan.</p>
+                    <>
                       {planMilestones.map((m, i) => (
                         <div key={i} className="border border-gray-200 bg-white rounded-xl p-3 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-gray-500">Milestone {i + 1}</span>
+                            <span className="text-xs font-semibold text-gray-500">Etapa {i + 1}</span>
                             {planMilestones.length > 1 && (
                               <button type="button" onClick={() => setPlanMilestones(planMilestones.filter((_, idx) => idx !== i))}
                                 className="text-red-400 hover:text-red-600 cursor-pointer"><X size={13} /></button>
                             )}
                           </div>
-                          <input type="text" placeholder="Título *" value={m.title}
+                          <input type="text" placeholder="Título de la etapa *" value={m.title}
                             onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
                             className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                           />
-                          <input type="text" placeholder="Descripción (opcional)" value={m.description}
+                          <input type="text" placeholder="¿Qué incluye esta etapa? (opcional)" value={m.description}
                             onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))}
                             className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                           />
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-500 shrink-0">S/</span>
-                            <input type="number" min="1" placeholder="Monto *" value={m.amount || ''}
+                            <input type="number" min="1" placeholder="Monto de esta etapa *" value={m.amount || ''}
                               onChange={(e) => setPlanMilestones(planMilestones.map((x, idx) => idx === i ? { ...x, amount: Number(e.target.value) } : x))}
                               className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                             />
@@ -681,14 +691,16 @@ export default function ProjectDetailPage() {
                       ))}
                       <button type="button"
                         onClick={() => setPlanMilestones([...planMilestones, { title: '', description: '', amount: 0, order: planMilestones.length + 1 }])}
-                        className="w-full py-1.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-primary-300 hover:text-primary-500 flex items-center justify-center gap-1 cursor-pointer">
-                        <Plus size={13} />Agregar milestone
+                        className="w-full py-2 border-2 border-dashed border-primary-200 rounded-xl text-sm text-primary-500 hover:border-primary-400 hover:bg-primary-50 flex items-center justify-center gap-1 cursor-pointer transition-colors">
+                        <Plus size={13} />Agregar etapa
                       </button>
-                      <div className="flex justify-between text-sm font-semibold text-gray-700 pt-1">
-                        <span>Total propuesto</span>
-                        <span>S/ {planMilestones.reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}</span>
-                      </div>
-                    </div>
+                      {planMilestones.some((m) => m.amount > 0) && (
+                        <div className="flex justify-between items-center text-sm font-semibold text-gray-800 pt-1 border-t border-primary-100">
+                          <span>Total propuesto</span>
+                          <span className="text-primary-700">S/ {planMilestones.reduce((s, m) => s + Number(m.amount), 0).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
