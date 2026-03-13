@@ -184,7 +184,7 @@ export default function CompanyProfilePage() {
                   <Building2 size={15} className="text-blue-600" />
                   <h2 className="font-semibold text-gray-800 text-sm">Sobre la empresa</h2>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{company.description}</p>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{company.description}</p>
               </div>
             )}
 

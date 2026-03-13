@@ -78,7 +78,7 @@ export default function ProposalsPage() {
                     </p>
                   )}
 
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">{proposal.coverLetter}</p>
+                  <p className="text-sm text-gray-500 mt-2 line-clamp-2 [overflow-wrap:anywhere]">{proposal.coverLetter}</p>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-400">
                     <span>Presupuesto: <span className="text-gray-700">S/ {Number(proposal.budget).toLocaleString()}</span></span>

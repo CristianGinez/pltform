@@ -559,7 +559,7 @@ function ProposalCard({
           {/* Body */}
           <div className="px-4 py-3">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-medium text-gray-800 break-words min-w-0 flex-1">{meta?.milestoneTitle}</p>
+              <p className="text-sm font-medium text-gray-800 [overflow-wrap:anywhere] min-w-0 flex-1">{meta?.milestoneTitle}</p>
               {onGoToMilestones && (
                 <button onClick={onGoToMilestones}
                   className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 cursor-pointer">
@@ -568,7 +568,7 @@ function ProposalCard({
               )}
             </div>
             {meta?.deliveryNote && (
-              <p className="text-xs text-gray-500 mt-1 break-words"><span className="font-medium">Nota:</span> {meta.deliveryNote}</p>
+              <p className="text-xs text-gray-500 mt-1 [overflow-wrap:anywhere]"><span className="font-medium">Nota:</span> {meta.deliveryNote}</p>
             )}
             {meta?.deliveryLink && (
               <a href={meta.deliveryLink} target="_blank" rel="noopener noreferrer"
@@ -577,13 +577,13 @@ function ProposalCard({
               </a>
             )}
             {meta?.reason && (
-              <p className="text-xs text-gray-500 mt-1 break-words"><span className="font-medium">Motivo:</span> {meta.reason}</p>
+              <p className="text-xs text-gray-500 mt-1 [overflow-wrap:anywhere]"><span className="font-medium">Motivo:</span> {meta.reason}</p>
             )}
             {action === 'PROPOSE_MILESTONE_PLAN' && meta?.milestones && (
               <div className="mt-2 space-y-1">
                 {(meta.milestones as Array<{title: string; amount: number; description?: string}>).map((m, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 text-xs text-gray-600 py-0.5">
-                    <span className="break-words min-w-0 flex-1">{i+1}. {m.title}</span>
+                    <span className="[overflow-wrap:anywhere] min-w-0 flex-1">{i+1}. {m.title}</span>
                     <span className="font-medium text-gray-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
                   </div>
                 ))}
@@ -734,7 +734,7 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
         <div className={`flex items-start gap-2 px-4 py-2.5 rounded-xl border text-xs max-w-xs w-full ${colorClass}`}>
           <EventIcon action={action} />
           <div className="min-w-0 flex-1">
-            <p className="font-medium leading-snug break-words">{msg.content}</p>
+            <p className="font-medium leading-snug [overflow-wrap:anywhere]">{msg.content}</p>
             {msg.metadata?.deliveryLink && (
               <a href={msg.metadata.deliveryLink} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary-600 hover:underline mt-0.5">
@@ -775,7 +775,7 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
           </span>
           {isOwn && <span className="text-xs font-medium text-gray-500 truncate max-w-[120px]">{name}</span>}
         </div>
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] ${
           isOwn ? 'bg-primary-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'
         }`}>
           {msg.content}
@@ -1053,7 +1053,7 @@ function MilestoneStep({
 
           {/* Header */}
           <div className="flex items-start justify-between gap-2 mb-1">
-            <p className={`font-semibold text-sm min-w-0 flex-1 break-words ${isDone ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+            <p className={`font-semibold text-sm min-w-0 flex-1 [overflow-wrap:anywhere] ${isDone ? 'line-through text-gray-500' : 'text-gray-900'}`}>
               {milestone.title}
             </p>
             <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -1066,7 +1066,7 @@ function MilestoneStep({
 
           {/* Description */}
           {milestone.description && (
-            <p className="text-xs text-gray-500 mb-2 leading-relaxed break-words">{milestone.description}</p>
+            <p className="text-xs text-gray-500 mb-2 leading-relaxed [overflow-wrap:anywhere]">{milestone.description}</p>
           )}
 
           {/* Dates row */}
@@ -1083,7 +1083,7 @@ function MilestoneStep({
             (milestone.deliveryNote || milestone.deliveryLink) && (
               <div className="bg-white/80 rounded-lg p-3 mb-3 text-xs border border-white/60">
                 {milestone.deliveryNote && (
-                  <p className="text-gray-700 mb-1 break-words"><span className="font-medium">Nota de entrega:</span> {milestone.deliveryNote}</p>
+                  <p className="text-gray-700 mb-1 [overflow-wrap:anywhere]"><span className="font-medium">Nota de entrega:</span> {milestone.deliveryNote}</p>
                 )}
                 {milestone.deliveryLink && (
                   <a href={milestone.deliveryLink} target="_blank" rel="noopener noreferrer"

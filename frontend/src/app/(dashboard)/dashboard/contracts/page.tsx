@@ -84,8 +84,8 @@ export default function ContractsPage() {
             <Link key={project.id} href={project.contract ? `/dashboard/contracts/${project.contract.id}` : '#'} className="block">
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">{project.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-900 [overflow-wrap:anywhere]">{project.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       Presupuesto: S/ {Number(project.budget).toLocaleString()}
                     </p>
@@ -108,7 +108,7 @@ export default function ContractsPage() {
                       {project.contract.milestones.map((m) => (
                         <div key={m.id} className="flex items-center gap-2 text-sm">
                           {MILESTONE_ICONS[m.status] ?? <Circle size={14} />}
-                          <span className="flex-1 text-gray-700">{m.title}</span>
+                          <span className="flex-1 min-w-0 text-gray-700 [overflow-wrap:anywhere]">{m.title}</span>
                           <span className="text-gray-400 text-xs">S/ {Number(m.amount).toLocaleString()}</span>
                         </div>
                       ))}
@@ -136,10 +136,10 @@ export default function ContractsPage() {
               <Link key={proposal.id} href={project?.contract ? `/dashboard/contracts/${project.contract.id}` : '#'} className="block">
                 <div className="bg-white rounded-xl border border-gray-100 p-6">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-gray-900">{project?.title ?? 'Proyecto'}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 [overflow-wrap:anywhere]">{project?.title ?? 'Proyecto'}</p>
                       {project?.company && (
-                        <p className="text-xs text-gray-400 mt-0.5">{project.company.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{project.company.name}</p>
                       )}
                       <p className="text-xs text-gray-500 mt-1">
                         Acordado: <span className="font-medium">S/ {Number(proposal.budget).toLocaleString()}</span>

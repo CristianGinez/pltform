@@ -205,7 +205,7 @@ export default function DeveloperProfilePage() {
             {/* Bio */}
             {dev.bio && (
               <Section title="Sobre mí" icon={Globe}>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{dev.bio}</p>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{dev.bio}</p>
               </Section>
             )}
 

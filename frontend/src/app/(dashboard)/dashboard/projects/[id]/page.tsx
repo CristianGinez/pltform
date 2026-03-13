@@ -112,7 +112,7 @@ export default function DashboardProjectDetailPage() {
 
             <div>
               <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción del proyecto</h2>
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{project.description}</p>
             </div>
           </div>
 
