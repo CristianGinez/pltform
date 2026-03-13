@@ -17,7 +17,7 @@ export function useMyProposals() {
 export function useSubmitProposal(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: ProposalFormData & { milestonePlan?: Array<{ title: string; description?: string; amount: number; order: number }> }) =>
+    mutationFn: (data: Omit<ProposalFormData, 'milestonePlan'> & { milestonePlan?: Array<{ title: string; description?: string; amount: number; order: number }> }) =>
       api.post(`/proposals/project/${projectId}`, data).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['project', projectId] });
