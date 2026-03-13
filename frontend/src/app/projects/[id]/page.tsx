@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
-  Building2, Globe, Calendar, Tag, Send, Star,
+  Building2, Globe, Calendar, Tag, Send, Star, Plus, X, ListChecks,
 } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
@@ -16,13 +17,207 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completado', CANCELLED: 'Cancelado',
 };
 
+type MilestoneDraft = { title: string; description: string; amount: string; order: number };
+
+function ProposalForm({ projectId, projectBudget }: { projectId: string; projectBudget: number }) {
+  const submitProposal = useSubmitProposal(projectId);
+
+  const [coverLetter, setCoverLetter] = useState('');
+  const [budget, setBudget] = useState('');
+  const [timeline, setTimeline] = useState('');
+  const [showPlan, setShowPlan] = useState(true);
+  const [milestones, setMilestones] = useState<MilestoneDraft[]>([
+    { title: '', description: '', amount: '', order: 1 },
+  ]);
+
+  if (submitProposal.isSuccess) {
+    return (
+      <div className="text-center py-8">
+        <CheckCircle size={48} className="text-green-500 mx-auto mb-3" />
+        <p className="font-semibold text-gray-900 text-xl">¡Propuesta enviada!</p>
+        <p className="text-sm text-gray-500 mt-1">La empresa revisará tu propuesta y te contactará pronto.</p>
+        <Link href="/dashboard/proposals" className="mt-4 inline-block text-sm text-primary-600 hover:underline font-medium">
+          Ver mis propuestas →
+        </Link>
+      </div>
+    );
+  }
+
+  const addMilestone = () => {
+    setMilestones([...milestones, { title: '', description: '', amount: '', order: milestones.length + 1 }]);
+  };
+  const removeMilestone = (i: number) => setMilestones(milestones.filter((_, idx) => idx !== i));
+  const updateMilestone = (i: number, field: keyof MilestoneDraft, value: string) =>
+    setMilestones(milestones.map((m, idx) => idx === i ? { ...m, [field]: value } : m));
+
+  const validMilestones = milestones.filter((m) => m.title.trim() && Number(m.amount) > 0);
+  const milestoneTotal = milestones.reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  const milestonesValid = !showPlan || milestones.every((m) => m.title.trim() && Number(m.amount) > 0);
+
+  const canSubmit = coverLetter.trim().length >= 20
+    && Number(budget) > 0
+    && Number(timeline) > 0
+    && milestonesValid;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    const milestonePlan = showPlan && validMilestones.length > 0
+      ? validMilestones.map((m, i) => ({ title: m.title, description: m.description || undefined, amount: Number(m.amount), order: i + 1 }))
+      : undefined;
+    submitProposal.mutate({
+      coverLetter,
+      budget: Number(budget),
+      timeline: Number(timeline),
+      milestonePlan,
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+          Carta de presentación <span className="text-red-400">*</span>
+        </label>
+        <textarea
+          rows={5}
+          placeholder="Preséntate y explica por qué eres la mejor opción para este proyecto. Menciona tu experiencia relevante, enfoque técnico y cómo vas a resolver el problema... (mínimo 20 caracteres)"
+          value={coverLetter}
+          onChange={(e) => setCoverLetter(e.target.value)}
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+        />
+        {coverLetter.length > 0 && coverLetter.length < 20 && (
+          <p className="text-xs text-orange-500 mt-1">{coverLetter.length}/20 caracteres mínimo</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Tu presupuesto (S/) <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S/</span>
+            <input
+              type="number"
+              min="1"
+              placeholder="0"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl pl-8 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          {projectBudget > 0 && (
+            <p className="text-xs text-gray-400 mt-1">Presupuesto del proyecto: S/ {Number(projectBudget).toLocaleString()}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Tiempo estimado (días) <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="number"
+            min="1"
+            placeholder="30"
+            value={timeline}
+            onChange={(e) => setTimeline(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+      </div>
+
+      {/* Milestone plan */}
+      <div className="border border-primary-100 bg-primary-50/40 rounded-xl p-4">
+        <button
+          type="button"
+          onClick={() => setShowPlan(!showPlan)}
+          className="w-full flex items-center justify-between cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <ListChecks size={16} className="text-primary-600" />
+            <span className="text-sm font-semibold text-primary-700">Plan de milestones</span>
+            <span className="text-xs bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full">Recomendado</span>
+          </div>
+          <span className="text-xs text-primary-500">{showPlan ? 'Ocultar ▲' : 'Mostrar ▼'}</span>
+        </button>
+
+        {showPlan && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs text-gray-500 mb-3">
+              Define las etapas del proyecto con sus montos. Esto muestra a la empresa tu plan de trabajo y genera más confianza.
+            </p>
+            {milestones.map((m, i) => (
+              <div key={i} className="bg-white border border-gray-100 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500">Milestone {i + 1}</span>
+                  {milestones.length > 1 && (
+                    <button onClick={() => removeMilestone(i)} className="text-red-400 hover:text-red-600 cursor-pointer">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Título *"
+                  value={m.title}
+                  onChange={(e) => updateMilestone(i, 'title', e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <textarea
+                  placeholder="Descripción (opcional)"
+                  value={m.description}
+                  onChange={(e) => updateMilestone(i, 'description', e.target.value)}
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400 shrink-0">S/</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Monto *"
+                    value={m.amount}
+                    onChange={(e) => updateMilestone(i, 'amount', e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={addMilestone}
+              className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors cursor-pointer flex items-center justify-center gap-1"
+            >
+              <Plus size={13} />Agregar milestone
+            </button>
+
+            {milestones.length > 0 && (
+              <div className="flex justify-between text-xs text-gray-500 px-1">
+                <span>Total del plan</span>
+                <span className="font-semibold text-gray-700">S/ {milestoneTotal.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={!canSubmit || submitProposal.isPending}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      >
+        <Send size={16} />
+        {submitProposal.isPending ? 'Enviando propuesta...' : 'Enviar propuesta'}
+      </button>
+    </div>
+  );
+}
+
 export default function PublicProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
 
   const { data: project, isLoading } = useProject(id);
-  const submitProposal = useSubmitProposal(id); // Para verificar si ya envió propuesta (isSuccess)
 
   if (isLoading) {
     return (
@@ -91,7 +286,7 @@ export default function PublicProjectDetailPage() {
               <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-5">
                 <span className="flex items-center gap-1.5 font-semibold text-gray-800">
                   <DollarSign size={15} className="text-gray-400" />
-                  ${Number(project.budget).toLocaleString()}
+                  S/ {Number(project.budget).toLocaleString()}
                 </span>
                 {project.deadline && (
                   <span className="flex items-center gap-1.5">
@@ -121,32 +316,14 @@ export default function PublicProjectDetailPage() {
               </div>
             </div>
 
-            {/* --- SECCIÓN PARA POSTULAR (LIMPIA) --- */}
+            {/* --- SECCIÓN PARA POSTULAR --- */}
             {isOpen && isDeveloper && (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                {submitProposal.isSuccess ? (
-                  <div className="text-center py-6">
-                    <CheckCircle size={44} className="text-green-500 mx-auto mb-3" />
-                    <p className="font-semibold text-gray-900 text-lg">¡Propuesta enviada!</p>
-                    <p className="text-sm text-gray-500 mt-1">La empresa revisará tu propuesta pronto.</p>
-                    <Link href="/dashboard/proposals" className="mt-4 inline-block text-sm text-primary-600 hover:underline">
-                      Ver mis propuestas →
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-gray-900 text-lg">¿Te interesa este proyecto?</p>
-                      <p className="text-sm text-gray-500 mt-1">Crea una propuesta detallada, define tus tiempos y elabora un plan de hitos personalizados para la empresa.</p>
-                    </div>
-                    <Link
-                      href={`/dashboard/projects/${project.id}/apply`}
-                      className="flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
-                    >
-                      <Send size={16} /> Armar Propuesta Oficial
-                    </Link>
-                  </div>
-                )}
+                <div className="mb-5">
+                  <h2 className="text-lg font-bold text-gray-900">Enviar propuesta</h2>
+                  <p className="text-sm text-gray-500 mt-1">Presenta tu candidatura con un plan detallado para aumentar tus posibilidades de ser seleccionado.</p>
+                </div>
+                <ProposalForm projectId={project.id} projectBudget={Number(project.budget)} />
               </div>
             )}
 
@@ -256,7 +433,7 @@ export default function PublicProjectDetailPage() {
               </div>
               <div className="flex items-center justify-between text-sm mt-2">
                 <span className="text-gray-500 flex items-center gap-1.5"><DollarSign size={13} /> Presupuesto</span>
-                <span className="font-bold text-gray-900">${Number(project.budget).toLocaleString()}</span>
+                <span className="font-bold text-gray-900">S/ {Number(project.budget).toLocaleString()}</span>
               </div>
             </div>
           </div>

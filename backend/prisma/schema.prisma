@@ -211,6 +211,7 @@ model Contract {
   disputeReason            String?
   disputeOpenedById        String?
   disputeResolvedComment   String?
+  disputeOutcome           String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }

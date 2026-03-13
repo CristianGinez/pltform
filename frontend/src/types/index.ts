@@ -119,6 +119,7 @@ export interface Contract {
   disputeReason?: string;
   disputeOpenedById?: string;
   disputeResolvedComment?: string;
+  disputeOutcome?: 'dev_wins' | 'company_wins' | 'mutual';
   createdAt: string;
 }
 

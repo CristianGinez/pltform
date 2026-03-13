@@ -90,6 +90,22 @@ export function useRepublishProject(projectId: string) {
   });
 }
 
+export function useRevertToDraft(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.patch(`/projects/${projectId}/revert-draft`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-projects'] });
+      qc.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success('Proyecto convertido a borrador');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al convertir el proyecto');
+    },
+  });
+}
+
 export function useAcceptProposal(projectId: string, onAccepted?: (contractId: string) => void) {
   const qc = useQueryClient();
   return useMutation({

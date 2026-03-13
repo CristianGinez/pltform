@@ -19,7 +19,7 @@ import {
   useOpenDispute, useProposeCancel, useForceApprove,
   useProposeMilestonePlan,
 } from '@/hooks/use-contracts';
-import { useRepublishProject } from '@/hooks/use-projects';
+import { useRepublishProject, useRevertToDraft } from '@/hooks/use-projects';
 import type { Milestone, MilestoneStatus, ContractMessage, MessageProposalStatus, Contract } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -201,6 +201,41 @@ function RepublishButton({ projectId }: { projectId: string }) {
         className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 cursor-pointer"
       >
         {republish.isPending ? 'Publicando...' : 'Sí, publicar'}
+      </button>
+      <button
+        onClick={() => setConfirmed(false)}
+        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 cursor-pointer"
+      >
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
+// ─── Revert to draft button ───────────────────────────────────────────────────
+
+function RevertToDraftButton({ projectId, onSuccess }: { projectId: string; onSuccess: () => void }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const revert = useRevertToDraft(projectId);
+  if (!confirmed) {
+    return (
+      <button
+        onClick={() => setConfirmed(true)}
+        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1 cursor-pointer"
+      >
+        <Edit3 size={11} />Editar como borrador
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500">¿Convertir a borrador?</span>
+      <button
+        onClick={() => revert.mutate(undefined, { onSuccess })}
+        disabled={revert.isPending}
+        className="text-xs px-3 py-1.5 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-60 cursor-pointer"
+      >
+        {revert.isPending ? 'Procesando...' : 'Sí, editar'}
       </button>
       <button
         onClick={() => setConfirmed(false)}
@@ -1509,6 +1544,17 @@ const CONTRACT_STATUS_COLORS: Record<string, string> = {
   DISPUTED: 'bg-red-50 text-red-700', CANCELLED: 'bg-gray-100 text-gray-600',
 };
 
+function getDisputeStatusLabel(contract: { status: string; disputeOutcome?: string | null }, isCompany: boolean): { label: string; color: string } | null {
+  if (!contract.disputeOutcome) return null;
+  const o = contract.disputeOutcome;
+  if (o === 'mutual') return { label: 'Cancelación mutua', color: 'bg-gray-100 text-gray-600' };
+  const devWins = o === 'dev_wins';
+  const userWins = isCompany ? !devWins : devWins;
+  return userWins
+    ? { label: 'Resuelto a tu favor', color: 'bg-green-50 text-green-700' }
+    : { label: 'Resuelto en tu contra', color: 'bg-red-50 text-red-700' };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -1592,9 +1638,12 @@ export default function ContractDetailPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-bold text-gray-900 text-lg truncate">{project?.title ?? 'Contrato'}</h1>
-            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${CONTRACT_STATUS_COLORS[contract.status] ?? 'bg-gray-100 text-gray-600'}`}>
-              {CONTRACT_STATUS_LABELS[contract.status] ?? contract.status}
-            </span>
+            {(() => {
+              const disputeLabel = getDisputeStatusLabel(contract as { status: string; disputeOutcome?: string | null }, isCompany);
+              const label = disputeLabel?.label ?? CONTRACT_STATUS_LABELS[contract.status] ?? contract.status;
+              const color = disputeLabel?.color ?? CONTRACT_STATUS_COLORS[contract.status] ?? 'bg-gray-100 text-gray-600';
+              return <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${color}`}>{label}</span>;
+            })()}
           </div>
         </div>
         {/* Dispute / Cancel buttons — only for ACTIVE contracts */}
@@ -1649,15 +1698,13 @@ export default function ContractDetailPage() {
             <Ban size={18} className="text-gray-400 mt-0.5 shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-700">Contrato cancelado</p>
-              <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado. Puedes republicar el proyecto o editarlo antes de publicar.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Este contrato fue cancelado. Puedes republicar el proyecto directamente o convertirlo a borrador para editarlo antes de publicar.</p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <RepublishButton projectId={contract.project.id} />
-                <Link
-                  href={`/dashboard/projects/${contract.project.id}`}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Editar proyecto
-                </Link>
+                <RevertToDraftButton
+                  projectId={contract.project.id}
+                  onSuccess={() => router.push(`/dashboard/projects/${contract.project!.id}`)}
+                />
               </div>
             </div>
           </div>
@@ -1673,27 +1720,41 @@ export default function ContractDetailPage() {
         </div>
       )}
 
-      {/* Dispute resolved banner — show whenever there's a comment from admin */}
-      {(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment && (
-        <div className={`mb-4 rounded-xl p-4 flex items-start gap-3 ${contract.status === 'COMPLETED' ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
-          <CheckCircle size={18} className={`mt-0.5 shrink-0 ${contract.status === 'COMPLETED' ? 'text-green-500' : 'text-blue-500'}`} />
-          <div className="flex-1">
-            <p className={`text-sm font-semibold ${contract.status === 'COMPLETED' ? 'text-green-800' : 'text-blue-800'}`}>
-              Disputa resuelta por el administrador
-            </p>
-            <p className={`text-xs mt-0.5 ${contract.status === 'COMPLETED' ? 'text-green-700' : 'text-blue-700'}`}>
-              &ldquo;{(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}&rdquo;
-            </p>
-            {contract.status === 'COMPLETED' && !myReview && (
-              <button
-                onClick={() => setShowRateOverlay(true)}
-                className="mt-2 text-xs text-green-700 underline hover:text-green-900 cursor-pointer"
-              >
-                Calificar a {otherName} →
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Dispute resolved banner — show whenever there's a dispute outcome */}
+      {(contract as Contract).disputeOutcome && (
+        (() => {
+          const outcome = (contract as Contract).disputeOutcome!;
+          const disputeLabel = getDisputeStatusLabel(contract as { status: string; disputeOutcome?: string | null }, isCompany);
+          const isWinner = disputeLabel?.label === 'Resuelto a tu favor';
+          const isMutual = outcome === 'mutual';
+          const bg = isMutual ? 'bg-gray-50 border-gray-200' : isWinner ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
+          const iconColor = isMutual ? 'text-gray-400' : isWinner ? 'text-green-500' : 'text-orange-400';
+          const titleColor = isMutual ? 'text-gray-700' : isWinner ? 'text-green-800' : 'text-orange-800';
+          const textColor = isMutual ? 'text-gray-600' : isWinner ? 'text-green-700' : 'text-orange-700';
+          const title = isMutual ? 'Contrato cancelado por mutuo acuerdo' : isWinner ? '¡Disputa resuelta a tu favor!' : 'Disputa resuelta en tu contra';
+          const canRate = !myReview && (contract.status === 'COMPLETED' || outcome === 'company_wins');
+          return (
+            <div className={`mb-4 rounded-xl p-4 flex items-start gap-3 border ${bg}`}>
+              <CheckCircle size={18} className={`mt-0.5 shrink-0 ${iconColor}`} />
+              <div className="flex-1">
+                <p className={`text-sm font-semibold ${titleColor}`}>{title}</p>
+                {(contract as Contract).disputeResolvedComment && (
+                  <p className={`text-xs mt-0.5 ${textColor}`}>
+                    Comentario del admin: &ldquo;{(contract as Contract).disputeResolvedComment}&rdquo;
+                  </p>
+                )}
+                {canRate && (
+                  <button
+                    onClick={() => setShowRateOverlay(true)}
+                    className={`mt-2 text-xs underline hover:opacity-70 cursor-pointer ${textColor}`}
+                  >
+                    Calificar a {otherName} →
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()
       )}
 
       {/* Dispute modal */}
@@ -1800,7 +1861,7 @@ export default function ContractDetailPage() {
                 <ResumenTab
                   contract={contract}
                   myReview={myReview}
-                  isCompleted={contract.status === 'COMPLETED' || !!(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment}
+                  isCompleted={contract.status === 'COMPLETED' || !!(contract as Contract).disputeOutcome}
                   otherName={otherName}
                   onRate={() => setShowRateOverlay(true)}
                 />
@@ -1830,7 +1891,7 @@ export default function ContractDetailPage() {
           alreadyReviewed={!!myReview}
         />
       )}
-      {showRateOverlay && (contract.status === 'COMPLETED' || !!(contract as Contract & { disputeResolvedComment?: string }).disputeResolvedComment) && !myReview && (
+      {showRateOverlay && (contract.status === 'COMPLETED' || !!(contract as Contract).disputeOutcome) && !myReview && (
         <CompletionOverlay
           key="manual-rate"
           contract={contract}

@@ -726,10 +726,10 @@ export class ContractsService {
     if (contract.status !== 'DISPUTED')
       throw new BadRequestException('El contrato no está en disputa');
 
-    // Store the admin comment on the contract
+    // Store the admin comment and outcome on the contract
     await this.prisma.contract.update({
       where: { id: contractId },
-      data: { disputeResolvedComment: adminComment ?? null },
+      data: { disputeResolvedComment: adminComment ?? null, disputeOutcome: outcome },
     });
 
     const acceptedProposal = await this.prisma.proposal.findFirst({

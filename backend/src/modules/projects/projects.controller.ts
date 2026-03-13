@@ -70,4 +70,12 @@ export class ProjectsController {
   republish(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.projectsService.republish(id, user.id);
   }
+
+  @Patch(':id/revert-draft')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('COMPANY')
+  revertToDraft(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.projectsService.revertToDraft(id, user.id);
+  }
 }
