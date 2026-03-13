@@ -1791,10 +1791,10 @@ export default function ContractDetailPage() {
       </AnimatePresence>
 
       {/* 3-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-4 items-start">
+      <div className="flex gap-4 items-start">
 
         {/* Left: "Your" card */}
-        <div className="hidden lg:block sticky top-4">
+        <div className="hidden lg:block sticky top-4 w-[200px] shrink-0">
           {isCompany ? (
             companyInfo ? <ProfileCard name={companyInfo.name ?? 'Empresa'} role="company" logoUrl={companyInfo.logoUrl} extra={companyInfo.industry} isCurrentUser profileHref={undefined} />
             : <EmptyProfileCard label="Empresa" />
@@ -1805,7 +1805,7 @@ export default function ContractDetailPage() {
         </div>
 
         {/* Center: Tab bar + content */}
-        <div>
+        <div className="flex-1 min-w-0">
           {/* Tab bar */}
           <div className="flex bg-white rounded-xl border border-gray-100 p-1 mb-4 gap-1">
             {TABS.map((t) => {
@@ -1871,7 +1871,7 @@ export default function ContractDetailPage() {
         </div>
 
         {/* Right: Other party's card */}
-        <div className="hidden lg:block sticky top-4">
+        <div className="hidden lg:block sticky top-4 w-[200px] shrink-0">
           {isCompany ? (
             devInfo ? <ProfileCard name={devInfo.name} role="developer" avatarUrl={devInfo.avatarUrl} rating={devInfo.rating} extra={devInfo.skills?.slice(0,2).join(', ')} profileHref={(devInfo as { id?: string }).id ? `/developers/${(devInfo as { id?: string }).id}` : undefined} />
             : <EmptyProfileCard label="Developer" />
