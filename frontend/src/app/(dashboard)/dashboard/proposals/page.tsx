@@ -63,17 +63,17 @@ export default function ProposalsPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
                       href={`/dashboard/projects/${proposal.projectId}`}
-                      className="font-medium text-gray-900 hover:text-primary-700 transition-colors"
+                      className="font-medium text-gray-900 hover:text-primary-700 transition-colors truncate max-w-xs"
                     >
                       {project?.title ?? 'Proyecto'}
                     </Link>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[proposal.status]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 ${STATUS_COLORS[proposal.status]}`}>
                       {STATUS_LABELS[proposal.status]}
                     </span>
                   </div>
 
                   {project?.company && (
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">
                       {project.company.name}
                     </p>
                   )}

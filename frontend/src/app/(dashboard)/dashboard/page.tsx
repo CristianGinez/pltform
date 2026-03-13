@@ -39,7 +39,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Proyectos totales', value: projects?.length ?? 0 },
             {
@@ -80,9 +80,9 @@ export default function DashboardPage() {
               href={`/dashboard/projects/${p.id}`}
               className="flex items-center justify-between px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0"
             >
-              <div>
-                <p className="text-sm font-medium text-gray-900">{p.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">${p.budget.toLocaleString()}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">S/ {p.budget.toLocaleString()}</p>
               </div>
               <span
                 className={`text-xs px-2 py-1 rounded-full font-medium ${

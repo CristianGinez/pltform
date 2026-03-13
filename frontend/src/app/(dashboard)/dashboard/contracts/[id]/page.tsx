@@ -558,33 +558,33 @@ function ProposalCard({
 
           {/* Body */}
           <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-800">{meta?.milestoneTitle}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium text-gray-800 break-words min-w-0 flex-1">{meta?.milestoneTitle}</p>
               {onGoToMilestones && (
                 <button onClick={onGoToMilestones}
-                  className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 ml-2 cursor-pointer">
+                  className="text-xs text-primary-600 hover:underline flex items-center gap-0.5 shrink-0 cursor-pointer">
                   Ver milestone <ChevronRight size={11} />
                 </button>
               )}
             </div>
             {meta?.deliveryNote && (
-              <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Nota:</span> {meta.deliveryNote}</p>
+              <p className="text-xs text-gray-500 mt-1 break-words"><span className="font-medium">Nota:</span> {meta.deliveryNote}</p>
             )}
             {meta?.deliveryLink && (
               <a href={meta.deliveryLink} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline mt-1">
+                className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline mt-1 break-all">
                 <ExternalLink size={10} />Ver entregable
               </a>
             )}
             {meta?.reason && (
-              <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Motivo:</span> {meta.reason}</p>
+              <p className="text-xs text-gray-500 mt-1 break-words"><span className="font-medium">Motivo:</span> {meta.reason}</p>
             )}
             {action === 'PROPOSE_MILESTONE_PLAN' && meta?.milestones && (
               <div className="mt-2 space-y-1">
                 {(meta.milestones as Array<{title: string; amount: number; description?: string}>).map((m, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs text-gray-600 py-0.5">
-                    <span>{i+1}. {m.title}</span>
-                    <span className="font-medium text-gray-700">S/ {Number(m.amount).toLocaleString()}</span>
+                  <div key={i} className="flex items-center justify-between gap-2 text-xs text-gray-600 py-0.5">
+                    <span className="break-words min-w-0 flex-1">{i+1}. {m.title}</span>
+                    <span className="font-medium text-gray-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs font-semibold text-gray-800 pt-1 border-t border-gray-100 mt-1">
@@ -593,7 +593,7 @@ function ProposalCard({
                 </div>
               </div>
             )}
-            <p className="text-[10px] text-gray-400 mt-2">
+            <p className="text-[10px] text-gray-400 mt-2 truncate">
               {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
               {' · '}por {msg.sender.company?.name ?? msg.sender.developer?.name}
             </p>
@@ -733,8 +733,8 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
       <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
         <div className={`flex items-start gap-2 px-4 py-2.5 rounded-xl border text-xs max-w-xs w-full ${colorClass}`}>
           <EventIcon action={action} />
-          <div className="min-w-0">
-            <p className="font-medium leading-snug">{msg.content}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium leading-snug break-words">{msg.content}</p>
             {msg.metadata?.deliveryLink && (
               <a href={msg.metadata.deliveryLink} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary-600 hover:underline mt-0.5">
@@ -767,15 +767,15 @@ function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }: { msg
 
   return (
     <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[75%] flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
-        <div className="flex items-center gap-1.5 px-1">
-          {!isOwn && <span className="text-xs font-medium text-gray-500">{name}</span>}
-          <span className="text-[10px] text-gray-400">
+      <div className={`max-w-[75%] min-w-0 flex flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
+        <div className="flex items-center gap-1.5 px-1 min-w-0">
+          {!isOwn && <span className="text-xs font-medium text-gray-500 truncate max-w-[120px]">{name}</span>}
+          <span className="text-[10px] text-gray-400 shrink-0">
             {new Date(msg.createdAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          {isOwn && <span className="text-xs font-medium text-gray-500">{name}</span>}
+          {isOwn && <span className="text-xs font-medium text-gray-500 truncate max-w-[120px]">{name}</span>}
         </div>
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap wrap-break-word ${
+        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
           isOwn ? 'bg-primary-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-800 rounded-tl-sm'
         }`}>
           {msg.content}
@@ -1053,20 +1053,20 @@ function MilestoneStep({
 
           {/* Header */}
           <div className="flex items-start justify-between gap-2 mb-1">
-            <p className={`font-semibold text-sm ${isDone ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+            <p className={`font-semibold text-sm min-w-0 flex-1 break-words ${isDone ? 'line-through text-gray-500' : 'text-gray-900'}`}>
               {milestone.title}
             </p>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[milestone.status]}`}>
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${STATUS_COLORS[milestone.status]}`}>
                 {STATUS_LABELS[milestone.status]}
               </span>
-              <span className="text-xs font-bold text-gray-600">S/ {Number(milestone.amount).toLocaleString()}</span>
+              <span className="text-xs font-bold text-gray-600 whitespace-nowrap">S/ {Number(milestone.amount).toLocaleString()}</span>
             </div>
           </div>
 
           {/* Description */}
           {milestone.description && (
-            <p className="text-xs text-gray-500 mb-2 leading-relaxed">{milestone.description}</p>
+            <p className="text-xs text-gray-500 mb-2 leading-relaxed break-words">{milestone.description}</p>
           )}
 
           {/* Dates row */}
@@ -1083,7 +1083,7 @@ function MilestoneStep({
             (milestone.deliveryNote || milestone.deliveryLink) && (
               <div className="bg-white/80 rounded-lg p-3 mb-3 text-xs border border-white/60">
                 {milestone.deliveryNote && (
-                  <p className="text-gray-700 mb-1"><span className="font-medium">Nota de entrega:</span> {milestone.deliveryNote}</p>
+                  <p className="text-gray-700 mb-1 break-words"><span className="font-medium">Nota de entrega:</span> {milestone.deliveryNote}</p>
                 )}
                 {milestone.deliveryLink && (
                   <a href={milestone.deliveryLink} target="_blank" rel="noopener noreferrer"
@@ -1338,8 +1338,8 @@ function ResumenTab({
             <div key={m.id} className="flex items-center gap-3 py-1">
               <MilestoneStatusIcon status={m.status} size={13} />
               <span className="flex-1 text-sm text-gray-700 truncate">{m.title}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[m.status]}`}>{STATUS_LABELS[m.status]}</span>
-              <span className="text-xs font-semibold text-gray-600 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 ${STATUS_COLORS[m.status]}`}>{STATUS_LABELS[m.status]}</span>
+              <span className="text-xs font-semibold text-gray-600 shrink-0 whitespace-nowrap">S/ {Number(m.amount).toLocaleString()}</span>
             </div>
           ))}
         </div>
