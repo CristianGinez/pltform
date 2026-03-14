@@ -128,7 +128,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({ where: { id }, include: { company: true } });
     if (!project) throw new NotFoundException('Proyecto no encontrado');
     if (project.company.userId !== userId) throw new ForbiddenException();
-    if (project.status !== 'CANCELLED') throw new BadRequestException('Solo se pueden convertir a borrador proyectos cancelados');
+    if (!['CANCELLED', 'OPEN'].includes(project.status)) throw new BadRequestException('Solo se pueden convertir a borrador proyectos abiertos o cancelados');
     return this.prisma.project.update({
       where: { id },
       data: { status: 'DRAFT' },
