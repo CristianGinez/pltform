@@ -99,7 +99,7 @@ function CompanyCard({ company }: { company: any }) {
 
 // ─── My Proposal Card (developer view) ────────────────────────────────────────
 
-function MyProposalCard({ prop }: { prop: any }) {
+function MyProposalCard({ prop, projectId }: { prop: any; projectId: string }) {
   const hasPlan = Array.isArray(prop.milestonePlan) && prop.milestonePlan.length > 0;
   const totalPlan = hasPlan
     ? prop.milestonePlan.reduce((s: number, m: any) => s + Number(m.amount ?? 0), 0)
@@ -169,9 +169,19 @@ function MyProposalCard({ prop }: { prop: any }) {
         </div>
       )}
 
-      <p className="text-xs text-gray-400">
-        Enviada el {new Date(prop.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-400">
+          Enviada el {new Date(prop.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+        {prop.status === 'WITHDRAWN' && (
+          <Link
+            href={`/dashboard/projects/${projectId}/apply`}
+            className="text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors flex items-center gap-1"
+          >
+            <Send size={11} />Postular de nuevo
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -774,7 +784,7 @@ export default function DashboardProjectDetailPage() {
           </div>
 
           {/* Developer: my proposal */}
-          {!isCompany && myProposal && <MyProposalCard prop={myProposal} />}
+          {!isCompany && myProposal && <MyProposalCard prop={myProposal} projectId={id} />}
 
           {/* Company: received proposals */}
           {isCompany && project.proposals && project.proposals.length > 0 && (

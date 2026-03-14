@@ -108,16 +108,15 @@ export default function ProposalsPage() {
                 const project = proposal.project as (typeof proposal.project & { company?: { name?: string }; contract?: { id: string } });
                 const contractId = project?.contract?.id;
                 return (
-                  <div key={proposal.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                  <Link key={proposal.id} href={`/dashboard/projects/${proposal.projectId}`}
+                    className="block bg-white rounded-xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-sm transition-all group"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <Link
-                            href={`/dashboard/projects/${proposal.projectId}`}
-                            className="font-medium text-sm text-gray-900 hover:text-primary-700 transition-colors [overflow-wrap:anywhere]"
-                          >
+                          <span className="font-medium text-sm text-gray-900 group-hover:text-primary-700 transition-colors [overflow-wrap:anywhere]">
                             {project?.title ?? 'Proyecto'}
-                          </Link>
+                          </span>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap shrink-0 ${STATUS_COLORS[proposal.status as ProposalStatus]}`}>
                             {TAB_CONFIG[proposal.status as ProposalStatus].label}
                           </span>
@@ -136,7 +135,7 @@ export default function ProposalsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex flex-col items-end gap-2 shrink-0" onClick={(e) => e.preventDefault()}>
                         {proposal.status === 'ACCEPTED' && (
                           <Link
                             href={contractId ? `/dashboard/contracts/${contractId}` : '/dashboard/contracts'}
@@ -147,24 +146,16 @@ export default function ProposalsPage() {
                         )}
                         {proposal.status === 'PENDING' && (
                           <button
-                            onClick={() => withdraw.mutate(proposal.id)}
+                            onClick={(e) => { e.preventDefault(); withdraw.mutate(proposal.id); }}
                             disabled={withdraw.isPending}
                             className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors cursor-pointer"
                           >
                             Retirar
                           </button>
                         )}
-                        {proposal.status === 'WITHDRAWN' && (
-                          <Link
-                            href={`/dashboard/projects/${proposal.projectId}/apply`}
-                            className="text-xs text-primary-600 hover:underline whitespace-nowrap font-medium"
-                          >
-                            Postular de nuevo →
-                          </Link>
-                        )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}
