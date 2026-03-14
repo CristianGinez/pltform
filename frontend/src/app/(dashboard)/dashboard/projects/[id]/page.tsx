@@ -8,6 +8,7 @@ import {
   CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar,
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
+import { useAuthStore } from '@/store/auth.store';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -43,6 +44,134 @@ function Stars({ rating }: { rating?: number }) {
       <Star size={11} className="fill-amber-400 text-amber-400" />
       <span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span>
     </span>
+  );
+}
+
+// ─── Company Card (developer view) ────────────────────────────────────────────
+
+function CompanyCard({ company }: { company: any }) {
+  return (
+    <Link href={`/companies/${company.id}`} className="block group">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:border-primary-200 hover:shadow-md transition-all">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Empresa</p>
+        <div className="flex items-center gap-4">
+          {company.logoUrl ? (
+            <img src={company.logoUrl} alt={company.name} className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-primary-50 text-primary-700 font-bold text-xl flex items-center justify-center shrink-0">
+              {company.name?.charAt(0)?.toUpperCase()}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-gray-900 group-hover:text-primary-700 transition-colors">{company.name}</span>
+              {company.verified && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                  <ShieldCheck size={9} />Verificada
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+              {company.industry && <span>{company.industry}</span>}
+              {company.location && <span>· {company.location}</span>}
+              {company.size && <span>· {company.size}</span>}
+            </div>
+            {company.clientRating > 0 && (
+              <div className="flex items-center gap-1 mt-1">
+                <Star size={11} className="fill-amber-400 text-amber-400" />
+                <span className="text-xs font-semibold text-gray-700">{company.clientRating.toFixed(1)}</span>
+                {company.clientReviewCount > 0 && (
+                  <span className="text-xs text-gray-400">({company.clientReviewCount} reseñas)</span>
+                )}
+              </div>
+            )}
+          </div>
+          <ChevronRight size={15} className="text-gray-300 group-hover:text-primary-400 transition-colors shrink-0" />
+        </div>
+        {company.description && (
+          <p className="text-xs text-gray-500 mt-3 leading-relaxed line-clamp-2">{company.description}</p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ─── My Proposal Card (developer view) ────────────────────────────────────────
+
+function MyProposalCard({ prop }: { prop: any }) {
+  const hasPlan = Array.isArray(prop.milestonePlan) && prop.milestonePlan.length > 0;
+  const totalPlan = hasPlan
+    ? prop.milestonePlan.reduce((s: number, m: any) => s + Number(m.amount ?? 0), 0)
+    : 0;
+
+  const STATUS_CFG: Record<string, { label: string; color: string }> = {
+    PENDING:   { label: 'Pendiente',  color: 'bg-yellow-50 text-yellow-700' },
+    ACCEPTED:  { label: 'Aceptada',   color: 'bg-green-50 text-green-700'  },
+    REJECTED:  { label: 'Rechazada',  color: 'bg-red-50 text-red-600'      },
+    WITHDRAWN: { label: 'Retirada',   color: 'bg-gray-100 text-gray-500'   },
+  };
+  const cfg = STATUS_CFG[prop.status] ?? STATUS_CFG.PENDING;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-bold text-gray-900">Mi propuesta</h3>
+        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cfg.color}`}>{cfg.label}</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-primary-50 rounded-xl p-4 border border-primary-100">
+          <p className="text-xs text-primary-600 font-medium mb-0.5 flex items-center gap-1">
+            <DollarSign size={11} />Presupuesto
+          </p>
+          <p className="text-xl font-bold text-primary-700">S/ {Number(prop.budget).toLocaleString()}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <p className="text-xs text-gray-500 font-medium mb-0.5 flex items-center gap-1">
+            <Calendar size={11} />Plazo
+          </p>
+          <p className="text-xl font-bold text-gray-900">{prop.timeline} días</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Carta de presentación</p>
+        <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {prop.coverLetter}
+        </div>
+      </div>
+
+      {hasPlan && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <Layers size={12} />Plan de milestones
+            </p>
+            <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full">
+              {prop.milestonePlan.length} tareas · S/ {totalPlan.toLocaleString()}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {prop.milestonePlan.map((m: any, i: number) => (
+              <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3">
+                <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-gray-900">{m.title}</p>
+                  {m.description && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{m.description}</p>}
+                </div>
+                <span className="text-sm font-bold text-primary-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-gray-400">
+        Enviada el {new Date(prop.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
+      </p>
+    </div>
   );
 }
 
@@ -302,6 +431,8 @@ function ProposalModal({ prop, projectId, onClose, onAccepted }: {
 export default function DashboardProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isCompany = user?.role === 'COMPANY';
 
   const { data: project, isLoading } = useProject(id);
   const publishMutation = usePublishProject(id);
@@ -324,16 +455,21 @@ export default function DashboardProjectDetailPage() {
     );
   }
 
+  // Developer: find their own proposal
+  const myProposal = !isCompany
+    ? project.proposals?.find((p: any) => p.developer?.userId === user?.id || p.developer?.user?.id === user?.id)
+    : null;
+
   const pendingProposals = project.proposals?.filter((p: any) => p.status === 'PENDING') ?? [];
   const otherProposals = project.proposals?.filter((p: any) => p.status !== 'PENDING') ?? [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
       <button
-        onClick={() => router.push('/dashboard/projects')}
+        onClick={() => router.push(isCompany ? '/dashboard/projects' : '/dashboard/proposals')}
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
       >
-        <ArrowLeft size={15} /> Volver a mis proyectos
+        <ArrowLeft size={15} /> {isCompany ? 'Volver a mis proyectos' : 'Volver a mis propuestas'}
       </button>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -383,8 +519,11 @@ export default function DashboardProjectDetailPage() {
             </div>
           </div>
 
-          {/* Proposals */}
-          {project.proposals && project.proposals.length > 0 && (
+          {/* Developer: my proposal */}
+          {!isCompany && myProposal && <MyProposalCard prop={myProposal} />}
+
+          {/* Company: received proposals */}
+          {isCompany && project.proposals && project.proposals.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -426,45 +565,53 @@ export default function DashboardProjectDetailPage() {
           )}
         </div>
 
-        {/* ── Right: actions + stats ── */}
+        {/* ── Right sidebar ── */}
         <div className="w-full lg:w-64 shrink-0 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Acciones</h3>
-            <div className="space-y-2.5">
-              {project.status === 'DRAFT' && (
-                <>
-                  <button
-                    onClick={() => {
-                      if (confirm('¿Publicar este proyecto? Los developers podrán enviar propuestas.')) publishMutation.mutate();
-                    }}
-                    disabled={publishMutation.isPending}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
-                  >
-                    {publishMutation.isPending
-                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      : <Send size={14} />}
-                    Publicar proyecto
-                  </button>
-                  <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <Edit size={14} /> Editar borrador
-                  </Link>
-                </>
-              )}
-              {project.status === 'IN_PROGRESS' && project.contract && (
-                <Link href={`/dashboard/contracts/${project.contract.id}`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
-                  <PlayCircle size={14} /> Ir al contrato
-                </Link>
-              )}
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Estadísticas</h3>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500 flex items-center gap-1.5"><Users size={14} /> Postulantes</span>
-              <span className="font-bold text-gray-900">{project._count?.proposals ?? project.proposals?.length ?? 0}</span>
-            </div>
-          </div>
+          {/* Developer: company card */}
+          {!isCompany && project.company && <CompanyCard company={project.company} />}
+
+          {/* Company: actions + stats */}
+          {isCompany && (
+            <>
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Acciones</h3>
+                <div className="space-y-2.5">
+                  {project.status === 'DRAFT' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (confirm('¿Publicar este proyecto? Los developers podrán enviar propuestas.')) publishMutation.mutate();
+                        }}
+                        disabled={publishMutation.isPending}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
+                      >
+                        {publishMutation.isPending
+                          ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <Send size={14} />}
+                        Publicar proyecto
+                      </button>
+                      <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Edit size={14} /> Editar borrador
+                      </Link>
+                    </>
+                  )}
+                  {project.status === 'IN_PROGRESS' && project.contract && (
+                    <Link href={`/dashboard/contracts/${project.contract.id}`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+                      <PlayCircle size={14} /> Ir al contrato
+                    </Link>
+                  )}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Estadísticas</h3>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 flex items-center gap-1.5"><Users size={14} /> Postulantes</span>
+                  <span className="font-bold text-gray-900">{project._count?.proposals ?? project.proposals?.length ?? 0}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
