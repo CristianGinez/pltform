@@ -321,6 +321,7 @@ export function ContractDetailPage() {
                   milestones={contract.milestones}
                   contractId={contract.id}
                   isCompany={isCompany}
+                  contractStatus={contract.status}
                   onProposed={() => switchTab('chat')}
                 />
               )}

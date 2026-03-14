@@ -61,10 +61,12 @@ interface MilestoneStepProps {
   contractId: string;
   isCompany: boolean;
   locked: boolean;
+  contractStatus?: string;
   onProposed?: () => void;
 }
 
-export function MilestoneStep({ milestone, index, total, contractId, isCompany, locked, onProposed }: MilestoneStepProps) {
+export function MilestoneStep({ milestone, index, total, contractId, isCompany, locked, contractStatus, onProposed }: MilestoneStepProps) {
+  const contractClosed = contractStatus === 'CANCELLED' || contractStatus === 'DISPUTED';
   const [modal, setModal] = useState<'PROPOSE_START' | 'PROPOSE_SUBMIT' | 'PROPOSE_REVISION' | 'PROPOSE_APPROVE' | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [confirmTesting, setConfirmTesting] = useState(false);
@@ -79,13 +81,13 @@ export function MilestoneStep({ milestone, index, total, contractId, isCompany, 
   const daysSinceSubmission = milestone.submittedAt
     ? Math.floor((Date.now() - new Date(milestone.submittedAt).getTime()) / (1000 * 60 * 60 * 24))
     : null;
-  const canForceApprove = !isCompany && milestone.status === 'SUBMITTED' && daysSinceSubmission !== null && daysSinceSubmission >= 7;
+  const canForceApprove = !isCompany && !contractClosed && milestone.status === 'SUBMITTED' && daysSinceSubmission !== null && daysSinceSubmission >= 7;
   const daysRemaining = !isCompany && milestone.status === 'SUBMITTED' && daysSinceSubmission !== null && daysSinceSubmission < 7
     ? 7 - daysSinceSubmission
     : null;
 
   const devActions: { label: string; icon: React.ReactNode; onClick: () => void; style: string }[] = [];
-  if (!isCompany && !locked) {
+  if (!isCompany && !locked && !contractClosed) {
     if (milestone.status === 'PENDING') {
       devActions.push({ label: 'Proponer inicio', icon: <Rocket size={12} />, onClick: () => setModal('PROPOSE_START'), style: 'bg-blue-600 text-white hover:bg-blue-700' });
     }
@@ -99,7 +101,7 @@ export function MilestoneStep({ milestone, index, total, contractId, isCompany, 
   }
 
   const companyActions: { label: string; icon: React.ReactNode; onClick: () => void; style: string }[] = [];
-  if (isCompany && milestone.status === 'SUBMITTED') {
+  if (isCompany && milestone.status === 'SUBMITTED' && !contractClosed) {
     companyActions.push(
       { label: 'Proponer aprobación', icon: <ThumbsUp size={12} />, onClick: () => setModal('PROPOSE_APPROVE'), style: 'bg-green-600 text-white hover:bg-green-700' },
       { label: 'Pedir revisión', icon: <RotateCcw size={12} />, onClick: () => setModal('PROPOSE_REVISION'), style: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },

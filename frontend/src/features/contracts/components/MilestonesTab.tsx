@@ -12,10 +12,11 @@ interface MilestonesTabProps {
   milestones: Milestone[];
   contractId: string;
   isCompany: boolean;
+  contractStatus?: string;
   onProposed?: () => void;
 }
 
-export function MilestonesTab({ milestones, contractId, isCompany, onProposed }: MilestonesTabProps) {
+export function MilestonesTab({ milestones, contractId, isCompany, contractStatus, onProposed }: MilestonesTabProps) {
   const done = milestones.filter((m) => m.status === 'PAID').length;
   const hasStarted = milestones.some((m) => ['IN_PROGRESS', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED'].includes(m.status));
   const rawPct = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
@@ -93,6 +94,7 @@ export function MilestonesTab({ milestones, contractId, isCompany, onProposed }:
             contractId={contractId}
             isCompany={isCompany}
             locked={isLocked(i)}
+            contractStatus={contractStatus}
             onProposed={onProposed}
           />
         ))}
