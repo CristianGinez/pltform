@@ -23,7 +23,13 @@ export class ProposalsService {
     const existing = await this.prisma.proposal.findFirst({
       where: { projectId, developerId: developer.id },
     });
-    if (existing) throw new ConflictException('Ya enviaste una propuesta para este proyecto');
+    if (existing) {
+      if (existing.status === 'WITHDRAWN') {
+        await this.prisma.proposal.delete({ where: { id: existing.id } });
+      } else {
+        throw new ConflictException('Ya enviaste una propuesta para este proyecto');
+      }
+    }
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },

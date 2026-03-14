@@ -154,6 +154,14 @@ export default function ProposalsPage() {
                             Retirar
                           </button>
                         )}
+                        {proposal.status === 'WITHDRAWN' && (
+                          <Link
+                            href={`/dashboard/projects/${proposal.projectId}/apply`}
+                            className="text-xs text-primary-600 hover:underline whitespace-nowrap font-medium"
+                          >
+                            Postular de nuevo →
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
