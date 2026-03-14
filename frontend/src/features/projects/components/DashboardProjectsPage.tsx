@@ -12,10 +12,12 @@ import type { Project } from '@/types';
 type ProjectStatus = 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 type ProjectWithContract = Project & { contract?: { id: string; status: string } };
 
-// If the contract is cancelled/completed, use that as the effective status
+// Only override when project is stuck in IN_PROGRESS but contract ended
 function effectiveStatus(p: ProjectWithContract): ProjectStatus {
-  if (p.contract?.status === 'CANCELLED') return 'CANCELLED';
-  if (p.contract?.status === 'COMPLETED') return 'COMPLETED';
+  if (p.status === 'IN_PROGRESS') {
+    if (p.contract?.status === 'CANCELLED') return 'CANCELLED';
+    if (p.contract?.status === 'COMPLETED') return 'COMPLETED';
+  }
   return p.status as ProjectStatus;
 }
 
