@@ -488,6 +488,7 @@ export class ContractsService {
           break;
         case 'PROPOSE_CANCEL': {
           await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+          await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
           await this.postEvent(contractId, userId, 'Contrato cancelado por acuerdo mutuo', {
             action: 'CONTRACT_CANCELLED_MUTUAL',
           });
@@ -759,6 +760,7 @@ export class ContractsService {
       }
     } else if (outcome === 'company_wins') {
       await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
       // Deduct 30 trustPoints from developer and increment disputeLosses
       if (acceptedProposal) {
         const dev = await this.prisma.developer.findUnique({
@@ -777,6 +779,7 @@ export class ContractsService {
     } else {
       // mutual
       await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
     }
 
     await this.postEvent(contractId, adminId, `Disputa resuelta: ${outcome === 'dev_wins' ? 'a favor del developer' : outcome === 'company_wins' ? 'a favor de la empresa' : 'cancelación mutua'}${adminComment ? ` — "${adminComment}"` : ''}`, {
