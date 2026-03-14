@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, X,
-  CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar,
+  CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar, PartyPopper,
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
 import { useAuthStore } from '@/store/auth.store';
@@ -252,17 +253,22 @@ function ProposalCard({ prop, onSelect }: { prop: any; onSelect: () => void }) {
 
 // ─── Proposal Modal ────────────────────────────────────────────────────────────
 
+type ModalStep = 'detail' | 'confirm' | 'success';
+
 function ProposalModal({ prop, projectId, onClose, onAccepted }: {
   prop: any; projectId: string; onClose: () => void; onAccepted: (contractId: string) => void;
 }) {
-  const acceptProposal = useAcceptProposal(projectId, (contractId) => {
-    onClose();
-    onAccepted(contractId);
+  const [step, setStep] = useState<ModalStep>('detail');
+  const [contractId, setContractId] = useState<string>('');
+
+  const acceptProposal = useAcceptProposal(projectId, (cid) => {
+    setContractId(cid);
+    setStep('success');
   });
 
   const dev = prop.developer;
   const avatarUrl = dev?.avatarUrl ?? dev?.user?.avatarUrl;
-  const name = dev?.user?.name ?? 'Desarrollador';
+  const name = dev?.user?.name ?? dev?.name ?? 'Desarrollador';
   const title = dev?.title;
   const bio = dev?.bio;
   const rating = dev?.rating;
@@ -278,149 +284,218 @@ function ProposalModal({ prop, projectId, onClose, onAccepted }: {
     ? prop.milestonePlan.reduce((sum: number, m: any) => sum + Number(m.amount ?? 0), 0)
     : 0;
 
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir * 60, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir * -60, opacity: 0 }),
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/50 backdrop-blur-sm">
       <div className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl rounded-t-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="font-semibold text-gray-900">Propuesta recibida</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
-            <X size={18} className="text-gray-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {step === 'confirm' && (
+              <button onClick={() => setStep('detail')} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer mr-1">
+                <ArrowLeft size={16} className="text-gray-400" />
+              </button>
+            )}
+            <h2 className="font-semibold text-gray-900">
+              {step === 'detail' ? 'Propuesta recibida' : step === 'confirm' ? 'Confirmar aceptación' : '¡Propuesta aceptada!'}
+            </h2>
+          </div>
+          {step !== 'success' && (
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+              <X size={18} className="text-gray-400" />
+            </button>
+          )}
         </div>
 
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
-
-          {/* Developer profile */}
-          <div className="flex items-start gap-4">
-            <Avatar name={name} avatarUrl={avatarUrl} size="lg" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-gray-900 text-lg leading-tight">{name}</h3>
-                {verified && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-                    <ShieldCheck size={10} />Verificado
-                  </span>
-                )}
-              </div>
-              {title && <p className="text-sm text-gray-500 mt-0.5">{title}</p>}
-              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-400">
-                {rating != null && (
-                  <span className="flex items-center gap-1 text-amber-600 font-semibold">
-                    <Star size={11} className="fill-amber-400 text-amber-400" />
-                    {rating.toFixed(1)}{reviewCount ? ` (${reviewCount})` : ''}
-                  </span>
-                )}
-                {trustPoints != null && trustPoints > 0 && (
-                  <span className="font-semibold text-emerald-700">{trustPoints} trust pts</span>
-                )}
-                {location && <span>{location}</span>}
-                {university && <span>{university}</span>}
-                {hourlyRate && <span>S/ {Number(hourlyRate).toLocaleString()}/hr</span>}
-              </div>
-              {skills.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {skills.map((s: string) => (
-                    <span key={s} className="text-[11px] px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full font-medium">{s}</span>
-                  ))}
+        {/* Animated body */}
+        <div className="flex-1 overflow-hidden relative">
+          <AnimatePresence mode="wait" custom={step === 'confirm' ? 1 : -1}>
+            {/* ── Step 1: Detail ── */}
+            {step === 'detail' && (
+              <motion.div key="detail" custom={-1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="overflow-y-auto h-full px-5 py-5 space-y-5"
+              >
+                <div className="flex items-start gap-4">
+                  <Avatar name={name} avatarUrl={avatarUrl} size="lg" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-gray-900 text-lg leading-tight">{name}</h3>
+                      {verified && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                          <ShieldCheck size={10} />Verificado
+                        </span>
+                      )}
+                    </div>
+                    {title && <p className="text-sm text-gray-500 mt-0.5">{title}</p>}
+                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-400">
+                      {rating != null && (
+                        <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                          <Star size={11} className="fill-amber-400 text-amber-400" />
+                          {rating.toFixed(1)}{reviewCount ? ` (${reviewCount})` : ''}
+                        </span>
+                      )}
+                      {trustPoints != null && trustPoints > 0 && <span className="font-semibold text-emerald-700">{trustPoints} pts</span>}
+                      {location && <span>{location}</span>}
+                      {university && <span>{university}</span>}
+                      {hourlyRate && <span>S/ {Number(hourlyRate).toLocaleString()}/hr</span>}
+                    </div>
+                    {skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {skills.map((s: string) => (
+                          <span key={s} className="text-[11px] px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full font-medium">{s}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {bio && <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">{bio}</p>}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-primary-50 rounded-xl p-4 border border-primary-100">
+                    <p className="text-xs text-primary-600 font-medium mb-0.5 flex items-center gap-1"><DollarSign size={11} />Presupuesto</p>
+                    <p className="text-xl font-bold text-primary-700">S/ {Number(prop.budget).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p className="text-xs text-gray-500 font-medium mb-0.5 flex items-center gap-1"><Calendar size={11} />Plazo</p>
+                    <p className="text-xl font-bold text-gray-900">{prop.timeline} días</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Carta de presentación</h4>
+                  <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{prop.coverLetter}</div>
+                </div>
+
+                {hasPlan && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><Layers size={12} />Plan de trabajo</h4>
+                      <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full">{prop.milestonePlan.length} milestones · S/ {totalPlan.toLocaleString()}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {prop.milestonePlan.map((m: any, i: number) => (
+                        <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3">
+                          <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-gray-900">{m.title}</p>
+                            {m.description && <p className="text-xs text-gray-500 mt-0.5">{m.description}</p>}
+                          </div>
+                          <span className="text-sm font-bold text-primary-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── Step 2: Confirm ── */}
+            {step === 'confirm' && (
+              <motion.div key="confirm" custom={1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="flex flex-col items-center justify-center h-full px-8 py-10 text-center gap-5"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mb-1">
+                  <Avatar name={name} avatarUrl={avatarUrl} size="lg" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">¿Aceptar la propuesta de {name}?</p>
+                  <p className="text-sm text-gray-500 mt-1">Se creará el contrato y comenzará el chat con el developer.</p>
+                </div>
+                <div className="w-full max-w-sm bg-gray-50 rounded-2xl border border-gray-100 p-4 text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Developer</span>
+                    <span className="font-semibold text-gray-900">{name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Presupuesto</span>
+                    <span className="font-semibold text-primary-700">S/ {Number(prop.budget).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Plazo</span>
+                    <span className="font-semibold text-gray-900">{prop.timeline} días</span>
+                  </div>
+                  {hasPlan && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Milestones</span>
+                      <span className="font-semibold text-gray-900">{prop.milestonePlan.length} tareas</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3 w-full max-w-sm">
+                  <button onClick={() => setStep('detail')}
+                    className="flex-1 py-3 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => acceptProposal.mutate(prop.id)}
+                    disabled={acceptProposal.isPending}
+                    className="flex-1 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {acceptProposal.isPending
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Procesando...</>
+                      : <><CheckCircle size={15} />Confirmar</>}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Step 3: Success ── */}
+            {step === 'success' && (
+              <motion.div key="success" custom={1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex flex-col items-center justify-center h-full px-8 py-10 text-center gap-5"
+              >
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 18 }}
+                  className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <PartyPopper size={36} className="text-emerald-600" />
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                  <p className="text-xl font-bold text-gray-900">¡Propuesta aceptada!</p>
+                  <p className="text-sm text-gray-500 mt-1">El contrato con {name} ha sido creado. Ahora pueden coordinarse por el chat.</p>
+                </motion.div>
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  onClick={() => onAccepted(contractId)}
+                  className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <Send size={15} />Ir al contrato y chat
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Footer (solo en detail) */}
+        {step === 'detail' && (
+          <div className="border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3 bg-white shrink-0">
+            <Link href={`/developers/${dev?.id ?? ''}`} className="text-xs text-gray-400 hover:text-primary-600 transition-colors" onClick={onClose}>
+              Ver perfil completo →
+            </Link>
+            <div className="flex gap-2">
+              <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+                Cerrar
+              </button>
+              {prop.status === 'PENDING' && (
+                <button onClick={() => setStep('confirm')}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
+                  <CheckCircle size={15} />Aceptar propuesta
+                </button>
               )}
             </div>
           </div>
-
-          {bio && (
-            <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-              {bio}
-            </p>
-          )}
-
-          {/* Proposal numbers */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-primary-50 rounded-xl p-4 border border-primary-100">
-              <p className="text-xs text-primary-600 font-medium mb-0.5 flex items-center gap-1">
-                <DollarSign size={11} />Presupuesto
-              </p>
-              <p className="text-xl font-bold text-primary-700">S/ {Number(prop.budget).toLocaleString()}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <p className="text-xs text-gray-500 font-medium mb-0.5 flex items-center gap-1">
-                <Calendar size={11} />Tiempo estimado
-              </p>
-              <p className="text-xl font-bold text-gray-900">{prop.timeline} días</p>
-            </div>
-          </div>
-
-          {/* Cover letter */}
-          <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Carta de presentación</h4>
-            <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {prop.coverLetter}
-            </div>
-          </div>
-
-          {/* Milestone plan */}
-          {hasPlan && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-                  <Layers size={12} />Plan de trabajo propuesto
-                </h4>
-                <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full">
-                  {prop.milestonePlan.length} milestones · S/ {totalPlan.toLocaleString()}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {prop.milestonePlan.map((m: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 hover:border-gray-200 transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-gray-900">{m.title}</p>
-                      {m.description && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{m.description}</p>}
-                    </div>
-                    <span className="text-sm font-bold text-primary-700 shrink-0 whitespace-nowrap">
-                      S/ {Number(m.amount).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3 bg-white shrink-0">
-          <Link
-            href={`/developers/${dev?.id ?? ''}`}
-            className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
-            onClick={onClose}
-          >
-            Ver perfil completo →
-          </Link>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-              Cerrar
-            </button>
-            {prop.status === 'PENDING' && (
-              <button
-                onClick={() => {
-                  if (confirm('¿Aceptar esta propuesta? Se creará el contrato con el plan de trabajo del developer.')) {
-                    acceptProposal.mutate(prop.id);
-                  }
-                }}
-                disabled={acceptProposal.isPending}
-                className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                {acceptProposal.isPending
-                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Procesando...</>
-                  : <><CheckCircle size={15} />Aceptar propuesta</>}
-              </button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
