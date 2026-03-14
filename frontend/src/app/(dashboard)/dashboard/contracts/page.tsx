@@ -43,7 +43,6 @@ export default function ContractsPage() {
 
   const isLoading = loadingCompany || loadingDev;
 
-  const isCompany = user?.role === 'COMPANY';
   const hasContracts = isCompany ? companyProjects.length > 0 : devProposals.length > 0;
 
   return (
