@@ -4,10 +4,12 @@ import { api } from '@/lib/axios';
 import type { Project, Proposal } from '@/types';
 import type { ProjectFormData } from '@/schemas/project.schema';
 
-export function useMyProjects() {
+export function useMyProjects(enabled = true) {
   return useQuery<Project[]>({
     queryKey: ['my-projects'],
     queryFn: () => api.get('/projects/my').then((r) => r.data),
+    enabled,
+    retry: false,
   });
 }
 

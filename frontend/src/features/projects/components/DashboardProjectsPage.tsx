@@ -1,12 +1,25 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, FolderOpen } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
 import { useMyProjects } from '@/hooks/use-projects';
 import { DashboardProjectCard } from './DashboardProjectCard';
 
 export function DashboardProjectsPage() {
-  const { data: projects = [], isLoading } = useMyProjects();
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const isCompany = user?.role === 'COMPANY';
+
+  const { data: projects = [], isLoading } = useMyProjects(isCompany);
+
+  useEffect(() => {
+    if (user && !isCompany) router.replace('/dashboard');
+  }, [user, isCompany, router]);
+
+  if (!isCompany) return null;
 
   return (
     <div className="max-w-4xl">
