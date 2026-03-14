@@ -479,20 +479,20 @@ function ProposalModal({ prop, projectId, onClose, onAccepted }: {
 
         {/* Footer (solo en detail) */}
         {step === 'detail' && (
-          <div className="border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3 bg-white shrink-0">
-            <Link href={`/developers/${dev?.id ?? ''}`} className="text-xs text-gray-400 hover:text-primary-600 transition-colors" onClick={onClose}>
-              Ver perfil completo →
-            </Link>
-            <div className="flex gap-2">
-              <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+          <div className="border-t border-gray-100 px-5 py-4 bg-white shrink-0 space-y-2.5">
+            {prop.status === 'PENDING' && (
+              <button onClick={() => setStep('confirm')}
+                className="w-full py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2">
+                <CheckCircle size={15} />Aceptar propuesta
+              </button>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <Link href={`/developers/${dev?.id ?? ''}`} className="text-xs text-gray-400 hover:text-primary-600 transition-colors whitespace-nowrap" onClick={onClose}>
+                Ver perfil →
+              </Link>
+              <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap">
                 Cerrar
               </button>
-              {prop.status === 'PENDING' && (
-                <button onClick={() => setStep('confirm')}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2">
-                  <CheckCircle size={15} />Aceptar propuesta
-                </button>
-              )}
             </div>
           </div>
         )}
