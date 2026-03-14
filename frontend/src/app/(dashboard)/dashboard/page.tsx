@@ -18,7 +18,8 @@ export default function DashboardPage() {
 
   if (user?.role === 'ADMIN') return null;
 
-  const { data: projects } = useMyProjects();
+  const isCompany = user?.role === 'COMPANY';
+  const { data: projects } = useMyProjects(isCompany);
   const { data: proposals } = useMyProposals();
 
   if (user?.role === 'COMPANY') {

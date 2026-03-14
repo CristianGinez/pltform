@@ -31,7 +31,8 @@ export default function ContractsPage() {
   const { user } = useAuthStore();
 
   // COMPANY: fetch their projects in progress
-  const { data: allProjects = [], isLoading: loadingCompany } = useMyProjects();
+  const isCompany = user?.role === 'COMPANY';
+  const { data: allProjects = [], isLoading: loadingCompany } = useMyProjects(isCompany);
   const companyProjects = (allProjects as ProjectWithContract[]).filter(
     (p) => p.status === 'IN_PROGRESS' || p.status === 'COMPLETED',
   );
