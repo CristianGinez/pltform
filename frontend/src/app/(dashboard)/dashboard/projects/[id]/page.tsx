@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, X,
-  CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar, PartyPopper,
+  CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar, PartyPopper, Rocket,
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
 import { useAuthStore } from '@/store/auth.store';
@@ -181,7 +181,7 @@ function MyProposalCard({ prop }: { prop: any }) {
 function ProposalCard({ prop, onSelect }: { prop: any; onSelect: () => void }) {
   const dev = prop.developer;
   const avatarUrl = dev?.avatarUrl ?? dev?.user?.avatarUrl;
-  const name = dev?.user?.name ?? 'Desarrollador';
+  const name = dev?.name ?? dev?.user?.name ?? 'Desarrollador';
   const title = dev?.title;
   const rating = dev?.rating;
   const verified = dev?.verified;
@@ -501,6 +501,183 @@ function ProposalModal({ prop, projectId, onClose, onAccepted }: {
   );
 }
 
+// ─── Publish Modal ─────────────────────────────────────────────────────────────
+
+type PublishStep = 'preview' | 'confirm' | 'success';
+
+function PublishModal({ project, companyName, onClose, onPublished }: {
+  project: any; companyName: string; onClose: () => void; onPublished: () => void;
+}) {
+  const [step, setStep] = useState<PublishStep>('preview');
+  const publishMutation = usePublishProject(project.id);
+
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir * 60, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir * -60, opacity: 0 }),
+  };
+
+  const handlePublish = () => {
+    publishMutation.mutate(undefined, {
+      onSuccess: () => {
+        setStep('success');
+        onPublished();
+      },
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white w-full sm:rounded-2xl sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl rounded-t-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-900">
+            {step === 'preview' ? 'Vista previa del proyecto' : step === 'confirm' ? 'Confirmar publicación' : '¡Publicado!'}
+          </h2>
+          {step !== 'success' && (
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+              <X size={18} className="text-gray-400" />
+            </button>
+          )}
+        </div>
+
+        {/* Animated body */}
+        <div className="flex-1 overflow-hidden relative">
+          <AnimatePresence mode="wait" custom={step === 'confirm' || step === 'success' ? 1 : -1}>
+
+            {/* ── Step 1: Preview ── */}
+            {step === 'preview' && (
+              <motion.div key="preview" custom={-1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="overflow-y-auto h-full px-5 py-5 space-y-4"
+              >
+                {/* Company name */}
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-bold text-sm flex items-center justify-center shrink-0">
+                    {companyName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700">{companyName}</span>
+                </div>
+
+                {/* Project card */}
+                <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-3">
+                  {project.category && (
+                    <span className="inline-flex items-center gap-1 text-xs text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full">
+                      <Tag size={10} /> {project.category}
+                    </span>
+                  )}
+                  <p className="font-bold text-lg text-gray-900 leading-snug">{project.title}</p>
+                  <p className="text-sm text-gray-600 line-clamp-4 leading-relaxed">{project.description}</p>
+
+                  {project.skills?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.skills.map((s: string) => (
+                        <span key={s} className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full font-medium">{s}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                    <span className="flex items-center gap-1.5 font-semibold text-gray-800">
+                      <DollarSign size={14} className="text-gray-400" />
+                      S/ {Number(project.budget).toLocaleString()}
+                    </span>
+                    {project.deadline && (
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={13} />
+                        {new Date(project.deadline).toLocaleDateString('es-PE')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex gap-3 pt-1">
+                  <button onClick={onClose} className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+                    Cancelar
+                  </button>
+                  <button onClick={() => setStep('confirm')} className="flex-1 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                    Continuar →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Step 2: Confirm ── */}
+            {step === 'confirm' && (
+              <motion.div key="confirm" custom={1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="flex flex-col items-center justify-center h-full px-8 py-10 text-center gap-5"
+              >
+                <div>
+                  <p className="text-lg font-bold text-gray-900">¿Publicar este proyecto?</p>
+                </div>
+                <div className="w-full max-w-sm bg-gray-50 rounded-2xl border border-gray-100 p-4 text-sm space-y-2 text-left">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500 shrink-0">Título</span>
+                    <span className="font-semibold text-gray-900 truncate">{project.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Presupuesto</span>
+                    <span className="font-semibold text-primary-700">S/ {Number(project.budget).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Tecnologías</span>
+                    <span className="font-semibold text-gray-900">{project.skills?.length ?? 0} skills</span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500">Los developers podrán ver y enviar propuestas una vez publicado.</p>
+                <div className="flex gap-3 w-full max-w-sm">
+                  <button onClick={() => setStep('preview')} className="flex-1 py-3 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+                    ← Atrás
+                  </button>
+                  <button
+                    onClick={handlePublish}
+                    disabled={publishMutation.isPending}
+                    className="flex-1 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {publishMutation.isPending
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Publicando...</>
+                      : <><Rocket size={15} />Publicar ahora</>}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Step 3: Success ── */}
+            {step === 'success' && (
+              <motion.div key="success" custom={1} variants={slideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex flex-col items-center justify-center h-full px-8 py-10 text-center gap-5"
+              >
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 18 }}
+                  className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Rocket size={36} className="text-emerald-600" />
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                  <p className="text-xl font-bold text-gray-900">¡Proyecto publicado!</p>
+                  <p className="text-sm text-gray-500 mt-1">Ya está visible para todos los developers.</p>
+                </motion.div>
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  onClick={onClose}
+                  className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Ver proyecto
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardProjectDetailPage() {
@@ -510,8 +687,8 @@ export default function DashboardProjectDetailPage() {
   const isCompany = user?.role === 'COMPANY';
 
   const { data: project, isLoading } = useProject(id);
-  const publishMutation = usePublishProject(id);
   const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
+  const [showPublish, setShowPublish] = useState(false);
 
   if (isLoading) {
     return (
@@ -529,6 +706,8 @@ export default function DashboardProjectDetailPage() {
       </div>
     );
   }
+
+  const companyName = (user as any)?.company?.name ?? user?.email ?? 'Tu empresa';
 
   // Developer: find their own proposal
   const myProposal = !isCompany
@@ -655,15 +834,10 @@ export default function DashboardProjectDetailPage() {
                   {project.status === 'DRAFT' && (
                     <>
                       <button
-                        onClick={() => {
-                          if (confirm('¿Publicar este proyecto? Los developers podrán enviar propuestas.')) publishMutation.mutate();
-                        }}
-                        disabled={publishMutation.isPending}
-                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
+                        onClick={() => setShowPublish(true)}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors cursor-pointer"
                       >
-                        {publishMutation.isPending
-                          ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          : <Send size={14} />}
+                        <Send size={14} />
                         Publicar proyecto
                       </button>
                       <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
@@ -696,6 +870,14 @@ export default function DashboardProjectDetailPage() {
           projectId={id}
           onClose={() => setSelectedProposal(null)}
           onAccepted={(contractId) => router.push(`/dashboard/contracts/${contractId}`)}
+        />
+      )}
+      {showPublish && (
+        <PublishModal
+          project={project}
+          companyName={companyName}
+          onClose={() => setShowPublish(false)}
+          onPublished={() => setShowPublish(false)}
         />
       )}
     </div>
