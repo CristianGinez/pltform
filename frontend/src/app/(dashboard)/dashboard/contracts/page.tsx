@@ -160,31 +160,35 @@ export default function ContractsPage() {
 
       {/* Tabs */}
       {!isLoading && hasAny && (
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-none -mx-1 px-1">
-          {TAB_ORDER.map((status) => {
-            const cfg = TAB_CONFIG[status];
-            const count = groups[status].length;
-            const isSelected = activeTab === status;
-            return (
-              <button
-                key={status}
-                onClick={() => setActiveTab(status)}
-                className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors cursor-pointer shrink-0 ${
-                  isSelected
-                    ? `${cfg.activeText} ${cfg.activeBorder}`
-                    : 'text-gray-400 border-transparent hover:text-gray-600'
-                }`}
-              >
-                {cfg.icon}
-                {cfg.label}
-                {count > 0 && (
-                  <span className={`text-[11px] font-semibold rounded-full px-1.5 py-0.5 leading-none ${isSelected ? 'bg-current/10' : 'bg-gray-100 text-gray-400'}`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="relative mb-6">
+          <div className="overflow-x-auto scrollbar-none">
+            <div className="flex min-w-max border-b border-gray-200">
+              {TAB_ORDER.map((status) => {
+                const cfg = TAB_CONFIG[status];
+                const count = groups[status].length;
+                const isSelected = activeTab === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setActiveTab(status)}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors cursor-pointer ${
+                      isSelected
+                        ? `${cfg.activeText} ${cfg.activeBorder}`
+                        : 'text-gray-400 border-transparent hover:text-gray-500'
+                    }`}
+                  >
+                    {cfg.icon}
+                    {cfg.label}
+                    <span className={`text-[11px] font-semibold rounded-full px-1.5 py-0.5 leading-none ${
+                      isSelected ? 'bg-gray-100 ' + cfg.activeText : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -208,7 +212,7 @@ export default function ContractsPage() {
       )}
 
       {!isLoading && hasAny && (
-        <div className="space-y-3">
+        <div className="space-y-3 min-h-48">
           {groups[activeTab].length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
               <p className="text-sm text-gray-400">No hay contratos en esta sección.</p>
