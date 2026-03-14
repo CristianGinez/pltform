@@ -18,6 +18,7 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-wrap: anywhere;
   }
 
   /* Prevent iOS Safari auto-zoom on input focus */
