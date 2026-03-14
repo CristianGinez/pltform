@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -38,6 +39,20 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  // Sync project status with contract status for any stale data
+  const prisma = app.get(PrismaService);
+  const stale = await prisma.contract.findMany({
+    where: { status: { in: ['CANCELLED', 'COMPLETED'] }, project: { status: 'IN_PROGRESS' } },
+    select: { projectId: true, status: true },
+  });
+  for (const c of stale) {
+    await prisma.project.update({
+      where: { id: c.projectId },
+      data: { status: c.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED' },
+    });
+  }
+  if (stale.length > 0) console.log(`[startup] Synced ${stale.length} project(s) to match contract status`);
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
