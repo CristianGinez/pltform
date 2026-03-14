@@ -162,7 +162,7 @@ export default function ContractsPage() {
       {!isLoading && hasAny && (
         <div className="relative mb-6">
           <div className="overflow-x-auto scrollbar-none">
-            <div className="flex min-w-max border-b border-gray-200">
+            <div className="flex border-b border-gray-200">
               {TAB_ORDER.map((status) => {
                 const cfg = TAB_CONFIG[status];
                 const count = groups[status].length;
@@ -171,7 +171,7 @@ export default function ContractsPage() {
                   <button
                     key={status}
                     onClick={() => setActiveTab(status)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors cursor-pointer ${
                       isSelected
                         ? `${cfg.activeText} ${cfg.activeBorder}`
                         : 'text-gray-400 border-transparent hover:text-gray-500'
@@ -179,7 +179,7 @@ export default function ContractsPage() {
                   >
                     {cfg.icon}
                     {cfg.label}
-                    <span className={`text-[11px] font-semibold rounded-full px-1.5 py-0.5 leading-none ${
+                    <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 leading-none ${
                       isSelected ? 'bg-gray-100 ' + cfg.activeText : 'bg-gray-100 text-gray-400'
                     }`}>
                       {count}
@@ -189,6 +189,8 @@ export default function ContractsPage() {
               })}
             </div>
           </div>
+          {/* fade hint */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-gray-50 to-transparent" />
         </div>
       )}
 
