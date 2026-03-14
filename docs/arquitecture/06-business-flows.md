@@ -227,3 +227,123 @@ La `platformFee` se almacena en el contrato al momento de su creación, por lo q
 | Entregar milestone | DEVELOPER | Token + es parte del contrato + milestone IN_PROGRESS o REVISION_REQUESTED |
 | Aprobar milestone | COMPANY | Token + es dueña del proyecto del contrato + milestone SUBMITTED |
 | Pedir revisión | COMPANY | Token + es dueña del proyecto del contrato + milestone SUBMITTED |
+
+---
+
+## Flujo 7: Sistema de disputas
+
+```
+Actor: Cualquiera de las partes del contrato (COMPANY o DEVELOPER)
+
+POST /api/contracts/:id/dispute
+  body: { reason: "El developer desapareció hace 3 semanas" }
+  header: Authorization: Bearer <token>
+
+Backend (ContractsService.openDispute):
+  1. Verifica que el usuario sea parte del contrato (company.userId o developer.userId)
+  2. Verifica contract.status === 'ACTIVE'
+  3. contract.update({ status: 'DISPUTED', disputeReason, disputeOpenedById })
+  4. Crea notificación para la otra parte: type='DISPUTE_OPENED'
+  5. Busca todos los User con role='ADMIN' → crea notificación para cada uno
+  6. Postea ChatMessage de tipo EVENT: { action: 'DISPUTE_OPENED', reason }
+
+Frontend:
+  - Banner rojo aparece en /dashboard/contracts/:id
+  - Acciones de milestone quedan bloqueadas
+  - Admin ve la disputa en /dashboard/admin → pestaña "Disputas"
+
+PATCH /api/contracts/:id/resolve   (solo ADMIN)
+  body: { outcome: 'dev_wins' | 'company_wins' | 'mutual' }
+
+Backend (ContractsService.resolveDispute):
+  dev_wins:
+    - Milestones SUBMITTED → PAID (doApproveMilestone interno)
+    - Si todos PAID → contract.status = 'COMPLETED', project.status = 'COMPLETED'
+    - Si no → contract.status = 'ACTIVE'
+  company_wins:
+    - contract.status = 'CANCELLED'
+    - developer.trustPoints = Math.max(0, trustPoints - 15)
+  mutual:
+    - contract.status = 'CANCELLED'
+  - Notifica a ambas partes: type='DISPUTE_RESOLVED'
+  - EVENT en chat: { action: 'DISPUTE_RESOLVED', outcome }
+```
+
+---
+
+## Flujo 8: Cancelación mutua
+
+```
+Actor: Cualquiera de las partes
+
+1. Parte A propone cancelar:
+   POST /api/contracts/:id/propose
+     body: { milestoneId: '', action: 'PROPOSE_CANCEL' }
+   → ChatMessage tipo PROPOSAL se postea en el chat del contrato
+
+2. Parte B ve la propuesta en el chat y acepta:
+   POST /api/contracts/:id/respond
+     body: { messageId, accept: true }
+
+3. Backend detecta action='PROPOSE_CANCEL':
+   → contract.status = 'CANCELLED'
+   → EVENT en chat: { action: 'CONTRACT_CANCELLED_MUTUAL' }
+   → Notificación a ambas partes
+   → Banner gris aparece en la UI
+```
+
+---
+
+## Flujo 9: Auto-aprobación de milestone (7 días)
+
+```
+Actor: DEVELOPER
+
+Condición: milestone.status === 'SUBMITTED' && Date.now() - milestone.submittedAt > 7 días
+
+1. Frontend muestra botón "Aprobación automática disponible (7 días sin respuesta)"
+   en MilestoneStep cuando se cumple la condición.
+
+2. Developer confirma en modal:
+   POST /api/contracts/:id/milestones/:milestoneId/force-approve
+
+3. Backend (ContractsService.forceApprove):
+   - Verifica que el caller sea el developer del contrato
+   - Verifica milestone.status === 'SUBMITTED'
+   - Verifica Date.now() - submittedAt > 7 * 24 * 60 * 60 * 1000
+   - Llama internamente a doApproveMilestone(contractId, milestoneId, company.userId)
+     → milestone.status = 'PAID'
+     → Si todos los milestones son PAID → contract.status = 'COMPLETED'
+
+4. Frontend invalida ['contract', contractId] y muestra toast de éxito.
+```
+
+---
+
+## Flujo 10: Guard de queries por rol
+
+```
+Problema: GET /api/projects/my requiere rol COMPANY (403 para DEVELOPER).
+          React Query con retry=3 generaba un loop de 3 peticiones 403.
+
+Solución aplicada:
+
+// hooks/use-projects.ts
+export function useMyProjects(enabled = true) {
+  return useQuery({
+    queryKey: ['my-projects'],
+    queryFn: () => api.get('/projects/my').then(r => r.data),
+    enabled,      // solo ejecuta si es true
+    retry: false, // no reintentar en 403
+  });
+}
+
+// En cada componente:
+const isCompany = user?.role === 'COMPANY';
+const { data } = useMyProjects(isCompany); // no-op para DEVELOPER
+
+Archivos corregidos:
+  - app/(dashboard)/dashboard/page.tsx
+  - features/projects/components/DashboardProjectsPage.tsx
+  - app/(dashboard)/dashboard/contracts/page.tsx
+```
