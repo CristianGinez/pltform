@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, Eye, X,
-  CheckCircle
+  ArrowLeft, Clock, DollarSign, Users, Tag, Edit, Send, PlayCircle, X,
+  CheckCircle, Star, ShieldCheck, Layers, ChevronRight, Calendar,
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
 
@@ -14,21 +14,298 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completado', CANCELLED: 'Cancelado',
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'bg-gray-100 text-gray-600',
+  OPEN: 'bg-green-50 text-green-700',
+  IN_PROGRESS: 'bg-blue-50 text-blue-700',
+  COMPLETED: 'bg-purple-50 text-purple-700',
+  CANCELLED: 'bg-gray-100 text-gray-500',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function Avatar({ name, avatarUrl, size = 'md' }: { name?: string; avatarUrl?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const dims = size === 'lg' ? 'w-16 h-16 text-2xl' : size === 'md' ? 'w-11 h-11 text-base' : 'w-9 h-9 text-sm';
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className={`${dims} rounded-full object-cover shrink-0`} />;
+  }
+  return (
+    <div className={`${dims} rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center shrink-0`}>
+      {name?.charAt(0)?.toUpperCase() ?? 'D'}
+    </div>
+  );
+}
+
+function Stars({ rating }: { rating?: number }) {
+  if (!rating) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <Star size={11} className="fill-amber-400 text-amber-400" />
+      <span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span>
+    </span>
+  );
+}
+
+// ─── Proposal Card ─────────────────────────────────────────────────────────────
+
+function ProposalCard({ prop, onSelect }: { prop: any; onSelect: () => void }) {
+  const dev = prop.developer;
+  const avatarUrl = dev?.avatarUrl ?? dev?.user?.avatarUrl;
+  const name = dev?.user?.name ?? 'Desarrollador';
+  const title = dev?.title;
+  const rating = dev?.rating;
+  const verified = dev?.verified;
+  const trustPoints = dev?.trustPoints;
+  const skills: string[] = dev?.skills ?? [];
+  const hasMilestonePlan = Array.isArray(prop.milestonePlan) && prop.milestonePlan.length > 0;
+
+  return (
+    <div
+      onClick={onSelect}
+      className="group bg-white border border-gray-100 rounded-xl p-4 hover:border-primary-200 hover:shadow-sm transition-all cursor-pointer"
+    >
+      <div className="flex items-start gap-3">
+        <Avatar name={name} avatarUrl={avatarUrl} size="md" />
+
+        <div className="flex-1 min-w-0">
+          {/* Name + badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-semibold text-sm text-gray-900">{name}</span>
+            {verified && <ShieldCheck size={13} className="text-blue-500 shrink-0" />}
+            <Stars rating={rating} />
+            {trustPoints != null && trustPoints > 0 && (
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                {trustPoints} pts
+              </span>
+            )}
+          </div>
+
+          {title && <p className="text-xs text-gray-400 mt-0.5 truncate">{title}</p>}
+
+          {/* Budget + timeline */}
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-sm font-bold text-primary-700">
+              S/ {Number(prop.budget).toLocaleString()}
+            </span>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Clock size={10} />{prop.timeline} días
+            </span>
+            {hasMilestonePlan && (
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <Layers size={10} />{prop.milestonePlan.length} milestones
+              </span>
+            )}
+          </div>
+
+          {/* Cover letter preview */}
+          <p className="text-xs text-gray-500 mt-2 line-clamp-2 leading-relaxed">
+            {prop.coverLetter}
+          </p>
+
+          {/* Skills */}
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {skills.slice(0, 4).map((s: string) => (
+                <span key={s} className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{s}</span>
+              ))}
+              {skills.length > 4 && (
+                <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full">+{skills.length - 4}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <ChevronRight size={15} className="text-gray-300 group-hover:text-primary-400 transition-colors shrink-0 mt-1" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Proposal Modal ────────────────────────────────────────────────────────────
+
+function ProposalModal({ prop, projectId, onClose, onAccepted }: {
+  prop: any; projectId: string; onClose: () => void; onAccepted: (contractId: string) => void;
+}) {
+  const acceptProposal = useAcceptProposal(projectId, (contractId) => {
+    onClose();
+    onAccepted(contractId);
+  });
+
+  const dev = prop.developer;
+  const avatarUrl = dev?.avatarUrl ?? dev?.user?.avatarUrl;
+  const name = dev?.user?.name ?? 'Desarrollador';
+  const title = dev?.title;
+  const bio = dev?.bio;
+  const rating = dev?.rating;
+  const reviewCount = dev?.reviewCount;
+  const verified = dev?.verified;
+  const trustPoints = dev?.trustPoints;
+  const skills: string[] = dev?.skills ?? [];
+  const location = dev?.location;
+  const university = dev?.university;
+  const hourlyRate = dev?.hourlyRate;
+  const hasPlan = Array.isArray(prop.milestonePlan) && prop.milestonePlan.length > 0;
+  const totalPlan = hasPlan
+    ? prop.milestonePlan.reduce((sum: number, m: any) => sum + Number(m.amount ?? 0), 0)
+    : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white w-full sm:rounded-2xl sm:max-w-2xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl rounded-t-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-900">Propuesta recibida</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
+            <X size={18} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
+
+          {/* Developer profile */}
+          <div className="flex items-start gap-4">
+            <Avatar name={name} avatarUrl={avatarUrl} size="lg" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-gray-900 text-lg leading-tight">{name}</h3>
+                {verified && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                    <ShieldCheck size={10} />Verificado
+                  </span>
+                )}
+              </div>
+              {title && <p className="text-sm text-gray-500 mt-0.5">{title}</p>}
+              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-400">
+                {rating != null && (
+                  <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                    <Star size={11} className="fill-amber-400 text-amber-400" />
+                    {rating.toFixed(1)}{reviewCount ? ` (${reviewCount})` : ''}
+                  </span>
+                )}
+                {trustPoints != null && trustPoints > 0 && (
+                  <span className="font-semibold text-emerald-700">{trustPoints} trust pts</span>
+                )}
+                {location && <span>{location}</span>}
+                {university && <span>{university}</span>}
+                {hourlyRate && <span>S/ {Number(hourlyRate).toLocaleString()}/hr</span>}
+              </div>
+              {skills.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {skills.map((s: string) => (
+                    <span key={s} className="text-[11px] px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full font-medium">{s}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {bio && (
+            <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+              {bio}
+            </p>
+          )}
+
+          {/* Proposal numbers */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-primary-50 rounded-xl p-4 border border-primary-100">
+              <p className="text-xs text-primary-600 font-medium mb-0.5 flex items-center gap-1">
+                <DollarSign size={11} />Presupuesto
+              </p>
+              <p className="text-xl font-bold text-primary-700">S/ {Number(prop.budget).toLocaleString()}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <p className="text-xs text-gray-500 font-medium mb-0.5 flex items-center gap-1">
+                <Calendar size={11} />Tiempo estimado
+              </p>
+              <p className="text-xl font-bold text-gray-900">{prop.timeline} días</p>
+            </div>
+          </div>
+
+          {/* Cover letter */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Carta de presentación</h4>
+            <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {prop.coverLetter}
+            </div>
+          </div>
+
+          {/* Milestone plan */}
+          {hasPlan && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                  <Layers size={12} />Plan de trabajo propuesto
+                </h4>
+                <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full">
+                  {prop.milestonePlan.length} milestones · S/ {totalPlan.toLocaleString()}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {prop.milestonePlan.map((m: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 hover:border-gray-200 transition-colors">
+                    <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-gray-900">{m.title}</p>
+                      {m.description && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{m.description}</p>}
+                    </div>
+                    <span className="text-sm font-bold text-primary-700 shrink-0 whitespace-nowrap">
+                      S/ {Number(m.amount).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3 bg-white shrink-0">
+          <Link
+            href={`/developers/${dev?.id ?? ''}`}
+            className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+            onClick={onClose}
+          >
+            Ver perfil completo →
+          </Link>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+              Cerrar
+            </button>
+            {prop.status === 'PENDING' && (
+              <button
+                onClick={() => {
+                  if (confirm('¿Aceptar esta propuesta? Se creará el contrato con el plan de trabajo del developer.')) {
+                    acceptProposal.mutate(prop.id);
+                  }
+                }}
+                disabled={acceptProposal.isPending}
+                className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {acceptProposal.isPending
+                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Procesando...</>
+                  : <><CheckCircle size={15} />Aceptar propuesta</>}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
+
 export default function DashboardProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  
+
   const { data: project, isLoading } = useProject(id);
   const publishMutation = usePublishProject(id);
-  
-  // Estado para controlar la modal de propuesta
   const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
-
-  // Hook para aceptar la propuesta (redirige al contrato cuando es exitoso)
-  const acceptProposal = useAcceptProposal(id as string, (contractId) => {
-    setSelectedProposal(null);
-    router.push(`/dashboard/contracts/${contractId}`);
-  });
 
   if (isLoading) {
     return (
@@ -42,18 +319,13 @@ export default function DashboardProjectDetailPage() {
     return (
       <div className="text-center py-32 text-gray-400">
         Proyecto no encontrado.{' '}
-        <Link href="/dashboard/projects" className="text-primary-600 hover:underline">
-          Volver a mis proyectos
-        </Link>
+        <Link href="/dashboard/projects" className="text-primary-600 hover:underline">Volver</Link>
       </div>
     );
   }
 
-  const handlePublish = () => {
-    if (confirm('¿Estás seguro de publicar este proyecto? Una vez publicado, los developers podrán enviar sus propuestas.')) {
-      publishMutation.mutate();
-    }
-  };
+  const pendingProposals = project.proposals?.filter((p: any) => p.status === 'PENDING') ?? [];
+  const otherProposals = project.proposals?.filter((p: any) => p.status !== 'PENDING') ?? [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
@@ -65,8 +337,10 @@ export default function DashboardProjectDetailPage() {
       </button>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* ── IZQUIERDA: Detalles del Proyecto ── */}
+        {/* ── Left: project details + proposals ── */}
         <div className="flex-1 min-w-0 space-y-5 w-full">
+
+          {/* Project card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex-1 min-w-0">
@@ -75,22 +349,17 @@ export default function DashboardProjectDetailPage() {
                     <Tag size={10} /> {project.category}
                   </span>
                 )}
-                <h1 className="text-2xl font-bold text-gray-900 leading-snug">{project.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 leading-snug [overflow-wrap:anywhere]">{project.title}</h1>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${
-                project.status === 'OPEN' ? 'bg-green-50 text-green-700' :
-                project.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
-                project.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
-                'bg-gray-100 text-gray-500'
-              }`}>
-                {STATUS_LABELS[project.status] || project.status}
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${STATUS_COLORS[project.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                {STATUS_LABELS[project.status] ?? project.status}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-5">
               <span className="flex items-center gap-1.5 font-semibold text-gray-800">
                 <DollarSign size={15} className="text-gray-400" />
-                ${Number(project.budget).toLocaleString()}
+                S/ {Number(project.budget).toLocaleString()}
               </span>
               {project.deadline && (
                 <span className="flex items-center gap-1.5">
@@ -103,210 +372,109 @@ export default function DashboardProjectDetailPage() {
             {project.skills?.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-5">
                 {project.skills.map((s: string) => (
-                  <span key={s} className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                    {s}
-                  </span>
+                  <span key={s} className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full font-medium">{s}</span>
                 ))}
               </div>
             )}
 
             <div>
-              <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción del proyecto</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">Descripción</h2>
               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{project.description}</p>
             </div>
           </div>
 
-          {/* ── LISTA DE PROPUESTAS RECIBIDAS (Solo visible si hay propuestas) ── */}
+          {/* Proposals */}
           {project.proposals && project.proposals.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm w-full mt-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                Propuestas Recibidas 
-                <span className="bg-primary-50 text-primary-700 text-xs px-2.5 py-1 rounded-full">{project.proposals.length}</span>
-              </h3>
-              
-              <div className="space-y-4">
-                {project.proposals.map((prop: any) => (
-                  <div key={prop.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 transition-colors gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold shrink-0">
-                        {prop.developer?.user?.name?.charAt(0) || 'D'}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{prop.developer?.user?.name || 'Desarrollador'}</p>
-                        <p className="text-sm text-gray-500 font-medium">
-                          ${Number(prop.budget).toLocaleString()} USD • {prop.timeline} días
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedProposal(prop)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-primary-700 bg-white border border-primary-200 hover:bg-primary-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                    >
-                      <Eye size={16} /> Ver Detalles
-                    </button>
-                  </div>
-                ))}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  Propuestas recibidas
+                  <span className="bg-primary-50 text-primary-700 text-xs px-2 py-0.5 rounded-full font-semibold">
+                    {project.proposals.length}
+                  </span>
+                </h3>
+                {pendingProposals.length > 0 && (
+                  <span className="text-xs text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full font-medium">
+                    {pendingProposals.length} pendiente{pendingProposals.length !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
+
+              {pendingProposals.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Esperando respuesta</p>
+                  <div className="space-y-2">
+                    {pendingProposals.map((prop: any) => (
+                      <ProposalCard key={prop.id} prop={prop} onSelect={() => setSelectedProposal(prop)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {otherProposals.length > 0 && (
+                <div>
+                  {pendingProposals.length > 0 && <div className="border-t border-gray-100 mb-4" />}
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Otras</p>
+                  <div className="space-y-2">
+                    {otherProposals.map((prop: any) => (
+                      <ProposalCard key={prop.id} prop={prop} onSelect={() => setSelectedProposal(prop)} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* ── DERECHA: Acciones y Estadísticas ── */}
-        <div className="w-full lg:w-72 shrink-0 space-y-4">
+        {/* ── Right: actions + stats ── */}
+        <div className="w-full lg:w-64 shrink-0 space-y-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Acciones del Proyecto</h3>
-            
-            <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Acciones</h3>
+            <div className="space-y-2.5">
               {project.status === 'DRAFT' && (
                 <>
-                  <button 
-                    onClick={handlePublish}
+                  <button
+                    onClick={() => {
+                      if (confirm('¿Publicar este proyecto? Los developers podrán enviar propuestas.')) publishMutation.mutate();
+                    }}
                     disabled={publishMutation.isPending}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors cursor-pointer"
                   >
-                    {publishMutation.isPending ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Send size={15} />
-                    )}
-                    Publicar Proyecto
+                    {publishMutation.isPending
+                      ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <Send size={14} />}
+                    Publicar proyecto
                   </button>
-                  <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                    <Edit size={15} /> Editar Borrador
+                  <Link href={`/dashboard/projects/${project.id}/edit`} className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Edit size={14} /> Editar borrador
                   </Link>
                 </>
               )}
-
               {project.status === 'IN_PROGRESS' && project.contract && (
-                <Link href={`/dashboard/contracts/${project.contract.id}`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
-                  <PlayCircle size={15} /> Ir al Contrato
+                <Link href={`/dashboard/contracts/${project.contract.id}`} className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+                  <PlayCircle size={14} /> Ir al contrato
                 </Link>
               )}
             </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estadísticas</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500 flex items-center gap-1.5"><Users size={14} /> Postulantes</span>
-                <span className="font-bold text-gray-900">{project._count?.proposals || project.proposals?.length || 0}</span>
-              </div>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Estadísticas</h3>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500 flex items-center gap-1.5"><Users size={14} /> Postulantes</span>
+              <span className="font-bold text-gray-900">{project._count?.proposals ?? project.proposals?.length ?? 0}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── MODAL DE DETALLE DE PROPUESTA ── */}
       {selectedProposal && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-            
-            {/* Cabecera Modal */}
-            <div className="bg-white border-b border-gray-100 p-5 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-bold text-gray-900">Detalle de Propuesta</h2>
-              <button 
-                onClick={() => setSelectedProposal(null)} 
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer bg-gray-50 hover:bg-gray-100 p-2 rounded-full"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Cuerpo Modal (Scrollable) */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-2xl shrink-0">
-                  {selectedProposal.developer?.user?.name?.charAt(0) || 'D'}
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 text-lg leading-tight">{selectedProposal.developer?.user?.name || 'Desarrollador'}</p>
-                  <p className="text-sm text-gray-500">{selectedProposal.developer?.title || 'Profesional Independiente'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500 font-medium mb-1">Presupuesto Propuesto</p>
-                  <p className="text-lg font-bold text-primary-700">${Number(selectedProposal.budget).toLocaleString()}</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500 font-medium mb-1">Tiempo Estimado</p>
-                  <p className="text-lg font-bold text-gray-900">{selectedProposal.timeline} días</p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Carta de Presentación</h3>
-                <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {selectedProposal.coverLetter}
-                </div>
-              </div>
-
-              {/* Aquí dibujamos el plan personalizado (Milestones) del developer */}
-              {selectedProposal.milestonePlan && Array.isArray(selectedProposal.milestonePlan) && selectedProposal.milestonePlan.length > 0 && (
-                <div className="border-t border-gray-100 pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-900">Plan de Trabajo Sugerido (Milestones)</h3>
-                    <span className="text-xs font-bold bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full">
-                      {selectedProposal.milestonePlan.length} tareas
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {selectedProposal.milestonePlan.map((milestone: any, idx: number) => (
-                      <div key={idx} className="bg-white border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row gap-4 justify-between items-start group hover:border-primary-300 transition-colors">
-                        <div className="flex gap-3">
-                          <div className="w-7 h-7 rounded-full bg-gray-100 group-hover:bg-primary-50 group-hover:text-primary-700 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0 transition-colors">
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">{milestone.title}</p>
-                            {milestone.description && (
-                              <p className="text-xs text-gray-500 mt-1 leading-relaxed">{milestone.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="font-bold text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg text-sm shrink-0 whitespace-nowrap">
-                          ${Number(milestone.amount).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Pie de Modal (Botones) */}
-            <div className="border-t border-gray-100 p-5 flex justify-end gap-3 bg-gray-50 shrink-0">
-              <button 
-                onClick={() => setSelectedProposal(null)} 
-                className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-              >
-                Cerrar
-              </button>
-              {selectedProposal.status === 'PENDING' && (
-                <button 
-                  onClick={() => {
-                    if(confirm('¿Estás seguro de aceptar esta propuesta? Se creará el contrato inmediatamente con este plan de trabajo propuesto por el desarrollador.')) {
-                      acceptProposal.mutate(selectedProposal.id);
-                    }
-                  }}
-                  disabled={acceptProposal.isPending}
-                  className="px-6 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2 shadow-sm disabled:opacity-50"
-                >
-                  {acceptProposal.isPending ? (
-                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Procesando...</>
-                  ) : (
-                    <><CheckCircle size={16} /> Aceptar y Crear Contrato</>
-                  )}
-                </button>
-              )}
-            </div>
-
-          </div>
-        </div>
+        <ProposalModal
+          prop={selectedProposal}
+          projectId={id}
+          onClose={() => setSelectedProposal(null)}
+          onAccepted={(contractId) => router.push(`/dashboard/contracts/${contractId}`)}
+        />
       )}
     </div>
   );
