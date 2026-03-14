@@ -29,11 +29,11 @@ const MILESTONE_ICONS: Record<string, React.ReactNode> = {
   PAID: <CheckCircle size={14} className="text-green-700" />,
 };
 
-const TAB_CONFIG: Record<ContractStatus, { label: string; icon: React.ReactNode; active: string; inactive: string }> = {
-  ACTIVE:    { label: 'Activos',     icon: <Clock size={13} />,         active: 'bg-blue-600 text-white',     inactive: 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300 hover:text-blue-600' },
-  DISPUTED:  { label: 'En disputa',  icon: <AlertTriangle size={13} />, active: 'bg-orange-500 text-white',   inactive: 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300 hover:text-orange-500' },
-  COMPLETED: { label: 'Completados', icon: <CheckCircle size={13} />,   active: 'bg-emerald-600 text-white',  inactive: 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-600' },
-  CANCELLED: { label: 'Cancelados',  icon: <XCircle size={13} />,       active: 'bg-gray-500 text-white',     inactive: 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400' },
+const TAB_CONFIG: Record<ContractStatus, { label: string; icon: React.ReactNode; activeText: string; activeBorder: string }> = {
+  ACTIVE:    { label: 'Activos',     icon: <Clock size={12} />,         activeText: 'text-blue-600',    activeBorder: 'border-blue-500' },
+  DISPUTED:  { label: 'En disputa',  icon: <AlertTriangle size={12} />, activeText: 'text-orange-500',  activeBorder: 'border-orange-400' },
+  COMPLETED: { label: 'Completados', icon: <CheckCircle size={12} />,   activeText: 'text-emerald-600', activeBorder: 'border-emerald-500' },
+  CANCELLED: { label: 'Cancelados',  icon: <XCircle size={12} />,       activeText: 'text-gray-500',    activeBorder: 'border-gray-400' },
 };
 
 const TAB_ORDER: ContractStatus[] = ['ACTIVE', 'DISPUTED', 'COMPLETED', 'CANCELLED'];
@@ -160,7 +160,7 @@ export default function ContractsPage() {
 
       {/* Tabs */}
       {!isLoading && hasAny && (
-        <div className="flex gap-2 flex-wrap mb-6">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-none -mx-1 px-1">
           {TAB_ORDER.map((status) => {
             const cfg = TAB_CONFIG[status];
             const count = groups[status].length;
@@ -169,13 +169,19 @@ export default function ContractsPage() {
               <button
                 key={status}
                 onClick={() => setActiveTab(status)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${isSelected ? cfg.active : cfg.inactive}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors cursor-pointer shrink-0 ${
+                  isSelected
+                    ? `${cfg.activeText} ${cfg.activeBorder}`
+                    : 'text-gray-400 border-transparent hover:text-gray-600'
+                }`}
               >
                 {cfg.icon}
                 {cfg.label}
-                <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 leading-none ${isSelected ? 'bg-white/25' : 'bg-gray-100 text-gray-500'}`}>
-                  {count}
-                </span>
+                {count > 0 && (
+                  <span className={`text-[11px] font-semibold rounded-full px-1.5 py-0.5 leading-none ${isSelected ? 'bg-current/10' : 'bg-gray-100 text-gray-400'}`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
