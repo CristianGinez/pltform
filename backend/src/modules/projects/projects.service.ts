@@ -46,7 +46,7 @@ export class ProjectsService {
       include: {
         company: true,
         proposals: {
-          include: { developer: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } } },
+          include: { developer: { include: { user: { select: { id: true } } } } },
           orderBy: { createdAt: 'desc' },
         },
         _count: { select: { proposals: true } },
