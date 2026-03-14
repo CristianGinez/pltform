@@ -10,6 +10,14 @@ import { DashboardProjectCard } from './DashboardProjectCard';
 import type { Project } from '@/types';
 
 type ProjectStatus = 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+type ProjectWithContract = Project & { contract?: { id: string; status: string } };
+
+// If the contract is cancelled/completed, use that as the effective status
+function effectiveStatus(p: ProjectWithContract): ProjectStatus {
+  if (p.contract?.status === 'CANCELLED') return 'CANCELLED';
+  if (p.contract?.status === 'COMPLETED') return 'COMPLETED';
+  return p.status as ProjectStatus;
+}
 
 const TAB_ORDER: ProjectStatus[] = ['OPEN', 'IN_PROGRESS', 'DRAFT', 'COMPLETED', 'CANCELLED'];
 
@@ -35,9 +43,9 @@ export function DashboardProjectsPage() {
 
   if (!isCompany) return null;
 
-  const groups = TAB_ORDER.reduce<Record<ProjectStatus, Project[]>>(
-    (acc, s) => ({ ...acc, [s]: projects.filter((p) => p.status === s) }),
-    {} as Record<ProjectStatus, Project[]>,
+  const groups = TAB_ORDER.reduce<Record<ProjectStatus, ProjectWithContract[]>>(
+    (acc, s) => ({ ...acc, [s]: (projects as ProjectWithContract[]).filter((p) => effectiveStatus(p) === s) }),
+    {} as Record<ProjectStatus, ProjectWithContract[]>,
   );
 
   // Auto-select first non-empty tab on load
