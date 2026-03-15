@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { queryClient } from '@/lib/query-client';
-import { disconnectSocket } from '@/hooks/use-socket';
 
 export interface AuthUser {
   id: string;
@@ -46,7 +45,9 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        disconnectSocket();
+        if (typeof window !== 'undefined') {
+          import('@/hooks/use-socket').then(({ disconnectSocket }) => disconnectSocket());
+        }
         queryClient.clear();
         set({ token: null, refreshToken: null, user: null });
       },
