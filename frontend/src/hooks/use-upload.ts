@@ -14,9 +14,8 @@ export function useUploadAvatar() {
       const res = await api.post<{ url: string }>('/uploads', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // Return absolute URL pointing to the backend
-      const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
-      return `${base}${res.data.url}`;
+      // Cloudinary returns an absolute URL — use it directly
+      return res.data.url;
     } catch {
       setError('Error al subir la imagen. Máximo 5 MB, formato JPG/PNG/WEBP.');
       return null;
@@ -41,8 +40,8 @@ export function useUploadDocument() {
       const res = await api.post<{ url: string }>('/uploads/document', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
-      return `${base}${res.data.url}`;
+      // Cloudinary returns an absolute URL — use it directly
+      return res.data.url;
     } catch {
       setError('Error al subir el archivo. Máximo 10 MB, formato JPG/PNG/PDF.');
       return null;

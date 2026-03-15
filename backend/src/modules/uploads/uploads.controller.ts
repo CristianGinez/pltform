@@ -3,24 +3,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CloudinaryService } from './cloudinary.service';
 
-const storage = diskStorage({
-  destination: './public/uploads',
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-    cb(null, `${unique}${extname(file.originalname)}`);
-  },
-});
+// Use memoryStorage: files stay in RAM as Buffer, never touch disk.
+// The buffer is then streamed directly to Cloudinary.
+const storage = memoryStorage();
 
 @ApiTags('uploads')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('uploads')
 export class UploadsController {
+  constructor(private cloudinary: CloudinaryService) {}
+
   @Post()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -35,9 +33,10 @@ export class UploadsController {
       },
     }),
   )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No se recibió ningún archivo');
-    return { url: `/uploads/${file.filename}` };
+    const url = await this.cloudinary.upload(file.buffer, 'avatars');
+    return { url };
   }
 
   @Post('document')
@@ -55,8 +54,15 @@ export class UploadsController {
       },
     }),
   )
-  uploadDocument(@UploadedFile() file: Express.Multer.File) {
+  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No se recibió ningún archivo');
-    return { url: `/uploads/${file.filename}` };
+    // PDFs need resource_type 'raw' (not 'image') in Cloudinary
+    const isPdf = file.mimetype === 'application/pdf';
+    const url = await this.cloudinary.upload(
+      file.buffer,
+      'documents',
+      { resourceType: isPdf ? 'raw' : 'image' },
+    );
+    return { url };
   }
 }
