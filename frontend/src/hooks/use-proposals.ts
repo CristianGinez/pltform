@@ -30,6 +30,11 @@ export function useSubmitProposal(projectId: string) {
   });
 }
 
+export function useMyProposalForProject(projectId: string) {
+  const { data: proposals = [] } = useMyProposals();
+  return proposals.find((p) => p.projectId === projectId) ?? null;
+}
+
 export function useWithdrawProposal() {
   const qc = useQueryClient();
   return useMutation({

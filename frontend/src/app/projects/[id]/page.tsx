@@ -3,13 +3,15 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Clock, DollarSign, Users, CheckCircle, MapPin,
-  Building2, Globe, Calendar, Tag, Star,
+  ArrowLeft, Clock, DollarSign, Users, CheckCircle, XCircle, MinusCircle,
+  MapPin, Building2, Globe, Calendar, Tag, Star, Send, RotateCcw, ListChecks,
 } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { useAuthStore } from '@/store/auth.store';
 import { useProject } from '@/hooks/use-projects';
+import { useMyProposalForProject, useWithdrawProposal } from '@/hooks/use-proposals';
 import { ProposalForm } from '@/features/proposals/components/ProposalForm';
+import type { ProposalMilestone } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -22,6 +24,8 @@ export default function PublicProjectDetailPage() {
   const { user } = useAuthStore();
 
   const { data: project, isLoading } = useProject(id);
+  const existingProposal = useMyProposalForProject(id);
+  const withdraw = useWithdrawProposal();
 
   if (isLoading) {
     return (
@@ -121,36 +125,143 @@ export default function PublicProjectDetailPage() {
             </div>
 
             {/* --- SECCIÓN PARA POSTULAR --- */}
-            {isOpen && isDeveloper && (
+            {isDeveloper && existingProposal && existingProposal.status !== 'WITHDRAWN' ? (
+              /* ── Propuesta ya enviada ── */
+              <div className={`rounded-2xl border p-6 shadow-sm ${
+                existingProposal.status === 'ACCEPTED' ? 'bg-green-50 border-green-200' :
+                existingProposal.status === 'REJECTED' ? 'bg-red-50 border-red-200' :
+                'bg-white border-gray-100'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3 mb-5">
+                  <div className="flex items-center gap-2">
+                    {existingProposal.status === 'ACCEPTED' && <CheckCircle size={20} className="text-green-600 shrink-0" />}
+                    {existingProposal.status === 'REJECTED' && <XCircle size={20} className="text-red-500 shrink-0" />}
+                    {existingProposal.status === 'PENDING' && <Clock size={20} className="text-yellow-500 shrink-0" />}
+                    <div>
+                      <h2 className="text-base font-bold text-gray-900">
+                        {existingProposal.status === 'ACCEPTED' && 'Propuesta aceptada'}
+                        {existingProposal.status === 'REJECTED' && 'Propuesta rechazada'}
+                        {existingProposal.status === 'PENDING' && 'Propuesta enviada'}
+                      </h2>
+                      <p className="text-xs text-gray-400">
+                        {new Date(existingProposal.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+                    existingProposal.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
+                    existingProposal.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {existingProposal.status === 'ACCEPTED' ? 'Aceptada' :
+                     existingProposal.status === 'REJECTED' ? 'Rechazada' : 'Pendiente'}
+                  </span>
+                </div>
+
+                {/* Carta de presentación */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Carta de presentación</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] bg-white/70 rounded-xl px-4 py-3 border border-gray-100">
+                    {existingProposal.coverLetter}
+                  </p>
+                </div>
+
+                {/* Budget + Timeline */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white/70 rounded-xl px-4 py-3 border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-0.5">Presupuesto</p>
+                    <p className="text-sm font-bold text-gray-900">S/ {Number(existingProposal.budget).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white/70 rounded-xl px-4 py-3 border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-0.5">Tiempo estimado</p>
+                    <p className="text-sm font-bold text-gray-900">{existingProposal.timeline} días</p>
+                  </div>
+                </div>
+
+                {/* Milestone plan */}
+                {existingProposal.milestonePlan && existingProposal.milestonePlan.length > 0 && (
+                  <div className="mb-5">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <ListChecks size={13} className="text-primary-600" />
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Plan de tareas</p>
+                    </div>
+                    <div className="space-y-2">
+                      {(existingProposal.milestonePlan as ProposalMilestone[]).map((m, i) => (
+                        <div key={i} className="bg-white/70 rounded-xl px-4 py-3 border border-gray-100 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800 [overflow-wrap:anywhere]">{m.title}</p>
+                            {m.description && <p className="text-xs text-gray-400 mt-0.5 [overflow-wrap:anywhere]">{m.description}</p>}
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700 shrink-0">S/ {Number(m.amount).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200/60">
+                  {existingProposal.status === 'ACCEPTED' && (
+                    <Link
+                      href="/dashboard/proposals"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+                    >
+                      <CheckCircle size={14} /> Ver en mis propuestas
+                    </Link>
+                  )}
+                  {existingProposal.status === 'PENDING' && (
+                    <button
+                      onClick={() => withdraw.mutate(existingProposal.id)}
+                      disabled={withdraw.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      <MinusCircle size={14} /> Retirar propuesta
+                    </button>
+                  )}
+                  {existingProposal.status === 'REJECTED' && (
+                    <p className="text-xs text-red-400 italic">Esta propuesta fue rechazada. Puedes postular de nuevo si el proyecto sigue abierto.</p>
+                  )}
+                </div>
+              </div>
+            ) : isDeveloper && (existingProposal?.status === 'WITHDRAWN' || !existingProposal) && isOpen ? (
+              /* ── Formulario de postulación ── */
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                {existingProposal?.status === 'WITHDRAWN' && (
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 mb-5">
+                    <RotateCcw size={14} className="text-gray-400 shrink-0" />
+                    <p className="text-xs text-gray-500">Retiraste tu propuesta anterior. Puedes volver a postular.</p>
+                  </div>
+                )}
                 <div className="mb-5">
-                  <h2 className="text-lg font-bold text-gray-900">Enviar propuesta</h2>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Send size={16} className="text-primary-600" />
+                    {existingProposal?.status === 'WITHDRAWN' ? 'Volver a postular' : 'Enviar propuesta'}
+                  </h2>
                   <p className="text-sm text-gray-500 mt-1">Presenta tu candidatura con un plan detallado para aumentar tus posibilidades de ser seleccionado.</p>
                 </div>
                 <ProposalForm projectId={project.id} projectBudget={Number(project.budget)} />
               </div>
-            )}
-
-            {isOpen && !user && (
+            ) : isDeveloper && !isOpen ? (
+              <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-center text-sm text-gray-400">
+                Este proyecto ya no está abierto para nuevas propuestas.
+              </div>
+            ) : !user && isOpen ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm text-center">
                 <p className="text-gray-700 font-medium mb-3">¿Eres developer y te interesa este proyecto?</p>
                 <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors">
                   Inicia sesión para postular
                 </Link>
               </div>
-            )}
-
-            {isOpen && isCompany && (
+            ) : isCompany && isOpen ? (
               <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-center text-sm text-gray-400">
                 Las empresas no pueden postular a proyectos.
               </div>
-            )}
-
-            {!isOpen && project.status !== 'DRAFT' && (
+            ) : !isOpen && !isDeveloper ? (
               <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-center text-sm text-gray-400">
                 Este proyecto ya no está abierto para nuevas propuestas.
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* ── RIGHT: Company card ── */}

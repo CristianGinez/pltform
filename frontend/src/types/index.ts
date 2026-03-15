@@ -81,6 +81,13 @@ export interface Project {
   createdAt: string;
 }
 
+export interface ProposalMilestone {
+  title: string;
+  description?: string;
+  amount: number;
+  order: number;
+}
+
 export interface Proposal {
   id: string;
   projectId: string;
@@ -91,6 +98,7 @@ export interface Proposal {
   budget: number;
   timeline: number;
   status: ProposalStatus;
+  milestonePlan?: ProposalMilestone[];
   createdAt: string;
 }
 
