@@ -1,4 +1,5 @@
 import { Controller, Get, Patch, Param, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -11,6 +12,7 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly svc: NotificationsService) {}
 
+  @SkipThrottle()
   @Get()
   findMine(@CurrentUser() u: { id: string }) {
     return this.svc.findForUser(u.id);
@@ -26,6 +28,7 @@ export class NotificationsController {
     return this.svc.markRead(id, u.id);
   }
 
+  @SkipThrottle()
   @Get('admin')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)

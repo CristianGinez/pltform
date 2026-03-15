@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
 import { ContractsService } from './contracts.service';
@@ -21,6 +22,7 @@ export class ContractsController {
     return this.contractsService.getDisputedContracts();
   }
 
+  @SkipThrottle()
   @Get(':id/messages/admin')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
@@ -28,6 +30,7 @@ export class ContractsController {
     return this.contractsService.getMessagesAdmin(id);
   }
 
+  @SkipThrottle()
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contractsService.findById(id, user.id);
@@ -71,6 +74,7 @@ export class ContractsController {
     return this.contractsService.approveMilestone(id, milestoneId, user.id);
   }
 
+  @SkipThrottle()
   @Get(':id/messages')
   getMessages(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contractsService.getMessages(id, user.id);
