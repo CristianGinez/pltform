@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Clock, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useMyProposals, useWithdrawProposal } from '@/hooks/use-proposals';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import type { Proposal } from '@/types';
 
 type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
@@ -28,6 +30,7 @@ export default function ProposalsPage() {
   const { data: proposals = [], isLoading } = useMyProposals();
   const withdraw = useWithdrawProposal();
   const [activeTab, setActiveTab] = useState<ProposalStatus>('PENDING');
+  const [withdrawTarget, setWithdrawTarget] = useState<Proposal | null>(null);
 
   const groups = TAB_ORDER.reduce<Record<ProposalStatus, Proposal[]>>(
     (acc, s) => ({ ...acc, [s]: proposals.filter((p) => p.status === s) }),
@@ -146,9 +149,8 @@ export default function ProposalsPage() {
                         )}
                         {proposal.status === 'PENDING' && (
                           <button
-                            onClick={(e) => { e.preventDefault(); withdraw.mutate(proposal.id); }}
-                            disabled={withdraw.isPending}
-                            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors cursor-pointer"
+                            onClick={(e) => { e.preventDefault(); setWithdrawTarget(proposal); }}
+                            className="text-xs text-red-500 hover:text-red-700 transition-colors cursor-pointer"
                           >
                             Retirar
                           </button>
@@ -162,6 +164,21 @@ export default function ProposalsPage() {
           </div>
         </>
       )}
+
+      <AnimatePresence>
+        {withdrawTarget && (
+          <ConfirmModal
+            title="¿Retirar propuesta?"
+            message={<>¿Estás seguro de que quieres retirar tu propuesta para <span className="font-medium text-gray-700">"{(withdrawTarget.project as { title?: string })?.title ?? 'este proyecto'}"</span>? Podrás volver a postular si el proyecto sigue abierto.</>}
+            confirmText="Sí, retirar"
+            variant="danger"
+            icon={<MinusCircle size={32} className="text-red-400" />}
+            loading={withdraw.isPending}
+            onConfirm={() => withdraw.mutate(withdrawTarget.id, { onSuccess: () => setWithdrawTarget(null) })}
+            onCancel={() => setWithdrawTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,6 +12,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { useProject } from '@/hooks/use-projects';
 import { useMyProposalForProject, useWithdrawProposal } from '@/hooks/use-proposals';
 import { ProposalForm } from '@/features/proposals/components/ProposalForm';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { AnimatePresence } from 'framer-motion';
 import type { ProposalMilestone } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -26,6 +29,7 @@ export default function PublicProjectDetailPage() {
   const { data: project, isLoading } = useProject(id);
   const existingProposal = useMyProposalForProject(id);
   const withdraw = useWithdrawProposal();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -212,9 +216,8 @@ export default function PublicProjectDetailPage() {
                   )}
                   {existingProposal.status === 'PENDING' && (
                     <button
-                      onClick={() => withdraw.mutate(existingProposal.id)}
-                      disabled={withdraw.isPending}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                      onClick={() => setShowWithdrawModal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <MinusCircle size={14} /> Retirar propuesta
                     </button>
@@ -354,6 +357,21 @@ export default function PublicProjectDetailPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showWithdrawModal && existingProposal && (
+          <ConfirmModal
+            title="¿Retirar propuesta?"
+            message={<>¿Estás seguro de que quieres retirar tu propuesta para <span className="font-medium text-gray-700">"{project.title}"</span>? Podrás volver a postular si el proyecto sigue abierto.</>}
+            confirmText="Sí, retirar"
+            variant="danger"
+            icon={<MinusCircle size={32} className="text-red-400" />}
+            loading={withdraw.isPending}
+            onConfirm={() => withdraw.mutate(existingProposal.id, { onSuccess: () => setShowWithdrawModal(false) })}
+            onCancel={() => setShowWithdrawModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
