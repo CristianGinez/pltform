@@ -13,6 +13,7 @@ import { ContractsModule } from './modules/contracts/contracts.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { WebsocketsModule } from './modules/websockets/websockets.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -30,6 +31,7 @@ import configuration from './config/configuration';
       },
     ]),
     PrismaModule,
+    WebsocketsModule,
     AuthModule,
     UsersModule,
     CompaniesModule,

@@ -1,14 +1,23 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EventsGateway } from '../websockets/events.gateway';
 
 @Injectable()
 export class ContractAccessService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private events: EventsGateway,
+  ) {}
 
   async postEvent(contractId: string, senderId: string, content: string, metadata: object) {
-    return this.prisma.contractMessage.create({
+    const msg = await this.prisma.contractMessage.create({
       data: { contractId, senderId, content, type: 'EVENT', metadata },
     });
+
+    this.events.sendContractMessage(contractId, { senderId });
+    this.events.sendContractUpdate(contractId, { action: (metadata as Record<string, unknown>).action as string ?? 'EVENT' });
+
+    return msg;
   }
 
   async getContractWithAccess(contractId: string, userId: string) {

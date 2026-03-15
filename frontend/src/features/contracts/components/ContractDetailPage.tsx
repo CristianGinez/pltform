@@ -13,6 +13,7 @@ import {
   useContract, useContractMessages,
   useProposeCancel,
 } from '@/hooks/use-contracts';
+import { useContractRoom } from '@/hooks/use-socket';
 import type { Contract } from '@/types';
 import {
   CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS,
@@ -36,6 +37,7 @@ export function ContractDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
+  useContractRoom(id);
   const { data: contract, isLoading, error } = useContract(id);
   const { data: messages = [], isLoading: isLoadingMessages } = useContractMessages(id);
   const [tab, setTab] = useState<Tab>('chat');

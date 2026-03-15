@@ -32,8 +32,6 @@ export function useProject(id: string) {
     queryKey: ['project', id],
     queryFn: () => api.get(`/projects/${id}`).then((r) => r.data),
     enabled: !!id,
-    refetchInterval: 5_000,
-    staleTime: 0,
   });
 }
 

@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ContractAccessService } from './contract-access.service';
 import { MilestonesService } from './milestones.service';
+import { EventsGateway } from '../websockets/events.gateway';
 import { SENDER_SELECT, ProposalAction, ProposalStatus, ProposalMetadata } from './contracts.types';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class NegotiationService {
     private notifications: NotificationsService,
     private access: ContractAccessService,
     private milestones: MilestonesService,
+    private events: EventsGateway,
   ) {}
 
   async proposeAction(
@@ -74,6 +76,8 @@ export class NegotiationService {
           entityType: 'contract',
         });
       }
+
+      this.events.sendContractMessage(contractId, { senderId: userId });
 
       return message;
     }
@@ -152,6 +156,8 @@ export class NegotiationService {
         entityType: 'contract',
       });
     }
+
+    this.events.sendContractMessage(contractId, { senderId: userId });
 
     return message;
   }
@@ -262,6 +268,10 @@ export class NegotiationService {
           break;
         }
       }
+
+      // Signal contract state change to all room members
+      this.events.sendContractUpdate(contractId, { action: meta.action });
+
     } else if (dto.counter) {
       await this.prisma.contractMessage.create({
         data: {

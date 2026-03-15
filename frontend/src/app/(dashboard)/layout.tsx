@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth.store';
 import NotificationBell from '@/components/notification-bell';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useRealtimeEvents } from '@/hooks/use-socket';
 
 const navItems = {
   COMPANY: [
@@ -44,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, logout, _hasHydrated } = useAuthStore();
   // Must be called before any early return to follow Rules of Hooks
   const { data: notifications = [] } = useNotifications();
+  useRealtimeEvents();
 
   useEffect(() => {
     if (_hasHydrated && !user) router.push('/login');

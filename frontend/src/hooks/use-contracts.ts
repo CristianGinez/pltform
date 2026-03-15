@@ -8,7 +8,6 @@ export function useContract(id: string) {
     queryKey: ['contract', id],
     queryFn: () => api.get(`/contracts/${id}`).then((r) => r.data),
     enabled: !!id,
-    refetchInterval: 5_000,
   });
 }
 
@@ -103,8 +102,6 @@ export function useContractMessages(contractId: string) {
     queryKey: ['contract-messages', contractId],
     queryFn: () => api.get(`/contracts/${contractId}/messages?limit=200`).then((r) => r.data.data),
     enabled: !!contractId,
-    refetchInterval: 3_000,
-    staleTime: 0,
   });
 }
 

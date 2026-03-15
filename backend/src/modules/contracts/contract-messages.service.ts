@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ContractAccessService } from './contract-access.service';
+import { EventsGateway } from '../websockets/events.gateway';
 import { SENDER_SELECT } from './contracts.types';
 import { paginate } from '../../common/types/paginated';
 
@@ -11,6 +12,7 @@ export class ContractMessagesService {
     private prisma: PrismaService,
     private notifications: NotificationsService,
     private access: ContractAccessService,
+    private events: EventsGateway,
   ) {}
 
   async getMessages(contractId: string, userId: string, options: { limit?: number; cursor?: string } = {}) {
@@ -68,6 +70,8 @@ export class ContractMessagesService {
         entityType: 'contract',
       });
     }
+
+    this.events.sendContractMessage(contractId, { senderId: userId });
 
     return message;
   }
