@@ -3,16 +3,27 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateDeveloperDto } from './dto/update-developer.dto';
 import { paginate } from '../../common/types/paginated';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class DevelopersService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private cache: RedisService,
   ) {}
 
   async findAll(options: { skill?: string; limit?: number; cursor?: string; search?: string } = {}) {
     const { skill, limit = 20, cursor, search } = options;
+
+    // Only cache first page without search — most common request from directory
+    const cacheable = !cursor && !search;
+    const cacheKey = `developers:list:${skill ?? 'all'}:${limit}`;
+
+    if (cacheable) {
+      const cached = await this.cache.get(cacheKey);
+      if (cached) return cached;
+    }
 
     const where: Record<string, unknown> = { available: true };
     if (skill) where.skills = { has: skill };
@@ -49,7 +60,13 @@ export class DevelopersService {
         : {}),
     });
 
-    return paginate(items, limit);
+    const result = paginate(items, limit);
+
+    if (cacheable) {
+      await this.cache.set(cacheKey, result, 60); // 60s — developers change less often
+    }
+
+    return result;
   }
 
   async findById(id: string) {
@@ -80,7 +97,12 @@ export class DevelopersService {
   async updateMyProfile(userId: string, dto: UpdateDeveloperDto) {
     const developer = await this.prisma.developer.findUnique({ where: { userId } });
     if (!developer) throw new NotFoundException('Developer not found');
-    return this.prisma.developer.update({ where: { userId }, data: dto });
+
+    const result = await this.prisma.developer.update({ where: { userId }, data: dto });
+
+    await this.cache.invalidate('developers:list:*');
+
+    return result;
   }
 
   async submitVerification(userId: string, docUrl: string, docType: string) {

@@ -3,13 +3,18 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
+import { Inject } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.constants';
 
 @WebSocketGateway({
   cors: {
@@ -20,7 +25,7 @@ import { ConfigService } from '@nestjs/config';
     credentials: true,
   },
 })
-export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -30,7 +35,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  // ─── Lifecycle ─────────────────────────────────────────────────────────────
+
+  afterInit(server: Server) {
+    // Create a duplicate client for the subscriber (Redis pub/sub needs two connections)
+    const pubClient = this.redis;
+    const subClient = pubClient.duplicate();
+    server.adapter(createAdapter(pubClient, subClient));
+  }
 
   // ─── Connection lifecycle ──────────────────────────────────────────────────
 

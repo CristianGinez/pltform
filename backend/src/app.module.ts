@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -14,6 +16,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { WebsocketsModule } from './modules/websockets/websockets.module';
+import { RedisModule } from './modules/redis/redis.module';
+import { REDIS_CLIENT } from './modules/redis/redis.constants';
 import configuration from './config/configuration';
 
 @Module({
@@ -22,14 +26,18 @@ import configuration from './config/configuration';
       isGlobal: true,
       load: [configuration],
     }),
-    // Rate limiting: 60 requests per 60 seconds per IP (default tier)
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: 60000,
-        limit: 60,
-      },
-    ]),
+    RedisModule,
+    // Rate limiting: 60 requests per 60 seconds per IP (default tier) — persisted in Redis
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis) => ({
+        throttlers: [
+          { name: 'default', ttl: 60000, limit: 60 },
+        ],
+        storage: new ThrottlerStorageRedisService(redis),
+      }),
+    }),
     PrismaModule,
     WebsocketsModule,
     AuthModule,

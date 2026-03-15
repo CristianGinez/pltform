@@ -9,10 +9,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { paginate } from '../../common/types/paginated';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: RedisService,
+  ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
     const company = await this.prisma.company.findUnique({ where: { userId } });
@@ -36,6 +40,15 @@ export class ProjectsService {
   ) {
     const { limit = 20, cursor, search } = options;
 
+    // Only cache first page without search — most common request from landing
+    const cacheable = !cursor && !search;
+    const cacheKey = `projects:list:${status}:${limit}`;
+
+    if (cacheable) {
+      const cached = await this.cache.get(cacheKey);
+      if (cached) return cached;
+    }
+
     const where: Record<string, unknown> = { status };
     if (search) {
       where.OR = [
@@ -57,7 +70,13 @@ export class ProjectsService {
         : {}),
     });
 
-    return paginate(items, limit);
+    const result = paginate(items, limit);
+
+    if (cacheable) {
+      await this.cache.set(cacheKey, result, 30);
+    }
+
+    return result;
   }
 
   async findById(id: string) {
@@ -116,10 +135,14 @@ export class ProjectsService {
     const company = await this.prisma.company.findUnique({ where: { userId } });
     if (project.companyId !== company?.id) throw new ForbiddenException();
 
-    return this.prisma.project.update({
+    const result = await this.prisma.project.update({
       where: { id },
       data: { status: 'OPEN' },
     });
+
+    await this.cache.invalidate('projects:list:*');
+
+    return result;
   }
 
   async cancel(id: string, userId: string) {
@@ -127,10 +150,14 @@ export class ProjectsService {
     const company = await this.prisma.company.findUnique({ where: { userId } });
     if (project.companyId !== company?.id) throw new ForbiddenException();
 
-    return this.prisma.project.update({
+    const result = await this.prisma.project.update({
       where: { id },
       data: { status: 'CANCELLED' },
     });
+
+    await this.cache.invalidate('projects:list:*');
+
+    return result;
   }
 
   async republish(id: string, userId: string) {
@@ -138,10 +165,15 @@ export class ProjectsService {
     if (!project) throw new NotFoundException('Proyecto no encontrado');
     if (project.company.userId !== userId) throw new ForbiddenException();
     if (project.status !== 'CANCELLED') throw new BadRequestException('Solo se pueden republicar proyectos cancelados');
-    return this.prisma.project.update({
+
+    const result = await this.prisma.project.update({
       where: { id },
       data: { status: 'OPEN' },
     });
+
+    await this.cache.invalidate('projects:list:*');
+
+    return result;
   }
 
   async revertToDraft(id: string, userId: string) {
@@ -149,9 +181,14 @@ export class ProjectsService {
     if (!project) throw new NotFoundException('Proyecto no encontrado');
     if (project.company.userId !== userId) throw new ForbiddenException();
     if (!['CANCELLED', 'OPEN'].includes(project.status)) throw new BadRequestException('No se puede convertir este proyecto a borrador');
-    return this.prisma.project.update({
+
+    const result = await this.prisma.project.update({
       where: { id },
       data: { status: 'DRAFT' },
     });
+
+    await this.cache.invalidate('projects:list:*');
+
+    return result;
   }
 }
