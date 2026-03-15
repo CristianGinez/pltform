@@ -224,8 +224,30 @@ export class ContractsService {
     if (milestone.status !== 'SUBMITTED')
       throw new BadRequestException('Solo puedes aprobar un milestone SUBMITTED');
 
-    const updated = await this.prisma.milestone.update({ where: { id: milestoneId }, data: { status: 'PAID' } });
+    // Precalcular si este es el último milestone
+    const allMilestones = contract.milestones.map((m) =>
+      m.id === milestoneId ? { ...m, status: 'PAID' as const } : m,
+    );
+    const isContractComplete = allMilestones.every((m) => m.status === 'PAID');
 
+    // ── Transacción atómica ──
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // 1. Marcar milestone como PAID
+      const updated = await tx.milestone.update({
+        where: { id: milestoneId },
+        data: { status: 'PAID' },
+      });
+
+      // 2. Si todos los milestones están pagados, completar contrato Y proyecto
+      if (isContractComplete) {
+        await tx.contract.update({ where: { id: contractId }, data: { status: 'COMPLETED' } });
+        await tx.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
+      }
+
+      return updated;
+    });
+
+    // ── Efectos secundarios (fuera de la transacción) ──
     const acceptedProposal = await this.prisma.proposal.findFirst({
       where: { projectId: contract.projectId, status: 'ACCEPTED' },
       include: { developer: true },
@@ -249,12 +271,7 @@ export class ContractsService {
       amount: milestone.amount.toString(),
     });
 
-    const allMilestones = contract.milestones.map((m) =>
-      m.id === milestoneId ? { ...m, status: 'PAID' as const } : m,
-    );
-    if (allMilestones.every((m) => m.status === 'PAID')) {
-      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'COMPLETED' } });
-      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
+    if (isContractComplete) {
       await this.postEvent(contractId, userId, '🎉 ¡Proyecto completado! Todos los milestones fueron aprobados.', {
         action: 'CONTRACT_COMPLETED',
       });
@@ -487,8 +504,13 @@ export class ContractsService {
           await this.doApproveMilestone(contractId, meta.milestoneId, message.senderId);
           break;
         case 'PROPOSE_CANCEL': {
-          await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
-          await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
+          // Transacción atómica: cancelar contrato + proyecto juntos
+          await this.prisma.$transaction(async (tx) => {
+            await tx.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+            await tx.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
+          });
+
+          // Efectos secundarios
           await this.postEvent(contractId, userId, 'Contrato cancelado por acuerdo mutuo', {
             action: 'CONTRACT_CANCELLED_MUTUAL',
           });
@@ -511,19 +533,22 @@ export class ContractsService {
         }
         case 'PROPOSE_MILESTONE_PLAN': {
           if (meta.milestones) {
-            await this.prisma.milestone.createMany({
-              data: meta.milestones.map((m: { title: string; description?: string; amount: number; order: number }) => ({
-                contractId,
-                title: m.title,
-                description: m.description,
-                amount: m.amount,
-                order: m.order,
-                status: 'PENDING',
-              })),
-            });
-            await this.prisma.contractMessage.update({
-              where: { id: messageId },
-              data: { metadata: { ...meta, proposalStatus: 'ACCEPTED' } },
+            // Transacción atómica: crear milestones + actualizar metadata juntos
+            await this.prisma.$transaction(async (tx) => {
+              await tx.milestone.createMany({
+                data: meta.milestones!.map((m: { title: string; description?: string; amount: number; order: number }) => ({
+                  contractId,
+                  title: m.title,
+                  description: m.description,
+                  amount: m.amount,
+                  order: m.order,
+                  status: 'PENDING',
+                })),
+              });
+              await tx.contractMessage.update({
+                where: { id: messageId },
+                data: { metadata: { ...meta, proposalStatus: 'ACCEPTED' } },
+              });
             });
             return { ok: true };
           }
@@ -663,17 +688,24 @@ export class ContractsService {
     if (!reason?.trim() || reason.trim().length < 10)
       throw new BadRequestException('El motivo debe tener al menos 10 caracteres');
 
-    await this.prisma.contract.update({
-      where: { id: contractId },
-      data: { status: 'DISPUTED', disputeReason: reason.trim(), disputeOpenedById: userId },
+    // Transacción atómica: cambiar status + registrar evento
+    await this.prisma.$transaction(async (tx) => {
+      await tx.contract.update({
+        where: { id: contractId },
+        data: { status: 'DISPUTED', disputeReason: reason.trim(), disputeOpenedById: userId },
+      });
+      await tx.contractMessage.create({
+        data: {
+          contractId,
+          senderId: userId,
+          content: `Disputa abierta: "${reason.trim()}"`,
+          type: 'EVENT',
+          metadata: { action: 'DISPUTE_OPENED', reason: reason.trim() },
+        },
+      });
     });
 
-    await this.postEvent(contractId, userId, `Disputa abierta: "${reason.trim()}"`, {
-      action: 'DISPUTE_OPENED',
-      reason: reason.trim(),
-    });
-
-    // Notify the other party
+    // Efectos secundarios: notificaciones
     if (isCompany) {
       const devProposal = await this.prisma.proposal.findFirst({
         where: { projectId: contract.projectId, status: 'ACCEPTED' },
@@ -727,61 +759,68 @@ export class ContractsService {
     if (contract.status !== 'DISPUTED')
       throw new BadRequestException('El contrato no está en disputa');
 
-    // Store the admin comment and outcome on the contract
-    await this.prisma.contract.update({
-      where: { id: contractId },
-      data: { disputeResolvedComment: adminComment ?? null, disputeOutcome: outcome },
-    });
-
     const acceptedProposal = await this.prisma.proposal.findFirst({
       where: { projectId: contract.projectId, status: 'ACCEPTED' },
       include: { developer: true },
     });
 
-    if (outcome === 'dev_wins') {
-      // Approve all SUBMITTED milestones
-      const submittedMilestones = contract.milestones.filter((m) => m.status === 'SUBMITTED');
-      await Promise.all(
-        submittedMilestones.map((m) =>
-          this.prisma.milestone.update({ where: { id: m.id }, data: { status: 'PAID' } }),
-        ),
-      );
-      // Reload milestones to check completion
-      const allMilestones = contract.milestones.map((m) =>
-        submittedMilestones.find((s) => s.id === m.id) ? { ...m, status: 'PAID' as const } : m,
-      );
-      const allPaid = allMilestones.every((m) => m.status === 'PAID');
-      await this.prisma.contract.update({
+    // ── Transacción atómica: todas las mutaciones de estado ──
+    await this.prisma.$transaction(async (tx) => {
+      // Paso común: guardar outcome y comentario del admin
+      await tx.contract.update({
         where: { id: contractId },
-        data: { status: allPaid ? 'COMPLETED' : 'ACTIVE' },
+        data: { disputeResolvedComment: adminComment ?? null, disputeOutcome: outcome },
       });
-      if (allPaid) {
-        await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
-      }
-    } else if (outcome === 'company_wins') {
-      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
-      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
-      // Deduct 30 trustPoints from developer and increment disputeLosses
-      if (acceptedProposal) {
-        const dev = await this.prisma.developer.findUnique({
-          where: { id: acceptedProposal.developerId },
-        });
-        if (dev) {
-          await this.prisma.developer.update({
-            where: { id: acceptedProposal.developerId },
-            data: {
-              trustPoints: Math.max(0, dev.trustPoints - 30),
-              disputeLosses: { increment: 1 },
-            },
-          });
-        }
-      }
-    } else {
-      // mutual
-      await this.prisma.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
-      await this.prisma.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
-    }
 
+      if (outcome === 'dev_wins') {
+        // Aprobar todos los milestones SUBMITTED
+        const submittedMilestones = contract.milestones.filter((m) => m.status === 'SUBMITTED');
+        for (const m of submittedMilestones) {
+          await tx.milestone.update({ where: { id: m.id }, data: { status: 'PAID' } });
+        }
+
+        // Verificar si todos quedaron PAID
+        const allMilestones = contract.milestones.map((m) =>
+          submittedMilestones.find((s) => s.id === m.id) ? { ...m, status: 'PAID' as const } : m,
+        );
+        const allPaid = allMilestones.every((m) => m.status === 'PAID');
+
+        await tx.contract.update({
+          where: { id: contractId },
+          data: { status: allPaid ? 'COMPLETED' : 'ACTIVE' },
+        });
+        if (allPaid) {
+          await tx.project.update({ where: { id: contract.projectId }, data: { status: 'COMPLETED' } });
+        }
+
+      } else if (outcome === 'company_wins') {
+        await tx.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+        await tx.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
+
+        // Penalizar developer
+        if (acceptedProposal) {
+          const dev = await tx.developer.findUnique({
+            where: { id: acceptedProposal.developerId },
+          });
+          if (dev) {
+            await tx.developer.update({
+              where: { id: acceptedProposal.developerId },
+              data: {
+                trustPoints: Math.max(0, dev.trustPoints - 30),
+                disputeLosses: { increment: 1 },
+              },
+            });
+          }
+        }
+
+      } else {
+        // mutual
+        await tx.contract.update({ where: { id: contractId }, data: { status: 'CANCELLED' } });
+        await tx.project.update({ where: { id: contract.projectId }, data: { status: 'CANCELLED' } });
+      }
+    });
+
+    // ── Efectos secundarios (fuera de la transacción) ──
     await this.postEvent(contractId, adminId, `Disputa resuelta: ${outcome === 'dev_wins' ? 'a favor del developer' : outcome === 'company_wins' ? 'a favor de la empresa' : 'cancelación mutua'}${adminComment ? ` — "${adminComment}"` : ''}`, {
       action: 'DISPUTE_RESOLVED',
       outcome,

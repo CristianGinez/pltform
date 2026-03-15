@@ -90,30 +90,13 @@ export class ProposalsService {
     const company = await this.prisma.company.findUnique({ where: { userId } });
     if (proposal.project.companyId !== company?.id) throw new ForbiddenException();
 
-    // Find other pending proposals to notify them of rejection
+    // Guardar lista de propuestas a rechazar (para notificaciones después)
     const otherProposals = await this.prisma.proposal.findMany({
       where: { projectId: proposal.projectId, id: { not: id }, status: 'PENDING' },
       include: { developer: true },
     });
 
-    // Reject all other proposals for this project
-    await this.prisma.proposal.updateMany({
-      where: { projectId: proposal.projectId, id: { not: id } },
-      data: { status: 'REJECTED' },
-    });
-
-    const accepted = await this.prisma.proposal.update({
-      where: { id },
-      data: { status: 'ACCEPTED' },
-    });
-
-    // Move project to IN_PROGRESS
-    await this.prisma.project.update({
-      where: { id: proposal.projectId },
-      data: { status: 'IN_PROGRESS' },
-    });
-
-    // Create contract — use proposal's milestonePlan if provided, otherwise use default roadmap
+    // Calcular milestones antes de la transacción (lógica pura, sin I/O)
     const b = Number(proposal.budget);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const milestonePlan = (proposal as any).milestonePlan as Array<{ title: string; description?: string; amount: number; order: number }> | null;
@@ -134,16 +117,39 @@ export class ProposalsService {
         { title: 'Entrega final',            amount: m5, order: 5 },
       ];
     }
-    const contract = await this.prisma.contract.create({
-      data: {
-        projectId: proposal.projectId,
-        milestones: {
-          create: milestonesData,
+
+    // ── Transacción atómica: todas las mutaciones de estado ──
+    const { accepted, contract } = await this.prisma.$transaction(async (tx) => {
+      // 1. Rechazar todas las demás propuestas
+      await tx.proposal.updateMany({
+        where: { projectId: proposal.projectId, id: { not: id } },
+        data: { status: 'REJECTED' },
+      });
+
+      // 2. Aceptar esta propuesta
+      const accepted = await tx.proposal.update({
+        where: { id },
+        data: { status: 'ACCEPTED' },
+      });
+
+      // 3. Mover proyecto a IN_PROGRESS
+      await tx.project.update({
+        where: { id: proposal.projectId },
+        data: { status: 'IN_PROGRESS' },
+      });
+
+      // 4. Crear contrato con milestones
+      const contract = await tx.contract.create({
+        data: {
+          projectId: proposal.projectId,
+          milestones: { create: milestonesData },
         },
-      },
+      });
+
+      return { accepted, contract };
     });
 
-    // Notify accepted developer → link directly to the new contract
+    // ── Efectos secundarios (fuera de la transacción) ──
     await this.notifications.create({
       userId: proposal.developer.userId,
       type: 'PROPOSAL_ACCEPTED',
