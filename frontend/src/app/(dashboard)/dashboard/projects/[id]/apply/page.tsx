@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@/lib/zod-resolver';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Send, Plus, Trash2, DollarSign, Clock } from 'lucide-react';
 import { useProject } from '@/hooks/use-projects';
 import { useSubmitProposal } from '@/hooks/use-proposals';
@@ -30,7 +32,8 @@ export default function ApplyToProjectPage() {
     formState: { errors, isSubmitting },
     setError,
     watch,
-  } = useForm<ProposalFormData>({ 
+    setValue,
+  } = useForm<ProposalFormData>({
     resolver: zodResolver(proposalSchema),
     defaultValues
   });
@@ -43,6 +46,13 @@ export default function ApplyToProjectPage() {
   // Calcula el total de los hitos en tiempo real
   const watchMilestones = watch('milestonePlan');
   const totalMilestonesCost = watchMilestones?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+
+  // Sincroniza el presupuesto con la suma de milestones
+  useEffect(() => {
+    if (totalMilestonesCost > 0) {
+      setValue('budget', totalMilestonesCost, { shouldValidate: false });
+    }
+  }, [totalMilestonesCost, setValue]);
 
   const handleApply = (data: ProposalFormData) => {
     const plan = data.milestonePlan || [];
@@ -153,9 +163,17 @@ export default function ApplyToProjectPage() {
             </div>
           </div>
 
+          <AnimatePresence initial={false}>
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-col md:flex-row gap-4 items-start p-5 bg-gray-50/50 border border-gray-200 rounded-xl relative group">
+              <motion.div
+                key={field.id}
+                initial={{ opacity: 0, y: -12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="flex flex-col md:flex-row gap-4 items-start p-5 bg-gray-50/50 border border-gray-200 rounded-xl relative group"
+              >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 text-sm font-bold text-gray-500 shrink-0 shadow-sm">
                   {index + 1}
                 </div>
@@ -209,9 +227,10 @@ export default function ApplyToProjectPage() {
                     <Trash2 size={20} />
                   </button>
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
+          </AnimatePresence>
 
           {errors.milestonePlan && !Array.isArray(errors.milestonePlan) && (
             <p className="mt-3 text-sm font-medium text-red-500">{errors.milestonePlan.message}</p>
