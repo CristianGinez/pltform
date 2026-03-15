@@ -1,0 +1,5 @@
+[build]
+buildCommand = "npm run build --workspace=backend"
+
+[deploy]
+startCommand = "npm run start --workspace=backend"
