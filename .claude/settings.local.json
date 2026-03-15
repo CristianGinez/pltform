@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/paolo/Desktop/pltform/frontend && npx tsc --noEmit 2>&1 | head -80)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

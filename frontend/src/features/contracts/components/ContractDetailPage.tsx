@@ -14,7 +14,6 @@ import {
   useProposeCancel,
 } from '@/hooks/use-contracts';
 import { useContractRoom } from '@/hooks/use-socket';
-import type { Contract } from '@/types';
 import {
   CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS,
   TAB_ORDER, type Tab,
@@ -85,13 +84,8 @@ export function ContractDetailPage() {
     );
   }
 
-  const project = contract.project as typeof contract.project & {
-    company?: { id?: string; name?: string; logoUrl?: string | null; industry?: string | null };
-    proposals?: Array<{
-      developer?: { id?: string; name: string; avatarUrl?: string | null; rating?: number; skills?: string[] };
-    }>;
-  };
-  const myReview = (contract as typeof contract & { reviews?: Array<{ id: string; rating: number; comment?: string }> }).reviews?.[0];
+  const project = contract.project;
+  const myReview = contract.reviews?.[0];
   const companyInfo = project?.company;
   const devInfo = project?.proposals?.[0]?.developer;
   const otherName = isCompany
@@ -109,7 +103,7 @@ export function ContractDetailPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-bold text-gray-900 text-lg truncate">{project?.title ?? 'Contrato'}</h1>
             {(() => {
-              const disputeLabel = getDisputeStatusLabel(contract as { status: string; disputeOutcome?: string | null }, isCompany);
+              const disputeLabel = getDisputeStatusLabel(contract, isCompany);
               const label = disputeLabel?.label ?? CONTRACT_STATUS_LABELS[contract.status] ?? contract.status;
               const color = disputeLabel?.color ?? CONTRACT_STATUS_COLORS[contract.status] ?? 'bg-gray-100 text-gray-600';
               return <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${color}`}>{label}</span>;
@@ -150,9 +144,9 @@ export function ContractDetailPage() {
           <ShieldAlert size={18} className="text-red-500 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-red-800">Contrato en disputa</p>
-            {(contract as typeof contract & { disputeReason?: string }).disputeReason && (
+            {contract.disputeReason && (
               <p className="text-xs text-red-600 mt-0.5">
-                Motivo: "{(contract as typeof contract & { disputeReason?: string }).disputeReason}"
+                Motivo: &quot;{contract.disputeReason}&quot;
               </p>
             )}
             <p className="text-xs text-red-500 mt-1">El equipo está revisando el caso y resolverá a la brevedad.</p>
@@ -191,10 +185,10 @@ export function ContractDetailPage() {
       )}
 
       {/* Dispute resolved banner */}
-      {(contract as Contract).disputeOutcome && (
+      {contract.disputeOutcome && (
         (() => {
-          const outcome = (contract as Contract).disputeOutcome!;
-          const disputeLabel = getDisputeStatusLabel(contract as { status: string; disputeOutcome?: string | null }, isCompany);
+          const outcome = contract.disputeOutcome!;
+          const disputeLabel = getDisputeStatusLabel(contract, isCompany);
           const isWinner = disputeLabel?.label === 'Resuelto a tu favor';
           const isMutual = outcome === 'mutual';
           const bg = isMutual ? 'bg-gray-50 border-gray-200' : isWinner ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
@@ -208,9 +202,9 @@ export function ContractDetailPage() {
               <CheckCircle size={18} className={`mt-0.5 shrink-0 ${iconColor}`} />
               <div className="flex-1">
                 <p className={`text-sm font-semibold ${titleColor}`}>{title}</p>
-                {(contract as Contract).disputeResolvedComment && (
+                {contract.disputeResolvedComment && (
                   <p className={`text-xs mt-0.5 ${textColor}`}>
-                    Comentario del admin: &ldquo;{(contract as Contract).disputeResolvedComment}&rdquo;
+                    Comentario del admin: &ldquo;{contract.disputeResolvedComment}&rdquo;
                   </p>
                 )}
                 {canRate && (
@@ -331,7 +325,7 @@ export function ContractDetailPage() {
                 <ResumenTab
                   contract={contract}
                   myReview={myReview}
-                  isCompleted={contract.status === 'COMPLETED' || !!(contract as Contract).disputeOutcome}
+                  isCompleted={contract.status === 'COMPLETED' || !!contract.disputeOutcome}
                   otherName={otherName}
                   onRate={() => setShowRateOverlay(true)}
                 />
@@ -344,11 +338,11 @@ export function ContractDetailPage() {
         <div className="hidden lg:block sticky top-4 w-[200px] shrink-0">
           {isCompany ? (
             devInfo
-              ? <ProfileCard name={devInfo.name} role="developer" avatarUrl={devInfo.avatarUrl} rating={devInfo.rating} extra={devInfo.skills?.slice(0,2).join(', ')} profileHref={(devInfo as { id?: string }).id ? `/developers/${(devInfo as { id?: string }).id}` : undefined} />
+              ? <ProfileCard name={devInfo.name} role="developer" avatarUrl={devInfo.avatarUrl} rating={devInfo.rating} extra={devInfo.skills?.slice(0,2).join(', ')} profileHref={devInfo.id ? `/developers/${devInfo.id}` : undefined} />
               : <EmptyProfileCard label="Developer" />
           ) : (
             companyInfo
-              ? <ProfileCard name={companyInfo.name ?? 'Empresa'} role="company" logoUrl={companyInfo.logoUrl} extra={companyInfo.industry} profileHref={(companyInfo as { id?: string }).id ? `/companies/${(companyInfo as { id?: string }).id}` : undefined} />
+              ? <ProfileCard name={companyInfo.name ?? 'Empresa'} role="company" logoUrl={companyInfo.logoUrl} extra={companyInfo.industry} profileHref={companyInfo.id ? `/companies/${companyInfo.id}` : undefined} />
               : <EmptyProfileCard label="Empresa" />
           )}
         </div>
@@ -362,7 +356,7 @@ export function ContractDetailPage() {
           alreadyReviewed={!!myReview}
         />
       )}
-      {showRateOverlay && (contract.status === 'COMPLETED' || !!(contract as Contract).disputeOutcome) && !myReview && (
+      {showRateOverlay && (contract.status === 'COMPLETED' || !!contract.disputeOutcome) && !myReview && (
         <CompletionOverlay
           key="manual-rate"
           contract={contract}

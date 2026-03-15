@@ -9,6 +9,7 @@ import { Suspense } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -68,9 +69,7 @@ function RegisterForm() {
       toast.success('Cuenta creada exitosamente');
       router.push('/dashboard');
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Error al registrarse';
+      const msg = getApiErrorMessage(err, 'Error al registrarse');
       toast.error(msg);
       setError('root', { message: msg });
     }

@@ -164,16 +164,15 @@ export default function DashboardPage() {
             </Link>
           </div>
           {activeContracts.slice(0, 3).map((p: Proposal) => {
-            const project = p.project as any;
-            const contractId = project?.contract?.id;
+            const contractId = p.project?.contract?.id;
             return (
               <Link key={p.id}
                 href={contractId ? `/dashboard/contracts/${contractId}` : '/dashboard/contracts'}
                 className="flex items-center justify-between px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{project?.title ?? 'Proyecto'}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{project?.company?.name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{p.project?.title ?? 'Proyecto'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{p.project?.company?.name}</p>
                 </div>
                 <span className="text-xs font-semibold text-primary-700 shrink-0">
                   S/ {Number(p.budget).toLocaleString()}
@@ -204,14 +203,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           proposals.slice(0, 5).map((p: Proposal) => {
-            const project = p.project as any;
             return (
               <Link key={p.id} href={`/dashboard/projects/${p.projectId}`}
                 className="flex items-center justify-between px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{project?.title ?? 'Proyecto'}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">{project?.company?.name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{p.project?.title ?? 'Proyecto'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{p.project?.company?.name}</p>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${PROPOSAL_STATUS_COLORS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
                   {PROPOSAL_STATUS_LABELS[p.status] ?? p.status}

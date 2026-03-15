@@ -169,7 +169,7 @@ export default function ProposalsPage() {
         {withdrawTarget && (
           <ConfirmModal
             title="¿Retirar propuesta?"
-            message={<>¿Estás seguro de que quieres retirar tu propuesta para <span className="font-medium text-gray-700">"{(withdrawTarget.project as { title?: string })?.title ?? 'este proyecto'}"</span>? Podrás volver a postular si el proyecto sigue abierto.</>}
+            message={<>¿Estás seguro de que quieres retirar tu propuesta para <span className="font-medium text-gray-700">&quot;{withdrawTarget.project?.title ?? 'este proyecto'}&quot;</span>? Podrás volver a postular si el proyecto sigue abierto.</>}
             confirmText="Sí, retirar"
             variant="danger"
             icon={<MinusCircle size={32} className="text-red-400" />}

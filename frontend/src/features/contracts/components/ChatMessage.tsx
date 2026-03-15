@@ -234,9 +234,9 @@ export function ChatMessage({ msg, contractId, currentUserId, onGoToMilestones }
                 <ExternalLink size={10} />Ver entregable
               </a>
             )}
-            {action === 'DISPUTE_RESOLVED' && (msg.metadata as { adminComment?: string })?.adminComment && (
+            {action === 'DISPUTE_RESOLVED' && msg.metadata?.adminComment && (
               <p className="mt-1 opacity-80">
-                Admin: &ldquo;{(msg.metadata as { adminComment?: string }).adminComment}&rdquo;
+                Admin: &ldquo;{msg.metadata.adminComment}&rdquo;
               </p>
             )}
             <p className="text-[10px] opacity-60 mt-0.5">

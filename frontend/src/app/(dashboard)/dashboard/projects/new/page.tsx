@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useCreateProject } from '@/hooks/use-projects';
+import { useMe } from '@/hooks/use-profile';
 import { projectSchema, type ProjectFormData } from '@/schemas/project.schema';
 
 // ─── Package catalog ──────────────────────────────────────────────────────────
@@ -179,7 +180,8 @@ function ProjectPreview({
 export default function NewProjectPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const companyName = (user as unknown as { company?: { name?: string } })?.company?.name ?? user?.email ?? 'Tu empresa';
+  const { data: me } = useMe();
+  const companyName = me?.company?.name ?? user?.email ?? 'Tu empresa';
 
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');

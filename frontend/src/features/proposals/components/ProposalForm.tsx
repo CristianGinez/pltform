@@ -7,6 +7,7 @@ import { zodResolver } from '@/lib/zod-resolver';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Plus, X, DollarSign, Clock, ListChecks, CheckCircle } from 'lucide-react';
 import { useSubmitProposal } from '@/hooks/use-proposals';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { proposalSchema, type ProposalFormData } from '@/schemas/proposal.schema';
 
 interface ProposalFormProps {
@@ -69,7 +70,7 @@ export function ProposalForm({ projectId, projectBudget, onSuccess }: ProposalFo
       description: m.description || undefined,
     }));
     submitProposal.mutateAsync({ ...data, milestonePlan: plan }).catch((err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al enviar la propuesta';
+      const msg = getApiErrorMessage(err, 'Error al enviar la propuesta');
       setError('root', { message: msg });
     });
   };

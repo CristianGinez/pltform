@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // ─── Developer submit ─────────────────────────────────────────────────────────
 
@@ -14,8 +15,7 @@ export function useSubmitDeveloperVerification() {
       toast.success('Solicitud enviada. El equipo revisará tu documentación en breve.');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la solicitud');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la solicitud'));
     },
   });
 }
@@ -32,8 +32,7 @@ export function useSubmitCompanyVerification() {
       toast.success('Solicitud enviada. El equipo revisará tu documentación en breve.');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la solicitud');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la solicitud'));
     },
   });
 }

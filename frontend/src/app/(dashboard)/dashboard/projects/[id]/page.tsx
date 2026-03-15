@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useProject, usePublishProject, useAcceptProposal } from '@/hooks/use-projects';
 import { useAuthStore } from '@/store/auth.store';
+import { useMe } from '@/hooks/use-profile';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Borrador', OPEN: 'Abierto', IN_PROGRESS: 'En progreso',
@@ -694,6 +695,7 @@ export default function DashboardProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { data: me } = useMe();
   const isCompany = user?.role === 'COMPANY';
 
   const { data: project, isLoading } = useProject(id);
@@ -717,15 +719,15 @@ export default function DashboardProjectDetailPage() {
     );
   }
 
-  const companyName = (user as any)?.company?.name ?? user?.email ?? 'Tu empresa';
+  const companyName = me?.company?.name ?? user?.email ?? 'Tu empresa';
 
   // Developer: find their own proposal
   const myProposal = !isCompany
-    ? project.proposals?.find((p: any) => p.developer?.userId === user?.id || p.developer?.user?.id === user?.id)
+    ? project.proposals?.find((p) => p.developer?.userId === user?.id || p.developer?.user?.id === user?.id)
     : null;
 
-  const pendingProposals = project.proposals?.filter((p: any) => p.status === 'PENDING') ?? [];
-  const otherProposals = project.proposals?.filter((p: any) => p.status !== 'PENDING') ?? [];
+  const pendingProposals = project.proposals?.filter((p) => p.status === 'PENDING') ?? [];
+  const otherProposals = project.proposals?.filter((p) => p.status !== 'PENDING') ?? [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">

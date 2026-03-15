@@ -5,6 +5,8 @@ export type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
 export type ContractStatus = 'ACTIVE' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
 export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'APPROVED' | 'PAID';
 
+// ─── Core entities ────────────────────────────────────────────────────────
+
 export interface User {
   id: string;
   email: string;
@@ -65,10 +67,24 @@ export interface Developer {
   warrantyDays?: number;
 }
 
+// ─── Project ──────────────────────────────────────────────────────────────
+
+/** Company fields returned in project listing endpoints */
+export interface ProjectCompanySummary {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  verified: boolean;
+  location?: string;
+  clientRating: number;
+  clientReviewCount: number;
+}
+
+/** Project as returned by GET /projects (listing) */
 export interface Project {
   id: string;
   companyId: string;
-  company: Pick<Company, 'id' | 'name' | 'logoUrl' | 'verified' | 'location' | 'clientRating' | 'clientReviewCount'>;
+  company: ProjectCompanySummary;
   title: string;
   description: string;
   budget: number;
@@ -81,6 +97,14 @@ export interface Project {
   createdAt: string;
 }
 
+/** Project as returned by GET /projects/:id (detail — includes full company + proposals) */
+export interface ProjectDetail extends Omit<Project, 'company'> {
+  company: Company;
+  proposals: ProposalWithDeveloper[];
+}
+
+// ─── Proposal ─────────────────────────────────────────────────────────────
+
 export interface ProposalMilestone {
   title: string;
   description?: string;
@@ -88,10 +112,33 @@ export interface ProposalMilestone {
   order: number;
 }
 
+/** Developer fields included in proposal responses */
+export interface ProposalDeveloper extends Developer {
+  user?: { id: string };
+}
+
+/** Proposal with its developer (as returned inside project detail) */
+export interface ProposalWithDeveloper {
+  id: string;
+  projectId: string;
+  developerId: string;
+  developer: ProposalDeveloper;
+  coverLetter: string;
+  budget: number;
+  timeline: number;
+  status: ProposalStatus;
+  milestonePlan?: ProposalMilestone[];
+  createdAt: string;
+}
+
+/** Proposal as returned by GET /proposals/my (includes project with contract) */
 export interface Proposal {
   id: string;
   projectId: string;
-  project?: Project;
+  project?: Project & {
+    company: { name: string; logoUrl?: string };
+    contract?: { id: string; status: ContractStatus };
+  };
   developerId: string;
   developer?: Developer;
   coverLetter: string;
@@ -101,6 +148,8 @@ export interface Proposal {
   milestonePlan?: ProposalMilestone[];
   createdAt: string;
 }
+
+// ─── Contract ─────────────────────────────────────────────────────────────
 
 export interface Milestone {
   id: string;
@@ -117,11 +166,52 @@ export interface Milestone {
   submittedAt?: string;
 }
 
+export interface Review {
+  id: string;
+  contractId: string;
+  reviewerId: string;
+  reviewedId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+/** Company fields returned inside contract detail */
+export interface ContractCompanyInfo {
+  id: string;
+  name: string;
+  userId: string;
+  logoUrl?: string;
+  industry?: string;
+  location?: string;
+}
+
+/** Developer fields returned inside contract detail */
+export interface ContractDeveloperInfo {
+  id: string;
+  name: string;
+  userId: string;
+  avatarUrl?: string;
+  skills: string[];
+  rating: number;
+  trustPoints: number;
+}
+
+/** Contract as returned by GET /contracts/:id (the full detail response) */
 export interface Contract {
   id: string;
   projectId: string;
-  project?: Project;
+  project: {
+    id: string;
+    title: string;
+    status: ProjectStatus;
+    company: ContractCompanyInfo;
+    proposals: Array<{
+      developer: ContractDeveloperInfo;
+    }>;
+  };
   milestones: Milestone[];
+  reviews: Review[];
   status: ContractStatus;
   platformFee: number;
   disputeReason?: string;
@@ -130,6 +220,8 @@ export interface Contract {
   disputeOutcome?: 'dev_wins' | 'company_wins' | 'mutual';
   createdAt: string;
 }
+
+// ─── Messages ─────────────────────────────────────────────────────────────
 
 export type MessageType = 'TEXT' | 'EVENT' | 'PROPOSAL';
 export type MessageProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED';
@@ -148,6 +240,7 @@ export interface ContractMessage {
     deliveryLink?: string;
     reason?: string;
     amount?: string;
+    adminComment?: string;
     isCounter?: boolean;
     replyTo?: string;
     milestones?: Array<{ title: string; description?: string; amount: number; order: number }>;
@@ -160,6 +253,8 @@ export interface ContractMessage {
     developer?: { name: string } | null;
   };
 }
+
+// ─── Notifications ────────────────────────────────────────────────────────
 
 export type NotificationType =
   | 'PROPOSAL_RECEIVED'

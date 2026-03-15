@@ -1,7 +1,8 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
-import type { Project, Proposal, PaginatedResponse } from '@/types';
+import { getApiErrorMessage } from '@/lib/api-error';
+import type { Project, ProjectDetail, PaginatedResponse } from '@/types';
 import type { ProjectFormData } from '@/schemas/project.schema';
 
 export function useMyProjects(enabled = true) {
@@ -28,7 +29,7 @@ export function usePublicProjects(search?: string) {
 }
 
 export function useProject(id: string) {
-  return useQuery<Project & { proposals: Proposal[] }>({
+  return useQuery<ProjectDetail>({
     queryKey: ['project', id],
     queryFn: () => api.get(`/projects/${id}`).then((r) => r.data),
     enabled: !!id,
@@ -91,8 +92,7 @@ export function useRepublishProject(projectId: string) {
       toast.success('¡Proyecto republicado exitosamente!');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al republicar el proyecto');
+      toast.error(getApiErrorMessage(err, 'Error al republicar el proyecto'));
     },
   });
 }
@@ -107,8 +107,7 @@ export function useRevertToDraft(projectId: string) {
       toast.success('Proyecto convertido a borrador');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al convertir el proyecto');
+      toast.error(getApiErrorMessage(err, 'Error al convertir el proyecto'));
     },
   });
 }

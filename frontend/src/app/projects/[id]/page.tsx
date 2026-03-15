@@ -272,9 +272,9 @@ export default function PublicProjectDetailPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Publicado por</p>
             <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-md">
               <div className="flex items-center gap-3 mb-3">
-                {(project.company as { logoUrl?: string }).logoUrl ? (
+                {project.company.logoUrl ? (
                   <img
-                    src={(project.company as { logoUrl?: string }).logoUrl}
+                    src={project.company.logoUrl}
                     alt={project.company.name}
                     className="w-12 h-12 rounded-xl object-cover border border-gray-100"
                   />
@@ -292,28 +292,28 @@ export default function PublicProjectDetailPage() {
                       <CheckCircle size={14} className="text-blue-500 shrink-0" fill="currentColor" />
                     )}
                   </div>
-                  {(project.company as { industry?: string }).industry && (
+                  {project.company.industry && (
                     <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                      {(project.company as { industry?: string }).industry}
+                      {project.company.industry}
                     </span>
                   )}
-                  {((project.company as { clientRating?: number; clientReviewCount?: number }).clientRating ?? 0) > 0 && (
+                  {(project.company.clientRating ?? 0) > 0 && (
                     <div className="flex items-center gap-1 mt-1">
                       <Star size={11} className="fill-yellow-400 text-yellow-400" />
                       <span className="text-xs text-yellow-600 font-medium">
-                        {(project.company as { clientRating?: number }).clientRating?.toFixed(1)}
+                        {project.company.clientRating?.toFixed(1)}
                       </span>
                       <span className="text-xs text-gray-400">
-                        ({(project.company as { clientReviewCount?: number }).clientReviewCount} reseña{(project.company as { clientReviewCount?: number }).clientReviewCount !== 1 ? 's' : ''})
+                        ({project.company.clientReviewCount} reseña{project.company.clientReviewCount !== 1 ? 's' : ''})
                       </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {(project.company as { description?: string }).description && (
+              {project.company.description && (
                 <p className="text-xs text-gray-500 mb-3 line-clamp-3">
-                  {(project.company as { description?: string }).description}
+                  {project.company.description}
                 </p>
               )}
 
@@ -321,9 +321,9 @@ export default function PublicProjectDetailPage() {
                 {project.company.location && (
                   <div className="flex items-center gap-1.5"><MapPin size={11} />{project.company.location}</div>
                 )}
-                {(project.company as { website?: string }).website && (
+                {project.company.website && (
                   <a
-                    href={(project.company as { website?: string }).website}
+                    href={project.company.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-primary-600 hover:underline"
@@ -331,8 +331,8 @@ export default function PublicProjectDetailPage() {
                     <Globe size={11} /> Sitio web
                   </a>
                 )}
-                {(project.company as { size?: string }).size && (
-                  <div className="flex items-center gap-1.5"><Building2 size={11} />{(project.company as { size?: string }).size} empleados</div>
+                {project.company.size && (
+                  <div className="flex items-center gap-1.5"><Building2 size={11} />{project.company.size} empleados</div>
                 )}
               </div>
 

@@ -178,11 +178,7 @@ export default function AdminDisputeDetailPage() {
     );
   }
 
-  const contractExt = contract as typeof contract & { disputeReason?: string; disputeOpenedById?: string };
-  const project = contract.project as typeof contract.project & {
-    company?: { name?: string; userId?: string };
-    proposals?: Array<{ developer?: { name?: string; userId?: string } }>;
-  };
+  const project = contract.project;
   const companyName = project?.company?.name ?? 'Empresa';
   const devName = project?.proposals?.[0]?.developer?.name ?? 'Developer';
   const submittedCount = contract.milestones.filter((m) => m.status === 'SUBMITTED').length;
@@ -222,12 +218,12 @@ export default function AdminDisputeDetailPage() {
         {/* Left: Chat */}
         <div className="space-y-4">
           {/* Dispute reason */}
-          {contractExt.disputeReason && (
+          {contract.disputeReason && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
               <ShieldAlert size={18} className="text-red-500 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-red-800">Motivo de la disputa</p>
-                <p className="text-sm text-red-700 mt-0.5">{contractExt.disputeReason}</p>
+                <p className="text-sm text-red-700 mt-0.5">{contract.disputeReason}</p>
               </div>
             </div>
           )}

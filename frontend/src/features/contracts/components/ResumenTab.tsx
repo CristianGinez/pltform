@@ -58,10 +58,10 @@ export function CompletionOverlay({ contract, currentUserId, alreadyReviewed, sk
 
   if (dismissed || (alreadyReviewed && phase === 'done')) return null;
 
-  const isCompany = (contract.project as { company?: { userId?: string } })?.company?.userId === currentUserId;
+  const isCompany = contract.project?.company?.userId === currentUserId;
   const otherName = isCompany
-    ? ((contract.project as { proposals?: Array<{ developer?: { name?: string } }> })?.proposals?.[0]?.developer?.name ?? 'el developer')
-    : ((contract.project as { company?: { name?: string } })?.company?.name ?? 'la empresa');
+    ? (contract.project?.proposals?.[0]?.developer?.name ?? 'el developer')
+    : (contract.project?.company?.name ?? 'la empresa');
 
   const handleSubmitReview = () => {
     if (!rating) return;

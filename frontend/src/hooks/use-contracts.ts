@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import type { Contract, ContractMessage } from '@/types';
 
 export function useContract(id: string) {
@@ -21,8 +22,7 @@ export function useStartMilestone() {
       toast.success('Milestone iniciado');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al iniciar el milestone');
+      toast.error(getApiErrorMessage(err, 'Error al iniciar el milestone'));
     },
   });
 }
@@ -49,8 +49,7 @@ export function useSubmitMilestone() {
       toast.success('Milestone entregado');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al entregar el milestone');
+      toast.error(getApiErrorMessage(err, 'Error al entregar el milestone'));
     },
   });
 }
@@ -65,8 +64,7 @@ export function useApproveMilestone() {
       toast.success('Milestone aprobado y pagado');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al aprobar el milestone');
+      toast.error(getApiErrorMessage(err, 'Error al aprobar el milestone'));
     },
   });
 }
@@ -91,8 +89,7 @@ export function useRequestRevision() {
       toast.success('Revisión solicitada');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al solicitar revisión');
+      toast.error(getApiErrorMessage(err, 'Error al solicitar revisión'));
     },
   });
 }
@@ -151,8 +148,7 @@ export function useProposeAction(contractId: string) {
       qc.invalidateQueries({ queryKey: ['contract-messages', contractId] });
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la propuesta');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la propuesta'));
     },
   });
 }
@@ -176,8 +172,7 @@ export function useRespondToProposal(contractId: string) {
       qc.invalidateQueries({ queryKey: ['contract', contractId] });
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al responder la propuesta');
+      toast.error(getApiErrorMessage(err, 'Error al responder la propuesta'));
     },
   });
 }
@@ -192,8 +187,7 @@ export function useSendProgressUpdate(contractId: string) {
       toast.success('Actualización enviada');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la actualización');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la actualización'));
     },
   });
 }
@@ -208,8 +202,7 @@ export function useMarkReadyForTesting(contractId: string) {
       toast.success('¡Listo para testing! La empresa fue notificada');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error');
+      toast.error(getApiErrorMessage(err, 'Error'));
     },
   });
 }
@@ -225,8 +218,7 @@ export function useOpenDispute(contractId: string) {
       toast.success('Disputa abierta. El equipo revisará tu caso.');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al abrir la disputa');
+      toast.error(getApiErrorMessage(err, 'Error al abrir la disputa'));
     },
   });
 }
@@ -242,8 +234,7 @@ export function useResolveDispute(contractId: string) {
       toast.success('Disputa resuelta');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al resolver la disputa');
+      toast.error(getApiErrorMessage(err, 'Error al resolver la disputa'));
     },
   });
 }
@@ -259,8 +250,7 @@ export function useForceApprove() {
       toast.success('Milestone aprobado automáticamente');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al forzar la aprobación');
+      toast.error(getApiErrorMessage(err, 'Error al forzar la aprobación'));
     },
   });
 }
@@ -275,8 +265,7 @@ export function useProposeCancel(contractId: string) {
       toast.success('Propuesta de cancelación enviada');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al proponer cancelación');
+      toast.error(getApiErrorMessage(err, 'Error al proponer cancelación'));
     },
   });
 }
@@ -292,8 +281,7 @@ export function useProposeMilestonePlan(contractId: string) {
       toast.success('Plan de milestones enviado. Esperando aprobación de la empresa.');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar el plan');
+      toast.error(getApiErrorMessage(err, 'Error al enviar el plan'));
     },
   });
 }
@@ -316,8 +304,7 @@ export function useCreateReview(contractId: string) {
       toast.success('¡Calificación enviada!');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la calificación');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la calificación'));
     },
   });
 }

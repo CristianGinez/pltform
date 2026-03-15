@@ -77,7 +77,7 @@ export default function ProjectsPage() {
       const budget = Number(p.budget);
       const matchMin = !budgetMin || budget >= Number(budgetMin);
       const matchMax = !budgetMax || budget <= Number(budgetMax);
-      const matchVerified = !onlyVerified || (p.company as { verified?: boolean }).verified;
+      const matchVerified = !onlyVerified || p.company.verified;
       return matchSearch && matchCat && matchMin && matchMax && matchVerified;
     });
 
@@ -236,7 +236,7 @@ export default function ProjectsPage() {
                       {p.company.name.charAt(0)}
                     </div>
                     <span className="text-xs text-gray-500 truncate">{p.company.name}</span>
-                    {(p.company as { verified?: boolean }).verified && <span className="text-[10px] text-green-600 shrink-0">✓</span>}
+                    {p.company.verified && <span className="text-[10px] text-green-600 shrink-0">✓</span>}
                   </div>
                   <p className="text-sm font-semibold text-gray-800 line-clamp-1 group-hover:text-primary-700">{p.title}</p>
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
@@ -271,9 +271,9 @@ export default function ProjectsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" id="projects-grid">
           {filtered.map((project) => {
-            const isNew = isNewProject((project as { createdAt?: string }).createdAt);
-            const companyVerified = (project.company as { verified?: boolean }).verified;
-            const clientRating = (project.company as { clientRating?: number }).clientRating ?? 0;
+            const isNew = isNewProject(project.createdAt);
+            const companyVerified = project.company.verified;
+            const clientRating = project.company.clientRating ?? 0;
 
             return (
               <div

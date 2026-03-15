@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/api-error';
 import type { Proposal } from '@/types';
 import type { ProposalFormData } from '@/schemas/proposal.schema';
 import { useAuthStore } from '@/store/auth.store';
@@ -24,8 +25,7 @@ export function useSubmitProposal(projectId: string) {
       toast.success('Propuesta enviada exitosamente');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? 'Error al enviar la propuesta');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la propuesta'));
     },
   });
 }
