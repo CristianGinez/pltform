@@ -10,14 +10,35 @@ import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  password: z
+    .string()
+    .min(8, 'Mínimo 8 caracteres')
+    .regex(PASSWORD_REGEX, 'Debe incluir mayúscula, minúscula y número'),
   role: z.enum(['COMPANY', 'DEVELOPER']),
 });
 
 type FormData = z.infer<typeof schema>;
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+  if (!pw) return { score: 0, label: '', color: '' };
+
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^a-zA-Z\d]/.test(pw)) score++;
+
+  if (score <= 2) return { score, label: 'Débil', color: 'bg-red-500' };
+  if (score <= 3) return { score, label: 'Regular', color: 'bg-yellow-500' };
+  if (score === 4) return { score, label: 'Buena', color: 'bg-blue-500' };
+  return { score, label: 'Fuerte', color: 'bg-green-500' };
+}
 
 function RegisterForm() {
   const router = useRouter();
@@ -37,6 +58,8 @@ function RegisterForm() {
   });
 
   const role = watch('role');
+  const password = watch('password');
+  const strength = getPasswordStrength(password ?? '');
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -127,6 +150,26 @@ function RegisterForm() {
                 className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
                 placeholder="Mínimo 8 caracteres"
               />
+              {password && (
+                <div className="mt-2">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          i <= strength.score ? strength.color : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className={`text-xs ${strength.score <= 2 ? 'text-red-500' : strength.score <= 3 ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {strength.label}
+                    </p>
+                    <p className="text-xs text-gray-400">Mayúscula, minúscula y número</p>
+                  </div>
+                </div>
+              )}
               {errors.password && (
                 <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
               )}
