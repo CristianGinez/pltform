@@ -3,11 +3,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
   app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
 
   const allowedOrigins = [
@@ -52,11 +54,12 @@ async function bootstrap() {
       data: { status: c.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED' },
     });
   }
-  if (stale.length > 0) console.log(`[startup] Synced ${stale.length} project(s) to match contract status`);
+  const logger = app.get(Logger);
+  if (stale.length > 0) logger.warn(`[startup] Synced ${stale.length} project(s) to match contract status`);
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
-  console.log(`Swagger docs:    http://localhost:${port}/api/docs`);
+  logger.log(`Backend running on http://localhost:${port}`);
+  logger.log(`Swagger docs:    http://localhost:${port}/api/docs`);
 }
 bootstrap();

@@ -7,6 +7,13 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SubmitMilestoneDto } from './dto/submit-milestone.dto';
+import { RequestRevisionDto } from './dto/request-revision.dto';
+import { SendMessageDto } from './dto/send-message.dto';
+import { ProposeActionDto } from './dto/propose-action.dto';
+import { RespondProposalDto } from './dto/respond-proposal.dto';
+import { OpenDisputeDto } from './dto/open-dispute.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @ApiTags('contracts')
 @ApiBearerAuth()
@@ -54,9 +61,9 @@ export class ContractsController {
     @Param('id') id: string,
     @Param('milestoneId') milestoneId: string,
     @CurrentUser() user: User,
-    @Body() body: { deliveryNote?: string; deliveryLink?: string },
+    @Body() dto: SubmitMilestoneDto,
   ) {
-    return this.contractsService.submitMilestone(id, milestoneId, user.id, body);
+    return this.contractsService.submitMilestone(id, milestoneId, user.id, dto);
   }
 
   @Patch(':id/milestones/:milestoneId/request-revision')
@@ -64,9 +71,9 @@ export class ContractsController {
     @Param('id') id: string,
     @Param('milestoneId') milestoneId: string,
     @CurrentUser() user: User,
-    @Body() body: { reason?: string },
+    @Body() dto: RequestRevisionDto,
   ) {
-    return this.contractsService.requestRevision(id, milestoneId, user.id, body);
+    return this.contractsService.requestRevision(id, milestoneId, user.id, dto);
   }
 
   @Patch(':id/milestones/:milestoneId/approve')
@@ -93,9 +100,9 @@ export class ContractsController {
   sendMessage(
     @Param('id') id: string,
     @CurrentUser() user: User,
-    @Body() body: { content: string },
+    @Body() dto: SendMessageDto,
   ) {
-    return this.contractsService.sendMessage(id, user.id, body.content);
+    return this.contractsService.sendMessage(id, user.id, dto.content);
   }
 
   @Post(':id/milestones/:milestoneId/propose')
@@ -103,9 +110,9 @@ export class ContractsController {
     @Param('id') id: string,
     @Param('milestoneId') milestoneId: string,
     @CurrentUser() user: User,
-    @Body() body: { action: string; deliveryNote?: string; deliveryLink?: string; reason?: string },
+    @Body() dto: ProposeActionDto,
   ) {
-    return this.contractsService.proposeAction(id, milestoneId, user.id, body as any);
+    return this.contractsService.proposeAction(id, milestoneId, user.id, dto as any);
   }
 
   @Post(':id/propose-cancel')
@@ -121,9 +128,9 @@ export class ContractsController {
     @Param('id') id: string,
     @Param('messageId') messageId: string,
     @CurrentUser() user: User,
-    @Body() body: { response: 'accept' | 'reject' | 'counter'; counter?: string },
+    @Body() dto: RespondProposalDto,
   ) {
-    return this.contractsService.respondToProposal(id, messageId, user.id, body);
+    return this.contractsService.respondToProposal(id, messageId, user.id, dto);
   }
 
   @Post(':id/milestones/:milestoneId/progress')
@@ -149,9 +156,9 @@ export class ContractsController {
   openDispute(
     @Param('id') id: string,
     @CurrentUser() user: User,
-    @Body() body: { reason: string },
+    @Body() dto: OpenDisputeDto,
   ) {
-    return this.contractsService.openDispute(id, user.id, body.reason);
+    return this.contractsService.openDispute(id, user.id, dto.reason);
   }
 
   @Patch(':id/resolve')
@@ -160,9 +167,9 @@ export class ContractsController {
   resolveDispute(
     @Param('id') id: string,
     @CurrentUser() user: User,
-    @Body() body: { outcome: 'dev_wins' | 'company_wins' | 'mutual'; adminComment?: string },
+    @Body() dto: ResolveDisputeDto,
   ) {
-    return this.contractsService.resolveDispute(id, user.id, body.outcome, body.adminComment);
+    return this.contractsService.resolveDispute(id, user.id, dto.outcome, dto.adminComment);
   }
 
   @Post(':id/milestone-plan')

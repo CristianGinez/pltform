@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { LoggerModule } from './common/logger/logger.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
@@ -16,12 +17,14 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { WebsocketsModule } from './modules/websockets/websockets.module';
+import { HealthModule } from './modules/health/health.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { REDIS_CLIENT } from './modules/redis/redis.constants';
 import configuration from './config/configuration';
 
 @Module({
   imports: [
+    LoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -50,6 +53,7 @@ import configuration from './config/configuration';
     UploadsModule,
     NotificationsModule,
     AdminModule,
+    HealthModule,
   ],
   providers: [
     {
