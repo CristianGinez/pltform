@@ -30,7 +30,7 @@ export default function LoginPage() {
   const onSubmit = async (data: FormData) => {
     try {
       const res = await api.post('/auth/login', data);
-      setAuth(res.data.access_token, res.data.user);
+      setAuth(res.data.access_token, res.data.refresh_token, res.data.user);
       toast.success('Sesión iniciada');
       router.push('/dashboard');
     } catch {
