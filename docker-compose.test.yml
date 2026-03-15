@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: pltform_postgres_test
+    environment:
+      POSTGRES_USER: pltform_test
+      POSTGRES_PASSWORD: pltform_test
+      POSTGRES_DB: pltform_test_db
+    ports:
+      - '5433:5432'
+    tmpfs:
+      - /var/lib/postgresql/data    # RAM disk — fast, no persistence needed
