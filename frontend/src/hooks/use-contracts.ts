@@ -101,7 +101,7 @@ export function useRequestRevision() {
 export function useContractMessages(contractId: string) {
   return useQuery<ContractMessage[]>({
     queryKey: ['contract-messages', contractId],
-    queryFn: () => api.get(`/contracts/${contractId}/messages`).then((r) => r.data),
+    queryFn: () => api.get(`/contracts/${contractId}/messages?limit=200`).then((r) => r.data.data),
     enabled: !!contractId,
     refetchInterval: 3_000,
     staleTime: 0,

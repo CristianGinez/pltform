@@ -8,6 +8,7 @@ import { ProjectStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { paginate } from '../../common/types/paginated';
 
 @Injectable()
 export class ProjectsService {
@@ -29,15 +30,34 @@ export class ProjectsService {
     });
   }
 
-  findAll(status: ProjectStatus = 'OPEN') {
-    return this.prisma.project.findMany({
-      where: { status },
+  async findAll(
+    status: ProjectStatus = 'OPEN',
+    options: { limit?: number; cursor?: string; search?: string } = {},
+  ) {
+    const { limit = 20, cursor, search } = options;
+
+    const where: Record<string, unknown> = { status };
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const items = await this.prisma.project.findMany({
+      where,
       include: {
         company: { select: { id: true, name: true, logoUrl: true, verified: true, location: true, clientRating: true, clientReviewCount: true } },
         _count: { select: { proposals: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 
   async findById(id: string) {

@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ContractAccessService } from './contract-access.service';
 import { SENDER_SELECT } from './contracts.types';
+import { paginate } from '../../common/types/paginated';
 
 @Injectable()
 export class ContractMessagesService {
@@ -12,14 +13,21 @@ export class ContractMessagesService {
     private access: ContractAccessService,
   ) {}
 
-  async getMessages(contractId: string, userId: string) {
+  async getMessages(contractId: string, userId: string, options: { limit?: number; cursor?: string } = {}) {
     await this.access.getContractWithAccess(contractId, userId);
-    return this.prisma.contractMessage.findMany({
+    const { limit = 50, cursor } = options;
+
+    const items = await this.prisma.contractMessage.findMany({
       where: { contractId },
       orderBy: { createdAt: 'asc' },
-      take: 200,
+      take: limit + 1,
       include: { sender: { select: SENDER_SELECT } },
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 
   async sendMessage(contractId: string, userId: string, content: string) {
@@ -96,14 +104,21 @@ export class ContractMessagesService {
     });
   }
 
-  async getMessagesAdmin(contractId: string) {
+  async getMessagesAdmin(contractId: string, options: { limit?: number; cursor?: string } = {}) {
     const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
     if (!contract) throw new NotFoundException('Contrato no encontrado');
-    return this.prisma.contractMessage.findMany({
+    const { limit = 50, cursor } = options;
+
+    const items = await this.prisma.contractMessage.findMany({
       where: { contractId },
       orderBy: { createdAt: 'asc' },
-      take: 200,
+      take: limit + 1,
       include: { sender: { select: SENDER_SELECT } },
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 }

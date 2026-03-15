@@ -96,8 +96,8 @@ export class ContractsService {
 
   // ─── Messages ─────────────────────────────────────────────────────────────
 
-  async getMessages(contractId: string, userId: string) {
-    return this.messages.getMessages(contractId, userId);
+  async getMessages(contractId: string, userId: string, options?: { limit?: number; cursor?: string }) {
+    return this.messages.getMessages(contractId, userId, options);
   }
 
   async sendMessage(contractId: string, userId: string, content: string) {
@@ -112,8 +112,8 @@ export class ContractsService {
     return this.messages.markReadyForTesting(contractId, milestoneId, userId);
   }
 
-  async getMessagesAdmin(contractId: string) {
-    return this.messages.getMessagesAdmin(contractId);
+  async getMessagesAdmin(contractId: string, options?: { limit?: number; cursor?: string }) {
+    return this.messages.getMessagesAdmin(contractId, options);
   }
 
   // ─── Disputes ─────────────────────────────────────────────────────────────

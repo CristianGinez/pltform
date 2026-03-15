@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, UseGuards, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -14,8 +14,12 @@ export class NotificationsController {
 
   @SkipThrottle()
   @Get()
-  findMine(@CurrentUser() u: { id: string }) {
-    return this.svc.findForUser(u.id);
+  findMine(
+    @CurrentUser() u: { id: string },
+    @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.svc.findForUser(u.id, { limit: Math.min(limit ?? 30, 100), cursor });
   }
 
   @Patch('read-all')
@@ -32,7 +36,10 @@ export class NotificationsController {
   @Get('admin')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  findAll() {
-    return this.svc.findAll();
+  findAll(
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.svc.findAll({ limit: Math.min(limit ?? 50, 200), cursor });
   }
 }

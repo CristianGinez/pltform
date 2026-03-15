@@ -192,3 +192,11 @@ export interface Notification {
   createdAt: string;
   user?: { email: string; role: Role };
 }
+
+// ─── Pagination ──────────────────────────────────────────────────────────────
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}

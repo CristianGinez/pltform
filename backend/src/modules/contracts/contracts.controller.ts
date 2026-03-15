@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
@@ -26,8 +26,12 @@ export class ContractsController {
   @Get(':id/messages/admin')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  getMessagesAdmin(@Param('id') id: string) {
-    return this.contractsService.getMessagesAdmin(id);
+  getMessagesAdmin(
+    @Param('id') id: string,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.contractsService.getMessagesAdmin(id, { limit: Math.min(limit ?? 50, 200), cursor });
   }
 
   @SkipThrottle()
@@ -76,8 +80,13 @@ export class ContractsController {
 
   @SkipThrottle()
   @Get(':id/messages')
-  getMessages(@Param('id') id: string, @CurrentUser() user: User) {
-    return this.contractsService.getMessages(id, user.id);
+  getMessages(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.contractsService.getMessages(id, user.id, { limit: Math.min(limit ?? 50, 200), cursor });
   }
 
   @Post(':id/messages')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,9 +27,26 @@ function isNewProject(createdAt?: string) {
 export default function ProjectsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { data: projects = [], isLoading } = usePublicProjects();
-
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    data: projectPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePublicProjects(debouncedSearch || undefined);
+
+  const projects = useMemo(
+    () => projectPages?.pages.flatMap((p) => p.data) ?? [],
+    [projectPages],
+  );
   const [categories, setCategories] = useState<string[]>([]);
   const [sort, setSort] = useState('newest');
   const [budgetMin, setBudgetMin] = useState('');
@@ -55,12 +72,7 @@ export default function ProjectsPage() {
 
   const filtered = useMemo(() => {
     let list = projects.filter((p) => {
-      const q = search.toLowerCase();
-      const matchSearch =
-        !search ||
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.skills.some((s) => s.toLowerCase().includes(q));
+      const matchSearch = true; // Search is now server-side
       const matchCat = categories.length === 0 || categories.includes(p.category ?? '');
       const budget = Number(p.budget);
       const matchMin = !budgetMin || budget >= Number(budgetMin);
@@ -75,7 +87,7 @@ export default function ProjectsPage() {
     // newest: default API order
 
     return list;
-  }, [projects, search, categories, budgetMin, budgetMax, onlyVerified, sort]);
+  }, [projects, categories, budgetMin, budgetMax, onlyVerified, sort]);
 
   const featured = useMemo(() =>
     projects.filter((p) => (p._count?.proposals ?? 0) === 0 && Number(p.budget) > 2000).slice(0, 3),
@@ -257,7 +269,7 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" id="projects-grid">
           {filtered.map((project) => {
             const isNew = isNewProject((project as { createdAt?: string }).createdAt);
             const companyVerified = (project.company as { verified?: boolean }).verified;
@@ -347,6 +359,19 @@ export default function ProjectsPage() {
             );
           })}
         </div>
+
+        {/* Load more */}
+        {hasNextPage && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="px-6 py-2.5 text-sm font-medium text-primary-600 bg-white border border-primary-200 rounded-lg hover:bg-primary-50 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {isFetchingNextPage ? 'Cargando...' : 'Cargar más proyectos'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

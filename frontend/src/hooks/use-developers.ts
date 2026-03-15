@@ -1,12 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { Developer } from '@/types';
+import type { Developer, PaginatedResponse } from '@/types';
 
-export function usePublicDevelopers(skill?: string) {
-  return useQuery<Developer[]>({
-    queryKey: ['public-developers', skill],
-    queryFn: () =>
-      api.get(`/developers${skill ? `?skill=${encodeURIComponent(skill)}` : ''}`).then((r) => r.data),
+export function usePublicDevelopers(options?: { skill?: string; search?: string }) {
+  return useInfiniteQuery<PaginatedResponse<Developer>>({
+    queryKey: ['public-developers', options?.skill, options?.search],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: '20' });
+      if (pageParam) params.set('cursor', pageParam as string);
+      if (options?.skill) params.set('skill', options.skill);
+      if (options?.search?.trim()) params.set('search', options.search.trim());
+      return api.get(`/developers?${params}`).then((r) => r.data);
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
 

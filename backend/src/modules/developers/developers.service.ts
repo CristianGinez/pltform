@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateDeveloperDto } from './dto/update-developer.dto';
+import { paginate } from '../../common/types/paginated';
 
 @Injectable()
 export class DevelopersService {
@@ -10,12 +11,20 @@ export class DevelopersService {
     private notifications: NotificationsService,
   ) {}
 
-  findAll(skill?: string) {
-    return this.prisma.developer.findMany({
-      where: {
-        available: true,
-        ...(skill ? { skills: { has: skill } } : {}),
-      },
+  async findAll(options: { skill?: string; limit?: number; cursor?: string; search?: string } = {}) {
+    const { skill, limit = 20, cursor, search } = options;
+
+    const where: Record<string, unknown> = { available: true };
+    if (skill) where.skills = { has: skill };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { bio: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const items = await this.prisma.developer.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -34,7 +43,13 @@ export class DevelopersService {
         warrantyDays: true,
       },
       orderBy: { rating: 'desc' },
+      take: limit + 1,
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 
   async findById(id: string) {

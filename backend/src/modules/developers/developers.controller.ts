@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { DevelopersService } from './developers.service';
@@ -15,8 +15,21 @@ export class DevelopersController {
 
   @Get()
   @ApiQuery({ name: 'skill', required: false })
-  findAll(@Query('skill') skill?: string) {
-    return this.developersService.findAll(skill);
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  findAll(
+    @Query('skill') skill?: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.developersService.findAll({
+      skill,
+      limit: Math.min(limit ?? 20, 100),
+      cursor,
+      search: search?.trim() || undefined,
+    });
   }
 
   @ApiBearerAuth()

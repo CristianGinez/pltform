@@ -5,7 +5,7 @@ import type { Notification } from '@/types';
 export function useNotifications() {
   return useQuery<Notification[]>({
     queryKey: ['notifications'],
-    queryFn: () => api.get('/notifications').then((r) => r.data),
+    queryFn: () => api.get('/notifications?limit=50').then((r) => r.data.data),
     refetchInterval: 5_000,
     staleTime: 0,
   });
@@ -30,7 +30,7 @@ export function useMarkAllRead() {
 export function useAdminNotifications() {
   return useQuery<Notification[]>({
     queryKey: ['notifications-admin'],
-    queryFn: () => api.get('/notifications/admin').then((r) => r.data),
+    queryFn: () => api.get('/notifications/admin?limit=50').then((r) => r.data.data),
     refetchInterval: 5_000,
     staleTime: 0,
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, Star, Trophy, Zap, TrendingUp, Users } from 'lucide-react';
 import { Navbar } from '@/components/ui/navbar';
 import { DevCard } from '@/components/ui/dev-card';
@@ -21,9 +21,26 @@ const SORT_OPTIONS = [
 ];
 
 export default function DevelopersPage() {
-  const { data: developers = [], isLoading } = usePublicDevelopers();
-
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    data: devPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePublicDevelopers({ search: debouncedSearch || undefined });
+
+  const developers = useMemo(
+    () => devPages?.pages.flatMap((p) => p.data) ?? [],
+    [devPages],
+  );
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [sort, setSort] = useState('default');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
@@ -45,11 +62,7 @@ export default function DevelopersPage() {
 
   const filtered = useMemo(() => {
     let list = developers.filter((d) => {
-      const q = search.toLowerCase();
-      const matchSearch = !search ||
-        d.name.toLowerCase().includes(q) ||
-        d.skills.some((s) => s.toLowerCase().includes(q)) ||
-        d.bio?.toLowerCase().includes(q);
+      const matchSearch = true; // Search is now server-side
       const matchSkills = selectedSkills.length === 0 ||
         selectedSkills.some((s) => d.skills.some((ds) => ds.toLowerCase().includes(s.toLowerCase())));
       const matchAvailable = !onlyAvailable || d.available;
@@ -63,7 +76,7 @@ export default function DevelopersPage() {
     else if (sort === 'rate_desc') list = [...list].sort((a, b) => Number(b.hourlyRate ?? 0) - Number(a.hourlyRate ?? 0));
 
     return list;
-  }, [developers, search, selectedSkills, onlyAvailable, onlyVerified, sort]);
+  }, [developers, selectedSkills, onlyAvailable, onlyVerified, sort]);
 
   // Top recommended: verified + high rating + available
   const recommended = useMemo(() =>
@@ -248,6 +261,19 @@ export default function DevelopersPage() {
             <DevCard key={dev.id} d={mapDev(dev)} />
           ))}
         </div>
+
+        {/* Load more */}
+        {hasNextPage && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="px-6 py-2.5 text-sm font-medium text-primary-600 bg-white border border-primary-200 rounded-lg hover:bg-primary-50 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {isFetchingNextPage ? 'Cargando...' : 'Cargar más desarrolladores'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

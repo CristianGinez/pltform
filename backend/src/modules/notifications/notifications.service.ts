@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { paginate } from '../../common/types/paginated';
 
 @Injectable()
 export class NotificationsService {
@@ -17,12 +18,19 @@ export class NotificationsService {
     return this.prisma.notification.create({ data });
   }
 
-  async findForUser(userId: string) {
-    return this.prisma.notification.findMany({
+  async findForUser(userId: string, options: { limit?: number; cursor?: string } = {}) {
+    const { limit = 30, cursor } = options;
+
+    const items = await this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit + 1,
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 
   async markRead(id: string, userId: string) {
@@ -39,11 +47,18 @@ export class NotificationsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.notification.findMany({
+  async findAll(options: { limit?: number; cursor?: string } = {}) {
+    const { limit = 50, cursor } = options;
+
+    const items = await this.prisma.notification.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: limit + 1,
       include: { user: { select: { email: true, role: true } } },
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : {}),
     });
+
+    return paginate(items, limit);
   }
 }

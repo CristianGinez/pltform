@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
-import type { Project, Proposal } from '@/types';
+import type { Project, Proposal, PaginatedResponse } from '@/types';
 import type { ProjectFormData } from '@/schemas/project.schema';
 
 export function useMyProjects(enabled = true) {
@@ -13,10 +13,17 @@ export function useMyProjects(enabled = true) {
   });
 }
 
-export function usePublicProjects() {
-  return useQuery<Project[]>({
-    queryKey: ['public-projects'],
-    queryFn: () => api.get('/projects?status=OPEN').then((r) => r.data),
+export function usePublicProjects(search?: string) {
+  return useInfiniteQuery<PaginatedResponse<Project>>({
+    queryKey: ['public-projects', search],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ status: 'OPEN', limit: '20' });
+      if (pageParam) params.set('cursor', pageParam as string);
+      if (search?.trim()) params.set('search', search.trim());
+      return api.get(`/projects?${params}`).then((r) => r.data);
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ProjectStatus, User } from '@prisma/client';
 import { ProjectsService } from './projects.service';
@@ -16,8 +16,20 @@ export class ProjectsController {
 
   @Get()
   @ApiQuery({ name: 'status', enum: ProjectStatus, required: false })
-  findAll(@Query('status') status?: ProjectStatus) {
-    return this.projectsService.findAll(status);
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  findAll(
+    @Query('status') status?: ProjectStatus,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.projectsService.findAll(status, {
+      limit: Math.min(limit ?? 20, 100),
+      cursor,
+      search: search?.trim() || undefined,
+    });
   }
 
   @Get('my')
